@@ -1,5 +1,7 @@
 using Lola.Api.Identity;
-using Lola.Application.Identity;
+using Lola.Application.Admin.Groups;
+using Lola.Application.Admin.Tenants;
+using Lola.Application.Admin.Users;
 using Lola.Application.Security;
 using Lola.Application.Tenancy;
 using Lola.Domain.Identity;

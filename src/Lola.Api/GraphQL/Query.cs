@@ -1,4 +1,4 @@
-using Lola.Application.Identity;
+using Lola.Application.Admin.Users;
 using Lola.Application.Messaging;
 using Lola.Application.Security;
 using Wolverine;

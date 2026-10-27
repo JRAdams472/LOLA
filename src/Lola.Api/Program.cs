@@ -48,7 +48,6 @@ builder.Services.AddOpenTelemetry()
 builder.Host.UseWolverine(opts =>
 {
     opts.Discovery.IncludeAssembly(typeof(Lola.Application.Messaging.PingQuery).Assembly);
-    opts.Discovery.IncludeType(typeof(Lola.Application.Identity.AdminHandlers));
     opts.Policies.AddMiddleware<Lola.Application.Behaviors.LogExecution>();
 });
 
