@@ -44,7 +44,8 @@ public sealed record LolaUser(
     string? PasswordHash,
     UserStatus Status,
     bool MfaEnabled,
-    string CreatedUtc);
+    string CreatedUtc,
+    string? MfaSecretRef = null);
 
 public sealed record LolaGroup(
     string Id,

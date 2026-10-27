@@ -12,6 +12,16 @@ public sealed class ProblemDetailsMiddleware(RequestDelegate next, ILogger<Probl
         {
             await next(context);
         }
+        catch (Application.Errors.DomainException dex)
+        {
+            context.Response.StatusCode = dex.Status;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            {
+                Status = dex.Status,
+                Title = dex.Message,
+                Type = $"https://httpstatuses.com/{dex.Status}"
+            }, options: null, contentType: "application/problem+json");
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled {Path}", context.Request.Path.Value);

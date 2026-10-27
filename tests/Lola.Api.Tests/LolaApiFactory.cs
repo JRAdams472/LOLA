@@ -36,19 +36,21 @@ public class LolaApiFactory : WebApplicationFactory<Program>
     /// under test is using (same singleton instance).
     public async Task<LolaUser> SeedUserAsync(
         string tenantId, string email, string password,
-        LolaRole role = LolaRole.LoanOfficer)
+        LolaRole role = LolaRole.LoanOfficer,
+        string? mfaSecretRef = "vault:dev-mfa-ref-1234",
+        string tenantStatus = "active")
     {
         var db = Services.GetRequiredService<ControlPlaneDb>();
         var registry = new TenantRegistry(db);
         await registry.InsertProvisioningAsync(
             tenantId, tenantId, $"Tenant {tenantId}", $"data/tenants/{tenantId}.db");
-        await registry.SetStatusAsync(tenantId, "active");
+        await registry.SetStatusAsync(tenantId, tenantStatus);
 
         var hasher = new Argon2PasswordHasher();
         var user = new LolaUser(
             $"u-{Guid.NewGuid():N}", tenantId, email, "Test User",
             hasher.Hash(password), UserStatus.Active, MfaEnabled: false,
-            "2026-10-27T00:00:00Z");
+            "2026-10-27T00:00:00Z", mfaSecretRef);
         var users = new UserDirectory(db);
         await users.InsertAsync(user);
 

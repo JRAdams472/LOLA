@@ -8,12 +8,14 @@ namespace Lola.Application.Tenancy;
 /// explicitly by provisioning/tests. There is deliberately no API
 /// that takes a raw tenant id at query time: the connection factory
 /// reads this scope, so no code path can name another tenant's file.
-public sealed record TenantScope(string TenantId, string DbPath, string DbKeyWrapped)
+public sealed record TenantScope(string TenantId, string DbPath, string? DbKeyWrapped)
 {
+    /// Carries whatever the registry row holds — a missing wrapped key
+    /// is legal here so control-plane-only endpoints work for tenants
+    /// whose data plane is not provisioned yet; the connection factory
+    /// throws at actual data-plane access.
     public static TenantScope From(TenantRecord tenant) =>
-        new(tenant.Id, tenant.DbPath,
-            tenant.DbKeyWrapped ?? throw new InvalidOperationException(
-                $"Tenant '{tenant.Id}' has no data-plane key — provisioning is incomplete."));
+        new(tenant.Id, tenant.DbPath, tenant.DbKeyWrapped);
 }
 
 public static class TenantContext
