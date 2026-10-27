@@ -61,9 +61,14 @@ This is **protected personal data**. These rules outrank convenience:
   `MPE-<n>-phase-<m>` (e.g. `MPE-71-phase-1`). Descriptive slugs allowed
   after the ticket: `MPE-70-openbao`.
 - **One PR per phase subticket (required)** — never batch phase tickets.
-- **Do not push commits directly to `main`.** Branches and PR titles must
-  start with the Linear ticket number: `MPE-71: Phase 1 — tenant vaults`.
+- **Never commit directly to `main`.** Every change — including bootstrap
+  and docs — lands on a ticket-prefixed branch via pull request. Branches
+  and PR titles must start with the Linear ticket number:
+  `MPE-71: Phase 1 — tenant vaults`.
 - **Do not open a PR without a Linear ticket.**
+- **Always pause after opening a PR.** Present the PR link + proof, then
+  wait for the user's explicit approval — never self-merge, never merge
+  on a schedule, never assume approval carries over between PRs.
 - Before opening a PR: `dotnet format --verify-no-changes`, `dotnet build`,
   `dotnet test`, and web `lint`/`typecheck`/`test`/`build` all green.
   Commit lockfiles (`packages.lock.json`, `package-lock.json`) — CI fails

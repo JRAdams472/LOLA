@@ -47,14 +47,16 @@ services:
     image: jaegertracing/all-in-one:1.62.0
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-    ports: ["16686:16686"]
+    # host :17686 — :16686 is claimed by a concurrently running ISPPr/MPEx
+    # stack; LOLA must coexist with them for integration work.
+    ports: ["17686:16686"]
 
   seq:
     image: datalust/seq:latest
     environment:
       ACCEPT_EULA: Y
       SEQ_FIRSTRUN_NOAUTHENTICATION: "true" # dev stack — no Seq login
-    ports: ["5341:80"]
+    ports: ["5441:80"] # host :5441 — :5341 claimed by sibling stacks
 
   # api:                        # M1 — ASP.NET Core (.NET 10)
   #   build: .
