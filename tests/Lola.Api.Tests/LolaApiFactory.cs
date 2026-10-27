@@ -1,5 +1,6 @@
 using Dapper;
 using Lola.Application.Identity;
+using Lola.Application.Security;
 using Lola.ControlPlane;
 using Lola.Domain.Identity;
 using Lola.Infrastructure.Identity;
@@ -28,8 +29,21 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             {
                 ["CONTROL_DB_PATH"] = Path.Combine(
                     Path.GetTempPath(), "lola-tests", $"control-{Guid.NewGuid():N}.db"),
-                ["OIDC_SEED_SVC_SECRET"] = "svc-secret-value"
+                ["OIDC_SEED_SVC_SECRET"] = "svc-secret-value",
+                ["TENANT_DATA_DIR"] = Path.Combine(
+                    Path.GetTempPath(), "lola-tests", "tenants")
             }));
+
+        // Provisioning's crypto steps are proven against real OpenBao in
+        // Lola.DataPlane.Tests; here they are stubbed so the API e2e is
+        // hermetic. OIDC client provisioning stays real (control-plane).
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<ITenantKeyManager>(new FakeKeyManager());
+            services.AddSingleton<ITenantDbProvisioner>(
+                new FakeTenantDbProvisioner(Path.Combine(
+                    Path.GetTempPath(), "lola-tests", "tenants")));
+        });
     }
 
     /// Seed a tenant + active user into the control-plane DB the app

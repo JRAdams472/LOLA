@@ -12,6 +12,16 @@ public sealed class ProblemDetailsMiddleware(RequestDelegate next, ILogger<Probl
         {
             await next(context);
         }
+        catch (ArgumentException aex)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = aex.Message,
+                Type = "https://httpstatuses.com/400"
+            }, options: null, contentType: "application/problem+json");
+        }
         catch (Application.Errors.DomainException dex)
         {
             context.Response.StatusCode = dex.Status;

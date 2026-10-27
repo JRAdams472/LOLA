@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Lola.Api.Identity;
+using Lola.Application.Admin.Borrowers;
 using Lola.Application.Admin.Groups;
 using Lola.Application.Admin.Tenants;
 using Lola.Application.Admin.Users;
@@ -25,6 +27,30 @@ public static class AdminEndpoints
             Results.Ok(await bus.InvokeMaskedAsync<IReadOnlyList<TenantAdminDto>>(
                 new GetTenantsQuery(), ct)))
             .RequireAuthorization(LolaPolicies.TenantAdmin);
+
+        // Tenant lifecycle (MPE-87): create is unscoped by definition —
+        // the tenant does not exist yet; status reads are own-tenant
+        // for user tokens or any-tenant for Service.
+        admin.MapPost("/tenants", async (
+                ProvisionTenantRequest body, IMessageBus bus, CancellationToken ct) =>
+            Results.Created($"/api/admin/tenants/{body.TenantId}",
+                await bus.InvokeMaskedAsync<ProvisionTenantResult>(
+                    new ProvisionTenantCommand(body.TenantId, body.Slug, body.DisplayName), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
+        admin.MapGet("/tenants/{id}", async (
+                string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
+            await GuardedStatus(id, ctx.User, async () => Results.Ok(
+                await bus.InvokeMaskedAsync<TenantAdminDto>(new GetTenantQuery(id), ct))))
+            .RequireAuthorization(LolaPolicies.AdminRead);
+
+        // Borrower invite — link returned once via the delivery seam.
+        admin.MapPost("/tenants/{id}/invites", async (
+                string id, InviteRequest body, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
+            await Guarded(id, async () => Results.Created($"/api/admin/tenants/{id}",
+                await bus.InvokeMaskedAsync<InviteCreatedResult>(new CreateInviteCommand(
+                    id, body.Email, ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct))))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
 
         admin.MapGet("/tenants/{id}/users", async (
                 string id, IMessageBus bus, CancellationToken ct) =>
@@ -96,6 +122,25 @@ public static class AdminEndpoints
         return await work();
     }
 
+    /// Tenant-status guard: a resolved tenant must match; a tid-less
+    /// principal (the global service client) must be Service —
+    /// user tokens always carry `tid`, so scope-less + non-Service
+    /// never reaches here through the AdminRead policy anyway.
+    private static async Task<IResult> GuardedStatus(
+        string tenantId, ClaimsPrincipal user, Func<Task<IResult>> work)
+    {
+        var scope = TenantContext.Current;
+        if (scope is not null)
+            return scope.TenantId == tenantId
+                ? await work()
+                : Results.Problem(statusCode: StatusCodes.Status403Forbidden,
+                    title: "request tenant does not match the resolved tenant");
+        return LolaPolicies.HasRole(user, Domain.Identity.LolaRole.Service)
+            ? await work()
+            : Results.Problem(statusCode: StatusCodes.Status403Forbidden,
+                title: "tenant status requires a tenant or service scope");
+    }
+
     private static IReadOnlyList<LolaRole> ParseRoles(IReadOnlyList<string>? roles)
         => (roles ?? [])
             .Select(r => Enum.TryParse<LolaRole>(r, ignoreCase: true, out var p)
@@ -110,4 +155,8 @@ public static class AdminEndpoints
         string Name, string? Description, IReadOnlyList<string>? Roles);
 
     public sealed record MemberRequest(string UserId);
+
+    public sealed record ProvisionTenantRequest(string TenantId, string Slug, string DisplayName);
+
+    public sealed record InviteRequest(string Email);
 }
