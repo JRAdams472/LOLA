@@ -50,4 +50,4 @@ blob-report/
 clients/*/e2e/.auth/
 
 # Secrets scanning artifacts
-.gitleaksignore
+gitleaks-report.json
