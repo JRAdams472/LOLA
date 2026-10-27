@@ -47,3 +47,6 @@ change locked decisions are defects — this procedure exists to catch them.
 - [ ] Branch/PR naming follows `MPE-<n>-phase-<m>`; one PR per subticket
 - [ ] Proof-of-completion plan: what logs/screenshots/CI runs prove each
       acceptance bullet
+- [ ] Plan ends with the **milestone hardening gate** (OWASP + app
+      hardening + ADR-drift review — findings comment on the ticket
+      before close) per `AGENTS.md`

@@ -68,6 +68,10 @@ branches) when scheduled. LOLA-Mn slugs carry ordering.
 ## Notes
 
 - Phase 0 (M0) ran under parent MPE-63; tickets were created at its end.
+- **Every milestone ends with a hardening gate** — OWASP + application
+  hardening + architecture/ADR review; findings post as a ticket comment
+  before the milestone can close (per `AGENTS.md`). M14 is the deep pass
+  across the whole system on top of the per-milestone gates.
 - Spec-folds applied vs. the original draft: fee engine elevated to its own
   milestone; `I*Service` adapter seams formalize the DTS-style pluggable
   requirement; "documents in a nosql data structure" = canonical MISMO
