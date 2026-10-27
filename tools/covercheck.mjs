@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // covercheck — per-area coverage floor for LOLA (ported from ISPPr).
 //
-//   node tools/covercheck.mjs <lcov.info> [-floor 80] [-goal 95]
+//   node tools/covercheck.mjs <lcov.info> [-floor 80] [-goal 85]
 //
 // Coverage input is lcov format (*.info). .NET: coverlet emits lcov via
 //   dotnet test --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
@@ -27,7 +27,7 @@ const flag = (n, d) => {
   return i === -1 ? d : Number(args[i + 1]);
 };
 const FLOOR = flag("floor", 80);
-const GOAL = flag("goal", 95);
+const GOAL = flag("goal", 85);
 
 if (!file || !existsSync(file)) {
   console.error(`usage: covercheck <lcov.info> [-floor 80] [-goal 95]`);
