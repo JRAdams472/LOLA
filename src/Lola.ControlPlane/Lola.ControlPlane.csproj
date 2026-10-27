@@ -12,6 +12,7 @@
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="dbup-sqlite" Version="6.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
+    <PackageReference Include="OpenIddict.Abstractions" Version="7.7.2" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
   </ItemGroup>
 
