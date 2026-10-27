@@ -4,7 +4,9 @@ COPY . .
 RUN dotnet publish src/Lola.Api/Lola.Api.csproj -c Release -o /app --no-self-contained
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
-RUN useradd -u 10001 -m lola && mkdir -p /app/data && chown lola:lola /app/data
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -u 10001 -m lola && mkdir -p /app/data && chown lola:lola /app/data
 USER lola
 WORKDIR /app
 COPY --from=build /app .
