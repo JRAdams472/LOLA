@@ -69,10 +69,12 @@ builder.Services.AddRateLimiter(options =>
         }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     // Credential-bearing endpoints get a strict per-IP partition —
-    // token grant + invite accept are the brute-force surface (MPE-87).
+    // token grant + invite accept + login are the brute-force surface
+    // (MPE-87/MPE-88). The path joins the key so each endpoint gets its
+    // own budget: a burst of logins can't starve token grants.
     options.AddPolicy("auth-tight", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            $"{ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"}|{ctx.Request.Path}",
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,

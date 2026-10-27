@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using Lola.Application.Identity;
 using Microsoft.AspNetCore;
@@ -128,7 +129,7 @@ public static class ConnectEndpoints
         app.MapGet("/account/login", (string? returnUrl) => Results.Content($"""
             <!doctype html><html><body>
             <form method="post" action="/account/login">
-              <input type="hidden" name="returnUrl" value="{returnUrl ?? "/"}" />
+              <input type="hidden" name="returnUrl" value="{WebUtility.HtmlEncode(returnUrl ?? "/")}" />
               <label>Email <input name="email" type="email" required /></label>
               <label>Password <input name="password" type="password" required /></label>
               <button type="submit">Sign in</button>
@@ -170,6 +171,6 @@ public static class ConnectEndpoints
             // Only local redirects — never an open redirect.
             return Results.Redirect(
                 returnUrl.StartsWith('/') ? returnUrl : "/");
-        });
+        }).RequireRateLimiting("auth-tight");
     }
 }
