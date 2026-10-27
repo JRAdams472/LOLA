@@ -81,9 +81,24 @@ token (the unique constraint is on `token_hash`, not email).
 
 ## Rates and limits
 
-- `auth-tight` partition: 10/min per IP on `/connect/token` and
-  `/api/invites/accept` (brute-force surface).
+- `auth-tight` partition: 10/min per IP **per endpoint** on
+  `/connect/token`, `/api/invites/accept`, and `/account/login`
+  (brute-force surface).
 - Global limiter: 200/min fixed window.
+
+## Deployment requirements
+
+- **TLS at the edge is mandatory (invariant 5).** The OpenIddict server
+  disables its own transport-security check because Kestrel sees plain
+  HTTP in dev/tests and behind a TLS-terminating proxy — tokens would
+  flow plaintext if the API were ever exposed over bare HTTP. Never
+  bind the API directly to an untrusted network without TLS in front.
+- **`lola.auth` session cookie** is `Secure` outside Development; the
+  same edge-TLS assumption applies.
+- **OpenAPI document** is served in Development only.
+- **Key material:** file-based dev keys under `data/oidc/` are not for
+  production — source signing/encryption keys from a KMS/HSM or mounted
+  secret via `options.AddSigningKey`/`AddEncryptionKey` (see above).
 
 ## Related docs
 
