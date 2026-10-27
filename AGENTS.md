@@ -11,6 +11,15 @@ Backend: C# / .NET 10, ASP.NET Core, **Dapper** + `Microsoft.Data.Sqlite`,
 Web: Next.js (App Router) + TypeScript. Dark UI theme: GitHub-dark palette
 (near-black surfaces, laser-blue accent) per sibling convention.
 
+## Architecture Decisions (locked — anti-drift)
+
+Locked decisions live in [`docs/adr/`](docs/adr/README.md) (ADR-0001…0010:
+language, Dapper/DbUp, SQLite-per-tenant, OpenBao, OpenIddict,
+document-store hybrid, adapter seams, masked-by-default, observability,
+workflow/coverage). **Milestone and phase plans must conform to them —
+see the `milestone-planning` skill.** Any proposed change requires an
+amended ADR + explicit user approval before code; never drift silently.
+
 ## Security Invariants (non-negotiable)
 
 This is **protected personal data**. These rules outrank convenience:
