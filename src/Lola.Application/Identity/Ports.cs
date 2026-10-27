@@ -21,6 +21,26 @@ public interface ITenantRegistry
     Task SetStatusAsync(string tenantId, string status, CancellationToken ct = default);
 }
 
+/// Control-plane user directory — auth identifiers only (MPE-67).
+public interface IUserDirectory
+{
+    Task<LolaUser?> FindByIdAsync(string id, CancellationToken ct = default);
+
+    /// Login-time lookup — email is unique PER TENANT, so a global
+    /// email search can span tenants; dev login resolves the row and
+    /// derives the tenant from it (multi-tenant same-email users get a
+    /// tenant hint later).
+    Task<LolaUser?> FindByEmailAsync(string email, CancellationToken ct = default);
+    Task<IReadOnlyList<LolaUser>> ListByTenantAsync(string tenantId, CancellationToken ct = default);
+
+    /// Effective roles = union over the user's groups' roles.
+    Task<IReadOnlyList<LolaRole>> RolesForUserAsync(string userId, CancellationToken ct = default);
+
+    Task InsertAsync(LolaUser user, CancellationToken ct = default);
+    Task UpdatePasswordAsync(string userId, string passwordHash, string status, CancellationToken ct = default);
+    Task SetStatusAsync(string userId, string status, CancellationToken ct = default);
+}
+
 /// Password hashing port — Argon2id (PHC strings) in Infrastructure.
 public interface IPasswordHasher
 {
