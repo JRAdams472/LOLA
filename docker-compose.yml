@@ -1,17 +1,38 @@
-# LOLA dev stack — M0 skeleton. api/web services land with M1/M10/M11.
+# LOLA dev stack — api/web services land with M1/M10/M11.
 services:
   openbao:
     # Secret/key management: transit engine (field-level PII encryption,
-    # per-tenant DEKs) + KV (vendor creds). DEV MODE — in-mem, root token
-    # `devroot`, sealed-state runbook required for anything real (M2).
+    # per-tenant DEKs) + KV (vendor creds). FILE BACKEND — survives
+    # `compose down`; openbao-init auto-unseals on start. Dev uses a
+    # 1-of-1 unseal share persisted to gitignored data/openbao/ —
+    # sealed-state ops (Shamir) are a runbook concern for real
+    # deployments: docs/openbao-runbook.md.
     image: openbao/openbao:latest
-    command: server -dev -dev-root-token-id=devroot -dev-listen-address=0.0.0.0:8200
+    command: server # entrypoint already passes -config=/openbao/config
     ports: ["8300:8200"] # host :8300 — api will take :8200
+    volumes:
+      - ./openbao/config:/openbao/config:ro
+      - openbao-data:/openbao/file
+    cap_add: [IPC_LOCK]
     healthcheck:
-      test: ["CMD-SHELL", "bao status -address=http://localhost:8200 || exit 1"]
+      test: ["CMD-SHELL", "bao status -address=http://localhost:8200 -format=json | grep -q '\"sealed\":false' || exit 1"]
       interval: 10s
       timeout: 3s
-      retries: 6
+      retries: 12
+
+  openbao-init:
+    # One-shot bootstrap: init → unseal → mount lola-transit → policy →
+    # scoped api token. Idempotent; secrets land in gitignored
+    # ./data/openbao (mounted read-only into api; also readable on the
+    # host for `dotnet run` / local tests).
+    image: openbao/openbao:latest
+    entrypoint: ["/bin/sh", "/init.sh"]
+    volumes:
+      - ./openbao/init.sh:/init.sh:ro
+      - ./data/openbao:/out
+    depends_on:
+      openbao:
+        condition: service_started
 
   minio:
     # Borrower document vault (M9). Community source-build continuation —
@@ -65,19 +86,32 @@ services:
     environment:
       CORS_ORIGIN: http://localhost:3200
       OPENBAO_ADDR: http://openbao:8200
+      OPENBAO_TOKEN_FILE: /run/openbao/api-token
       S3_ENDPOINT: http://minio:9000
       CLAMAV_ADDR: clamav:3310
       CONTROL_DB_PATH: /app/data/control.db
       SEQ_URL: http://seq
       OTEL_SERVICE_NAME: lola
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
-    volumes: [lola-data:/app/data]
+    volumes:
+      - lola-data:/app/data
+      - ./data/openbao:/run/openbao:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8200/healthz || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 12
-    depends_on: [openbao, minio, clamav, jaeger, seq]
+    depends_on:
+      openbao-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      clamav:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      seq:
+        condition: service_started
 
   # web-officer:                # M10 — Next.js officer console (:3200)
   # web-borrower:               # M11 — Next.js borrower portal (:3300)
@@ -85,3 +119,4 @@ services:
 volumes:
   minio-data:
   lola-data:
+  openbao-data:
