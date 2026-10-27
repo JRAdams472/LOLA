@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using HotChocolate.AspNetCore;
 using Lola.Api.Admin;
 using Lola.Api.Identity;
+using Lola.Api.Invites;
 using Lola.Api.Middleware;
 using Lola.Api.Observability;
 using Lola.Application.Identity;
@@ -67,6 +68,16 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(1)
         }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Credential-bearing endpoints get a strict per-IP partition —
+    // token grant + invite accept are the brute-force surface (MPE-87).
+    options.AddPolicy("auth-tight", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 var corsOrigin = builder.Configuration["CORS_ORIGIN"];
@@ -84,6 +95,9 @@ builder.Services.AddLolaCrypto(builder.Configuration);
 builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();
 builder.Services.AddSingleton<IUserDirectory, UserDirectory>();
 builder.Services.AddSingleton<IGroupDirectory, GroupDirectory>();
+builder.Services.AddSingleton<IInviteDirectory, InviteDirectory>();
+builder.Services.AddSingleton<IInviteDelivery, DevInviteDelivery>();
+builder.Services.AddSingleton<IServiceClientProvisioner, TenantServiceClientProvisioner>();
 builder.Services.AddSingleton<IRoleVisibilityMap, RoleVisibilityMap>();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 
@@ -170,6 +184,7 @@ builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningSe
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
     sp.GetRequiredService<ITenantDbProvisioner>(),
+    sp.GetRequiredService<IServiceClientProvisioner>(),
     builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants"));
 
 var app = builder.Build();
@@ -202,6 +217,7 @@ app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, Ca
 app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
 app.MapAdminEndpoints();
+app.MapInviteEndpoints();
 
 app.Run();
 

@@ -118,6 +118,17 @@ This is **protected personal data**. These rules outrank convenience:
   data-plane query is scoped to the resolved tenant file — there is no
   code path that can name another tenant's file.
 - SQLite pragmas applied on every data-plane connection open.
+- **Wolverine messages pair with their handlers** — never a single
+  `Handlers.cs`/`Messages.cs` grab-bag. Each message lives in its own
+  file with its handler and any response type unique to it, grouped in
+  a feature folder (`src/Lola.Application/<Feature>/<Slice>.cs`, e.g.
+  `Admin/Groups/CreateGroup.cs` = `CreateGroupCommand` +
+  `CreateGroupHandler`). Shared DTOs and guards get their own files in
+  the same folder (`GroupDto.cs`, `AdminGuards.cs` — guards `internal`).
+  Handler classes MUST end in exactly `Handler` or `Consumer` —
+  conventional discovery matches the suffix literally (`AdminHandlers`
+  is not discovered), and any failure is silent at invoke time, not
+  startup. Namespaces mirror the folders.
 - Web: App Router + React Query; typed fetch helpers in `lib/`; the API
   base URL comes from env (`NEXT_PUBLIC_API_URL`).
 - Boy-scout rule: fix trivial adjacent issues in a touched file when

@@ -33,6 +33,18 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
         return rows.Count == 1 ? rows[0].ToUser() : null;
     }
 
+    public async Task<LolaUser?> FindByEmailInTenantAsync(
+        string tenantId, string email, CancellationToken ct = default)
+    {
+        using var conn = db.Open();
+        var row = await conn.QuerySingleOrDefaultAsync<UserRow>(
+            new CommandDefinition(
+                $"SELECT {Columns} FROM users WHERE tenant_id = @tenantId " +
+                "AND lower(email) = lower(@email)",
+                new { tenantId, email }, cancellationToken: ct));
+        return row?.ToUser();
+    }
+
     public async Task<IReadOnlyList<LolaUser>> ListByTenantAsync(string tenantId, CancellationToken ct = default)
     {
         using var conn = db.Open();

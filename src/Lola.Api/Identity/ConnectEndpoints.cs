@@ -52,13 +52,17 @@ public static class ConnectEndpoints
 
             if (request.IsClientCredentialsGrantType())
             {
-                // Service account — no user behind it. Per-tenant svc
-                // clients carrying `tid` arrive with provisioning (P4).
+                // Service account — no user behind it. Per-tenant
+                // `svc-{tenant}` clients carry `tid` so their tokens
+                // scope to their own tenant's surfaces only (MPE-87).
                 var identity = new ClaimsIdentity(
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                 identity.AddClaim(new Claim(Claims.Subject, request.ClientId!));
                 identity.AddClaim(new Claim(Claims.Name, request.ClientId!));
                 identity.AddClaim(new Claim(Claims.Role, "Service"));
+                if (request.ClientId?.StartsWith("svc-", StringComparison.Ordinal) == true
+                    && request.ClientId.Length > 4)
+                    identity.AddClaim(new Claim("tid", request.ClientId[4..]));
                 identity.SetScopes(request.GetScopes());
                 identity.SetResources("lola");
                 foreach (var claim in identity.Claims)
@@ -94,7 +98,7 @@ public static class ConnectEndpoints
             return Results.Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "unsupported grant type");
-        });
+        }).RequireRateLimiting("auth-tight");
 
         // --- userinfo (passthrough) ------------------------------------
         app.MapGet("/connect/userinfo", (HttpContext ctx) =>

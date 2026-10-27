@@ -32,6 +32,7 @@ public interface IUserDirectory
     /// derives the tenant from it (multi-tenant same-email users get a
     /// tenant hint later).
     Task<LolaUser?> FindByEmailAsync(string email, CancellationToken ct = default);
+    Task<LolaUser?> FindByEmailInTenantAsync(string tenantId, string email, CancellationToken ct = default);
     Task<IReadOnlyList<LolaUser>> ListByTenantAsync(string tenantId, CancellationToken ct = default);
 
     /// Effective roles = union over the user's groups' roles.
@@ -84,9 +85,39 @@ public interface ITenantDbProvisioner
     Task<string> ProvisionFileAsync(TenantRecord tenant, CancellationToken ct = default);
 }
 
+/// Borrower/staff invite ledger (MPE-87). Tokens are stored as SHA-256
+/// hashes — the plaintext token exists only in the invite link.
+public interface IInviteDirectory
+{
+    Task InsertAsync(InviteRecord invite, CancellationToken ct = default);
+    Task<InviteRecord?> FindByTokenHashAsync(string tokenHash, CancellationToken ct = default);
+
+    /// Atomic single-use: sets used_utc only when still NULL; false
+    /// means another accept already consumed it.
+    Task<bool> MarkUsedAsync(string inviteId, string usedUtc, CancellationToken ct = default);
+}
+
+/// Delivery seam for invite links (ADR-0007): dev returns the link for
+/// the response; a real impl emails it. Either way the caller gets the
+/// Uri it can surface to the officer once.
+public interface IInviteDelivery
+{
+    Task<Uri> DeliverAsync(string email, string tenantId, string token, CancellationToken ct = default);
+}
+
+/// Per-tenant downstream service credentials (MPE-87): creates the
+/// `svc-{tenant}` client_credentials OIDC client. Idempotent — an
+/// existing client yields a null secret (it is only plaintext once).
+public interface IServiceClientProvisioner
+{
+    Task<ServiceClientResult> EnsureAsync(string tenantId, CancellationToken ct = default);
+}
+
+public sealed record ServiceClientResult(string ClientId, string? PlaintextSecret);
+
 /// Tenant provisioning job (MPE-67): registry row → transit keys →
-/// SQLCipher file → downstream client creds (Phase 4 step). Steps are
-/// idempotent — re-running after a failure resumes, not duplicates.
+/// SQLCipher file → downstream client creds. Steps are idempotent —
+/// re-running after a failure resumes, not duplicates.
 public interface ITenantProvisioner
 {
     Task<ProvisionResult> ProvisionAsync(ProvisionRequest request, CancellationToken ct = default);
@@ -94,4 +125,6 @@ public interface ITenantProvisioner
 
 public sealed record ProvisionRequest(string TenantId, string Slug, string DisplayName);
 
-public sealed record ProvisionResult(TenantRecord Tenant, IReadOnlyList<string> StepsCompleted);
+public sealed record ProvisionResult(
+    TenantRecord Tenant, IReadOnlyList<string> StepsCompleted,
+    string? ServiceClientId = null, string? ServiceClientSecret = null);

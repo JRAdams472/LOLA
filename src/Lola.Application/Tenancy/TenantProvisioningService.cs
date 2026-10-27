@@ -10,15 +10,15 @@ namespace Lola.Application.Tenancy;
 ///   KeysStep      → transit DEK + index key (idempotent ensure)
 ///   DataFileStep  → SQLCipher file + wrapped file key on the row
 ///   ActivateStep  → status=active
+///   SvcClientStep → `svc-{tenant}` client-credentials OIDC client
 /// A row left in `provisioning` IS the failure state — there is no
 /// 'failed' status because every step is safe to re-run: the next
-/// ProvisionAsync call resumes where the last one stopped. The
-/// downstream client-credentials step (Phase 4) appends here without
-/// changing this contract.
+/// ProvisionAsync call resumes where the last one stopped.
 public sealed class TenantProvisioningService(
     ITenantRegistry registry,
     ITenantKeyManager keys,
     ITenantDbProvisioner dataPlane,
+    IServiceClientProvisioner svcClients,
     string tenantDataDir = "data/tenants") : ITenantProvisioner
 {
     public async Task<ProvisionResult> ProvisionAsync(
@@ -58,7 +58,12 @@ public sealed class TenantProvisioningService(
             steps.Add("activate");
         }
 
+        // Downstream service credentials — idempotent; the secret is
+        // plaintext exactly once, on first creation.
+        var svc = await svcClients.EnsureAsync(tenantId, ct);
+        steps.Add("svc-client");
+
         tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
-        return new ProvisionResult(tenant, steps);
+        return new ProvisionResult(tenant, steps, svc.ClientId, svc.PlaintextSecret);
     }
 }

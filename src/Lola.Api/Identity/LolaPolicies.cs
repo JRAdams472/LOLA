@@ -15,6 +15,13 @@ public static class LolaPolicies
     /// the role→visibility map still masks per class (ADR-0008).
     public const string AdminRead = "admin-read";
 
+    /// TenantAdmin + Service — tenant lifecycle (provision + status).
+    public const string Provision = "tenant-provision";
+
+    /// TenantAdmin + LoanOfficer — staff mutations inside a tenant
+    /// (borrower invites).
+    public const string TenantStaff = "tenant-staff";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(TenantAdmin, p => p.RequireAssertion(
@@ -24,6 +31,14 @@ public static class LolaPolicies
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer,
                 Domain.Identity.LolaRole.Service)));
+        options.AddPolicy(Provision, p => p.RequireAssertion(
+            ctx => HasRole(ctx.User,
+                Domain.Identity.LolaRole.TenantAdmin,
+                Domain.Identity.LolaRole.Service)));
+        options.AddPolicy(TenantStaff, p => p.RequireAssertion(
+            ctx => HasRole(ctx.User,
+                Domain.Identity.LolaRole.TenantAdmin,
+                Domain.Identity.LolaRole.LoanOfficer)));
     }
 
     public static bool HasRole(ClaimsPrincipal user, params Domain.Identity.LolaRole[] roles)

@@ -29,7 +29,13 @@ invariants in [`AGENTS.md`](AGENTS.md) and the megaplan in
 
 ## Status
 
-Bootstrap — see milestone tickets under megaplan **MPE-63**.
+Control plane live — OIDC login (PKCE + client credentials), tenant
+provisioning with per-tenant SQLCipher files, role→visibility masking
+on every response, borrower invites, and admin tenant/user/group
+management. See milestone tickets under megaplan **MPE-63**.
+
+Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
+[`docs/identity-runbook.md`](docs/identity-runbook.md)
 
 ## Observability
 
