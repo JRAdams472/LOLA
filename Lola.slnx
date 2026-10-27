@@ -10,5 +10,6 @@
     <Project Path="tests/Lola.Api.Tests/Lola.Api.Tests.csproj" />
     <Project Path="tests/Lola.ControlPlane.Tests/Lola.ControlPlane.Tests.csproj" />
     <Project Path="tests/Lola.Domain.Tests/Lola.Domain.Tests.csproj" />
+    <Project Path="tests/Lola.Infrastructure.Tests/Lola.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

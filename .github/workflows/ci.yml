@@ -42,8 +42,25 @@ jobs:
       - name: dotnet build
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         run: dotnet build -c Release
+      - name: Start OpenBao (dev mode — ephemeral test backend)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # Detached container, same pattern as the SonarQube job. Dev mode
+        # is correct here: ephemeral test infra, root token only, no data.
+        # Lola.Infrastructure.Tests hard-requires a real transit engine.
+        run: |
+          docker run -d --name openbao -p 8200:8200 \
+            openbao/openbao:latest \
+            server -dev -dev-root-token-id=devroot -dev-listen-address=0.0.0.0:8200
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8200/v1/sys/seal-status >/dev/null && exit 0
+            sleep 1
+          done
+          echo "openbao did not come up"; docker logs openbao --tail 30; exit 1
       - name: dotnet test (coverage)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        env:
+          OPENBAO_ADDR: http://localhost:8200
+          OPENBAO_TOKEN: devroot
         run: >
           dotnet test -c Release --collect:"XPlat Code Coverage" --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov

@@ -22,4 +22,9 @@ public sealed class PiiClassAttribute : Attribute
     public PiiClassAttribute(PiiClass classification) => Class = classification;
 
     public PiiClass Class { get; }
+
+    /// Searchable PII additionally emits a `<name>Idx` blind-index
+    /// parameter (HMAC of the normalized value) so equality search works
+    /// while the stored value stays randomized ciphertext.
+    public bool Searchable { get; init; }
 }

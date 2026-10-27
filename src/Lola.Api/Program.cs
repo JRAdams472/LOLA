@@ -4,6 +4,8 @@ using HotChocolate.AspNetCore;
 using Lola.Api.Middleware;
 using Lola.Api.Observability;
 using Lola.ControlPlane;
+using Lola.Infrastructure;
+using Lola.Infrastructure.OpenBao;
 using Microsoft.AspNetCore.OpenApi;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -68,6 +70,8 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 builder.Services.AddSingleton(sp => new ControlPlaneDb(
     ControlPlaneDb.ResolvePath(sp.GetRequiredService<IConfiguration>()["CONTROL_DB_PATH"])));
 
+builder.Services.AddLolaCrypto(builder.Configuration);
+
 var app = builder.Build();
 app.Services.GetRequiredService<ControlPlaneDb>().Migrate();
 var version = Assembly.GetExecutingAssembly()
@@ -80,12 +84,15 @@ app.UseCors();
 
 app.MapOpenApi();
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
-app.MapGet("/api/health", (ControlPlaneDb db) =>
+app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, CancellationToken ct) =>
 {
     var dbUp = db.Healthy();
-    return dbUp
-        ? Results.Ok(new { service = "lola", version, db = "up" })
-        : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "control-plane database unreachable");
+    var baoStatus = await bao.SealProbeAsync(ct);
+    var up = dbUp && baoStatus is "unsealed" or "unconfigured";
+    return up
+        ? Results.Ok(new { service = "lola", version, db = "up", bao = baoStatus })
+        : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: dbUp ? $"openbao {baoStatus}" : "control-plane database unreachable");
 });
 app.MapGraphQL("/graphql");
 

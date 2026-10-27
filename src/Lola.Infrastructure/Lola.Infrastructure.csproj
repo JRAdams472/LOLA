@@ -2,6 +2,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lola.Application\Lola.Application.csproj" />
+    <ProjectReference Include="..\Lola.Domain\Lola.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
   </ItemGroup>
 
   <PropertyGroup>
