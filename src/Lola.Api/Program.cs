@@ -112,6 +112,11 @@ builder.Services.AddAuthentication(
         o.Cookie.Name = "lola.auth";
         o.Cookie.HttpOnly = true;
         o.Cookie.SameSite = SameSiteMode.Lax;
+        // The session cookie must never ride plain HTTP outside dev —
+        // edge TLS (invariant 5) makes Always safe in deployed envs.
+        o.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         o.SlidingExpiration = true;
     });
 builder.Services.AddOpenIddict()
@@ -202,7 +207,9 @@ app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-app.MapOpenApi();
+// The API schema is dev-only — no reason to enumerate every route and
+// shape publicly in deployed environments (MPE-89).
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, CancellationToken ct) =>
 {
