@@ -8,6 +8,7 @@ obj/
 [Rr]elease/
 *.nupkg
 msbuild.log
+TestResults/
 
 # Node / Next.js
 node_modules/
