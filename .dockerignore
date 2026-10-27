@@ -1,0 +1,7 @@
+.git
+data/
+**/bin
+**/obj
+**/node_modules
+clients/
+.github/

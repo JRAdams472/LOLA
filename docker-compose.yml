@@ -58,17 +58,23 @@ services:
       SEQ_FIRSTRUN_NOAUTHENTICATION: "true" # dev stack — no Seq login
     ports: ["5441:80"] # host :5441 — :5341 claimed by sibling stacks
 
-  # api:                        # M1 — ASP.NET Core (.NET 10)
-  #   build: .
-  #   ports: ["8200:8200"]
-  #   environment:
-  #     OPENBAO_ADDR: http://openbao:8200
-  #     S3_ENDPOINT: http://minio:9000
-  #     CLAMAV_ADDR: clamav:3310
-  #     OTEL_SERVICE_NAME: lola
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
-  #     OTEL_LOGS_ENDPOINT: http://seq:5341/ingest/otlp
-  #   depends_on: [openbao, minio, clamav, jaeger, seq]
+  api:
+    build: .
+    ports: ["8200:8200"]
+    environment:
+      CORS_ORIGIN: http://localhost:3200
+      OPENBAO_ADDR: http://openbao:8200
+      S3_ENDPOINT: http://minio:9000
+      CLAMAV_ADDR: clamav:3310
+      OTEL_SERVICE_NAME: lola
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_LOGS_ENDPOINT: http://seq:5341/ingest/otlp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8200/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    depends_on: [openbao, minio, clamav, jaeger, seq]
 
   # web-officer:                # M10 — Next.js officer console (:3200)
   # web-borrower:               # M11 — Next.js borrower portal (:3300)

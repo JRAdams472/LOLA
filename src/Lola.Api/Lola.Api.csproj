@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lola.Application\Lola.Application.csproj" />
+    <ProjectReference Include="..\Lola.Infrastructure\Lola.Infrastructure.csproj" />
+    <ProjectReference Include="..\Lola.ControlPlane\Lola.ControlPlane.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HotChocolate.AspNetCore" Version="16.7.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+    <PackageReference Include="WolverineFx" Version="6.55.0" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.55.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

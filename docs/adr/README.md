@@ -16,3 +16,4 @@ user approval *before* code — never drift silently.
 | [0008](0008-masked-by-default.md) | Masked-by-default + role→visibility masking layer |
 | [0009](0009-observability-no-pii.md) | OTel→Seq/Jaeger; zero PII in logs/traces |
 | [0010](0010-workflow-coverage.md) | PR-only + pause-after-PR; coverage 80%/module, 85% goal |
+| [0011](0011-ingress-surfaces.md) | REST + in-process HotChocolate GraphQL over one mediator |
