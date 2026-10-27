@@ -1,0 +1,6 @@
+# Keep POSIX-executed files LF on Windows checkouts (autocrlf=true
+# otherwise injects CRLF and busybox sh chokes on `set -eu\r`).
+*.sh        text eol=lf
+*.sql       text eol=lf
+*.hcl       text eol=lf
+Dockerfile  text eol=lf

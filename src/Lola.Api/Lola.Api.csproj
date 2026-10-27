@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Lola.Application\Lola.Application.csproj" />
     <ProjectReference Include="..\Lola.Infrastructure\Lola.Infrastructure.csproj" />
     <ProjectReference Include="..\Lola.ControlPlane\Lola.ControlPlane.csproj" />
+    <ProjectReference Include="..\Lola.DataPlane\Lola.DataPlane.csproj" />
   </ItemGroup>
 
   <ItemGroup>

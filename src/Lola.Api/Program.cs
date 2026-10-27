@@ -3,8 +3,13 @@ using System.Threading.RateLimiting;
 using HotChocolate.AspNetCore;
 using Lola.Api.Middleware;
 using Lola.Api.Observability;
+using Lola.Application.Identity;
+using Lola.Application.Security;
+using Lola.Application.Tenancy;
 using Lola.ControlPlane;
+using Lola.DataPlane;
 using Lola.Infrastructure;
+using Lola.Infrastructure.Identity;
 using Lola.Infrastructure.OpenBao;
 using Microsoft.AspNetCore.OpenApi;
 using OpenTelemetry.Resources;
@@ -71,6 +76,15 @@ builder.Services.AddSingleton(sp => new ControlPlaneDb(
     ControlPlaneDb.ResolvePath(sp.GetRequiredService<IConfiguration>()["CONTROL_DB_PATH"])));
 
 builder.Services.AddLolaCrypto(builder.Configuration);
+builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();
+builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
+builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
+builder.Services.AddScoped<TenantConnectionFactory>();
+builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
+    sp.GetRequiredService<ITenantRegistry>(),
+    sp.GetRequiredService<ITenantKeyManager>(),
+    sp.GetRequiredService<ITenantDbProvisioner>(),
+    builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants"));
 
 var app = builder.Build();
 app.Services.GetRequiredService<ControlPlaneDb>().Migrate();

@@ -15,7 +15,14 @@ public sealed class ControlPlaneDb
 {
     public const string DefaultPath = "data/control.db";
 
-    static ControlPlaneDb() => Batteries_V2.Init();
+    // Explicit provider: BOTH bundle_e_sqlite3 (plain) and bundle_e_
+    // sqlcipher can ride the package graph (e.g. Microsoft.Data.Sqlite
+    // pulls the plain one); Batteries_V2.Init() would bind whichever
+    // batteries assembly wins NuGet resolution — silently. SetProvider
+    // makes the SQLCipher engine deterministic. Plaintext DBs (control
+    // plane today) still open unkeyed under this engine.
+    static ControlPlaneDb() =>
+        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_e_sqlcipher());
 
     private readonly string _connectionString;
 

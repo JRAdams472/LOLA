@@ -74,6 +74,9 @@ POLICY
 echo "openbao-init: minting lola-api token"
 bao token create -policy=lola-api -period=24h \
   | sed -n 's/^token  *//p' | tr -d '[:space:]' > "$OUT_DIR/api-token"
-chmod 600 "$OUT_DIR/api-token"
+# Mode 644: Windows bind mounts can't chown, so the non-root api
+# (uid 10001) needs world-read on this scoped dev token. The root
+# token + unseal key stay 600 — only this scoped token is readable.
+chmod 644 "$OUT_DIR/api-token"
 
 echo "openbao-init: done"
