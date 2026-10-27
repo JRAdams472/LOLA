@@ -8,7 +8,10 @@ using Wolverine;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseWolverine(opts =>
-    opts.Policies.AddMiddleware<Lola.Application.Behaviors.LogExecution>());
+{
+    opts.Discovery.IncludeAssembly(typeof(Lola.Application.Messaging.PingQuery).Assembly);
+    opts.Policies.AddMiddleware<Lola.Application.Behaviors.LogExecution>();
+});
 
 builder.Services.AddOpenApi();
 builder.Services
