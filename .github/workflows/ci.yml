@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Cancel stale runs on the same ref — only the latest push matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: Secrets — gitleaks scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        # Docker image run — no license key required (unlike the action).
+        run: >
+          docker run --rm -v "$PWD:/repo"
+          zricethezav/gitleaks:latest
+          detect --source /repo --redact --verbose
+
+  dotnet:
+    name: .NET — format / build / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@e7e0b8f7d75e7cb7fd1ddac8b6f4e2e61bf6c5ee # v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: dotnet format
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        run: dotnet format --verify-no-changes
+      - name: dotnet build
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        run: dotnet build -c Release
+      - name: dotnet test (coverage)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        run: dotnet test -c Release --collect:"XPlat Code Coverage"
+
+  web:
+    name: Web — lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: clients/web/package-lock.json
+      - name: lint / typecheck / test / build
+        if: ${{ hashFiles('clients/web/package.json') != '' }}
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+
+  sonarqube:
+    name: SonarQube — scan + quality gate
+    needs: [dotnet, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # blame + new-code detection need history
+      - name: Start SonarQube
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        run: |
+          docker run -d --name sonarqube -p 9000:9000 \
+            -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
+            sonarqube:community
+          for i in $(seq 1 90); do
+            s=$(curl -sf http://localhost:9000/api/system/status | grep -o '"status":"[A-Z_]*"' | cut -d'"' -f4 || true)
+            [ "$s" = "UP" ] && exit 0
+            [ "$s" = "DOWN" -o "$s" = "DB_MIGRATION_NEEDED" ] && { docker logs sonarqube --tail 50; exit 1; }
+            sleep 4
+          done
+          docker logs sonarqube --tail 80; exit 1
+      - name: Scanner token + scan + quality gate
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        run: |
+          token=$(curl -sf -u admin:admin \
+            -X POST http://localhost:9000/api/user_tokens/generate?name=ci \
+            | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+          [ -n "$token" ] || { echo "token generation failed"; exit 1; }
+          docker run --rm --network host \
+            -e SONAR_TOKEN=$token \
+            -e SONAR_HOST_URL=http://localhost:9000 \
+            -v "$PWD:/usr/src" \
+            sonarsource/sonar-scanner-cli

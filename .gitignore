@@ -1,0 +1,53 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Dd]ebug/
+[Rr]elease/
+*.nupkg
+msbuild.log
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env / local
+.env
+.env.local
+.env.*.local
+
+# Tenant data — NEVER commit tenant SQLite files or backups.
+# These files contain ciphertext PII but are data artifacts, not source.
+data/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.playwright-mcp/
+
+# Devin local MCP config (contains secrets)
+.devin/mcp_config.local.json
+.devin/config.local.json
+
+# Playwright e2e
+test-results/
+playwright-report/
+blob-report/
+clients/*/e2e/.auth/
+
+# Secrets scanning artifacts
+.gitleaksignore

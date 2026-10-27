@@ -1,0 +1,75 @@
+# LOLA dev stack — M0 skeleton. api/web services land with M1/M10/M11.
+services:
+  openbao:
+    # Secret/key management: transit engine (field-level PII encryption,
+    # per-tenant DEKs) + KV (vendor creds). DEV MODE — in-mem, root token
+    # `devroot`, sealed-state runbook required for anything real (M2).
+    image: openbao/openbao:latest
+    command: server -dev -dev-root-token-id=devroot -dev-listen-address=0.0.0.0:8200
+    ports: ["8300:8200"] # host :8300 — api will take :8200
+    healthcheck:
+      test: ["CMD-SHELL", "bao status -address=http://localhost:8200 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  minio:
+    # Borrower document vault (M9). Community source-build continuation —
+    # dev-only S3 stand-in.
+    image: ghcr.io/coollabsio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9200:9000", "9201:9001"] # host :9200/:9201 — ISPPr uses 9100/9101
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || curl -sf http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  clamav:
+    # Upload scanning for the document vault (M9): quarantine → scan → clean.
+    image: clamav/clamav:stable
+    ports: ["3310:3310"]
+    healthcheck:
+      test: ["CMD-SHELL", "echo PING | nc localhost 3310 | grep -q PONG || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  # Observability — same convention as MPEx/ISPPr: traces → Jaeger
+  # (OTLP/gRPC :4317, UI :16686), structured logs → Seq (OTLP/HTTP :5341).
+  # The api exports only when OTEL_* env vars are set — exporter-free
+  # otherwise. PII NEVER enters logs/spans (invariant 3).
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports: ["16686:16686"]
+
+  seq:
+    image: datalust/seq:latest
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true" # dev stack — no Seq login
+    ports: ["5341:80"]
+
+  # api:                        # M1 — ASP.NET Core (.NET 10)
+  #   build: .
+  #   ports: ["8200:8200"]
+  #   environment:
+  #     OPENBAO_ADDR: http://openbao:8200
+  #     S3_ENDPOINT: http://minio:9000
+  #     CLAMAV_ADDR: clamav:3310
+  #     OTEL_SERVICE_NAME: lola
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+  #     OTEL_LOGS_ENDPOINT: http://seq:5341/ingest/otlp
+  #   depends_on: [openbao, minio, clamav, jaeger, seq]
+
+  # web-officer:                # M10 — Next.js officer console (:3200)
+  # web-borrower:               # M11 — Next.js borrower portal (:3300)
+
+volumes:
+  minio-data:
