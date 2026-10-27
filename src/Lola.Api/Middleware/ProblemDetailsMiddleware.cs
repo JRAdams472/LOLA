@@ -16,13 +16,12 @@ public sealed class ProblemDetailsMiddleware(RequestDelegate next, ILogger<Probl
         {
             logger.LogError(ex, "Unhandled {Path}", context.Request.Path.Value);
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            context.Response.ContentType = "application/problem+json";
             await context.Response.WriteAsJsonAsync(new ProblemDetails
             {
                 Status = StatusCodes.Status500InternalServerError,
                 Title = "Internal server error",
                 Type = "https://httpstatuses.com/500"
-            });
+            }, options: null, contentType: "application/problem+json");
         }
     }
 }

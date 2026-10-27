@@ -50,9 +50,8 @@ jobs:
       - name: coverage floor (80%/area)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         run: |
-          for f in $(find . -name "coverage.info" -o -name "*.lcov.info" | head -20); do
-            echo "=== $f ==="; node tools/covercheck.mjs "$f" || exit 1
-          done
+          mapfile -t files < <(find . -name "coverage.info" -o -name "*.lcov.info" | sort)
+          node tools/covercheck.mjs "${files[@]}"
 
   web:
     name: Web — lint / typecheck / test / build

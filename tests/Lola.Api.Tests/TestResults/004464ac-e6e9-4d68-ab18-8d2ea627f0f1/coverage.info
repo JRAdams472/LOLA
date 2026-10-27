@@ -1,0 +1,701 @@
+SF:C:\wip\LOLA\src\Lola.Api\Program.cs
+FN:7,System.Void Program::<Main>$(System.String[])
+FNDA:2,System.Void Program::<Main>$(System.String[])
+DA:8,2
+DA:10,2
+DA:11,2
+DA:12,2
+DA:13,2
+DA:14,4
+DA:16,2
+DA:17,2
+DA:18,2
+DA:19,2
+DA:20,2
+DA:21,4
+DA:23,2
+DA:24,2
+DA:25,2
+DA:26,8
+DA:27,8
+DA:28,8
+DA:29,8
+DA:30,8
+DA:31,2
+DA:32,4
+DA:34,2
+DA:35,4
+DA:36,4
+DA:37,2
+DA:38,0
+DA:39,6
+DA:41,2
+DA:42,2
+DA:43,2
+DA:45,2
+DA:46,2
+DA:47,2
+DA:48,2
+DA:50,2
+DA:51,4
+DA:52,3
+DA:53,2
+DA:55,2
+BRDA:42,267,0,0
+BRDA:42,267,1,2
+BRDA:42,279,0,0
+BRDA:42,279,1,2
+BRDA:35,8,0,2
+BRDA:35,8,1,2
+BRDA:37,11,0,0
+BRDA:37,11,1,2
+LF:40
+LH:39
+BRF:8
+BRH:5
+FNF:1
+FNH:1
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Api\obj\Release\net10.0\Microsoft.AspNetCore.OpenApi.SourceGenerators\Microsoft.AspNetCore.OpenApi.SourceGenerators.XmlCommentGenerator\OpenApiXmlCommentSupport.generated.cs
+FN:46,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Summary()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Summary()
+DA:47,0
+FN:47,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Description()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Description()
+DA:48,0
+FN:48,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Remarks()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Remarks()
+DA:49,0
+FN:49,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Returns()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Returns()
+DA:50,0
+FN:50,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Value()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Value()
+DA:51,0
+FN:51,System.Boolean Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Deprecated()
+FNDA:0,System.Boolean Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Deprecated()
+DA:52,0
+FN:52,System.Collections.Generic.List`1<System.String> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Examples()
+FNDA:0,System.Collections.Generic.List`1<System.String> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Examples()
+DA:53,0
+FN:53,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Parameters()
+FNDA:0,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Parameters()
+DA:54,0
+FN:54,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Responses()
+FNDA:0,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::get_Responses()
+DA:55,0
+FN:45,System.Void Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::.ctor(System.String,System.String,System.String,System.String,System.String,System.Boolean,System.Collections.Generic.List`1<System.String>,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment>,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment>)
+FNDA:0,System.Void Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment::.ctor(System.String,System.String,System.String,System.String,System.String,System.Boolean,System.Collections.Generic.List`1<System.String>,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment>,System.Collections.Generic.List`1<Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment>)
+DA:46,0
+FN:57,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment::get_Name()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlParameterComment::get_Name()
+DA:58,0
+FN:60,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment::get_Code()
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlResponseComment::get_Code()
+DA:61,0
+FN:66,System.Collections.Generic.Dictionary`2<System.String,Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentCache::get_Cache()
+FNDA:0,System.Collections.Generic.Dictionary`2<System.String,Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentCache::get_Cache()
+DA:67,0
+BRDA:67,6,0,0
+BRDA:67,6,1,0
+FN:70,System.Collections.Generic.Dictionary`2<System.String,Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentCache::GenerateCacheEntries()
+FNDA:0,System.Collections.Generic.Dictionary`2<System.String,Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlComment> Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentCache::GenerateCacheEntries()
+DA:71,0
+DA:74,0
+FN:86,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Type)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Type)
+DA:87,0
+DA:89,0
+DA:92,0
+BRDA:87,7,0,0
+BRDA:87,7,1,0
+FN:100,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Reflection.PropertyInfo)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Reflection.PropertyInfo)
+DA:101,0
+DA:103,0
+DA:106,0
+DA:107,0
+DA:109,0
+DA:111,0
+DA:114,0
+DA:115,0
+DA:118,0
+DA:119,0
+DA:121,0
+DA:122,0
+DA:124,0
+DA:126,0
+DA:129,0
+DA:131,0
+DA:134,0
+BRDA:101,7,0,0
+BRDA:101,7,1,0
+BRDA:109,50,0,0
+BRDA:109,50,1,0
+BRDA:119,103,0,0
+BRDA:122,161,1,0
+BRDA:124,120,0,0
+BRDA:124,120,1,0
+BRDA:122,161,0,0
+BRDA:119,103,1,0
+FN:142,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Type,System.String)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Type,System.String)
+DA:143,0
+DA:145,0
+DA:147,0
+DA:149,0
+DA:152,0
+DA:153,0
+DA:154,0
+DA:155,0
+DA:156,0
+DA:158,0
+BRDA:143,7,0,0
+BRDA:143,7,1,0
+BRDA:147,26,0,0
+BRDA:147,26,1,0
+FN:168,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Reflection.MethodInfo)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::CreateDocumentationId(System.Reflection.MethodInfo)
+DA:169,0
+DA:171,0
+DA:174,0
+DA:175,0
+DA:178,0
+DA:180,0
+DA:183,0
+DA:186,0
+DA:188,0
+DA:192,0
+DA:193,0
+DA:195,0
+DA:196,0
+DA:201,0
+DA:202,0
+DA:204,0
+DA:205,0
+DA:207,0
+DA:209,0
+DA:213,0
+DA:215,0
+DA:219,0
+DA:221,0
+DA:223,0
+DA:226,0
+BRDA:169,7,0,0
+BRDA:169,7,1,0
+BRDA:178,50,0,0
+BRDA:178,50,1,0
+BRDA:186,87,0,0
+BRDA:188,96,0,0
+BRDA:188,96,1,0
+BRDA:186,87,1,0
+BRDA:193,137,0,0
+BRDA:193,137,1,0
+BRDA:202,190,0,0
+BRDA:205,248,1,0
+BRDA:207,207,0,0
+BRDA:207,207,1,0
+BRDA:205,248,0,0
+BRDA:202,190,1,0
+BRDA:219,280,0,0
+BRDA:219,280,1,0
+FN:238,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::GetTypeDocId(System.Type,System.Boolean,System.Boolean)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::GetTypeDocId(System.Type,System.Boolean,System.Boolean)
+DA:239,0
+DA:242,0
+DA:244,0
+DA:246,0
+DA:248,0
+DA:252,0
+DA:256,0
+DA:258,0
+DA:259,0
+DA:261,0
+DA:264,0
+DA:266,0
+DA:267,0
+DA:269,0
+DA:271,0
+DA:277,0
+DA:281,0
+DA:283,0
+DA:284,0
+DA:285,0
+DA:288,0
+DA:290,0
+DA:291,0
+DA:293,0
+DA:295,0
+DA:297,0
+DA:300,0
+DA:303,0
+DA:306,0
+DA:310,0
+BRDA:239,6,0,0
+BRDA:242,20,0,0
+BRDA:242,20,1,0
+BRDA:246,59,0,0
+BRDA:246,59,1,0
+BRDA:239,6,1,0
+BRDA:256,99,0,0
+BRDA:259,118,0,0
+BRDA:259,118,1,0
+BRDA:264,201,1,0
+BRDA:267,159,0,0
+BRDA:267,159,1,0
+BRDA:271,176,0,0
+BRDA:271,176,1,0
+BRDA:264,201,0,0
+BRDA:281,204,0,0
+BRDA:281,204,1,0
+BRDA:288,250,0,0
+BRDA:288,258,0,0
+BRDA:293,327,1,0
+BRDA:295,285,0,0
+BRDA:295,285,1,0
+BRDA:293,327,0,0
+BRDA:288,250,1,0
+BRDA:288,258,1,0
+BRDA:256,99,1,0
+BRDA:310,352,0,0
+BRDA:310,352,1,0
+FN:321,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::NormalizeDocId(System.String)
+FNDA:0,System.String Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__DocumentationCommentIdHelper::NormalizeDocId(System.String)
+DA:322,0
+DA:323,0
+DA:326,0
+DA:331,0
+DA:333,0
+DA:337,0
+BRDA:323,11,0,0
+BRDA:323,11,1,0
+BRDA:331,26,0,0
+BRDA:331,26,1,0
+BRDA:331,39,0,0
+BRDA:331,39,1,0
+FN:345,System.Threading.Tasks.Task Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentOperationTransformer::TransformAsync(Microsoft.OpenApi.OpenApiOperation,Microsoft.AspNetCore.OpenApi.OpenApiOperationTransformerContext,System.Threading.CancellationToken)
+FNDA:0,System.Threading.Tasks.Task Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentOperationTransformer::TransformAsync(Microsoft.OpenApi.OpenApiOperation,Microsoft.AspNetCore.OpenApi.OpenApiOperationTransformerContext,System.Threading.CancellationToken)
+DA:346,0
+DA:347,0
+DA:348,0
+DA:350,0
+DA:352,0
+DA:354,0
+DA:356,0
+DA:358,0
+DA:360,0
+DA:362,0
+DA:364,0
+DA:366,0
+DA:368,0
+DA:370,0
+DA:372,0
+DA:373,0
+DA:374,0
+DA:376,0
+DA:377,0
+DA:378,0
+DA:380,0
+DA:382,0
+DA:386,0
+DA:387,0
+DA:389,0
+DA:390,0
+DA:392,0
+DA:393,0
+DA:397,0
+DA:399,0
+DA:407,0
+DA:409,0
+DA:410,0
+DA:413,0
+DA:415,0
+DA:417,0
+DA:418,0
+DA:420,0
+DA:425,0
+DA:427,0
+DA:428,0
+DA:429,0
+DA:430,0
+DA:431,0
+DA:433,0
+DA:434,0
+DA:436,0
+DA:437,0
+DA:438,0
+DA:440,0
+DA:442,0
+DA:444,0
+DA:446,0
+DA:448,0
+DA:450,0
+DA:451,0
+DA:453,0
+DA:454,0
+DA:458,0
+DA:459,0
+DA:461,0
+DA:467,0
+DA:468,0
+DA:470,0
+DA:471,0
+DA:473,0
+DA:480,0
+BRDA:346,18,0,0
+BRDA:346,18,1,0
+BRDA:350,56,0,0
+BRDA:350,56,1,0
+BRDA:354,87,0,0
+BRDA:356,100,0,0
+BRDA:356,100,1,0
+BRDA:360,119,0,0
+BRDA:360,119,1,0
+BRDA:364,139,0,0
+BRDA:364,139,1,0
+BRDA:368,159,0,0
+BRDA:368,172,0,0
+BRDA:370,508,1,0
+BRDA:373,249,0,0
+BRDA:373,249,1,0
+BRDA:374,277,0,0
+BRDA:378,323,0,0
+BRDA:378,323,1,0
+BRDA:374,277,1,0
+BRDA:387,373,0,0
+BRDA:390,410,0,0
+BRDA:392,414,0,0
+BRDA:392,414,1,0
+BRDA:392,427,0,0
+BRDA:392,427,1,0
+BRDA:393,442,0,0
+BRDA:397,485,1,0
+BRDA:397,485,0,0
+BRDA:387,373,1,0
+BRDA:390,410,1,0
+BRDA:393,442,1,0
+BRDA:370,508,0,0
+BRDA:368,159,1,0
+BRDA:368,172,1,0
+BRDA:407,539,0,0
+BRDA:407,551,0,0
+BRDA:407,561,0,0
+BRDA:407,539,1,0
+BRDA:407,551,1,0
+BRDA:407,561,1,0
+BRDA:413,600,0,0
+BRDA:413,613,0,0
+BRDA:413,628,0,0
+BRDA:413,638,0,0
+BRDA:415,737,1,0
+BRDA:418,704,0,0
+BRDA:418,704,1,0
+BRDA:415,737,0,0
+BRDA:354,87,1,0
+BRDA:413,600,1,0
+BRDA:413,613,1,0
+BRDA:413,628,1,0
+BRDA:413,638,1,0
+BRDA:425,1238,1,0
+BRDA:428,815,0,0
+BRDA:428,833,0,0
+BRDA:428,854,0,0
+BRDA:428,875,0,0
+BRDA:434,910,0,0
+BRDA:436,922,0,0
+BRDA:436,922,1,0
+BRDA:438,964,0,0
+BRDA:438,978,0,0
+BRDA:438,964,1,0
+BRDA:438,978,1,0
+BRDA:442,1010,0,0
+BRDA:442,1010,1,0
+BRDA:446,1023,0,0
+BRDA:448,1034,0,0
+BRDA:451,1060,0,0
+BRDA:451,1060,1,0
+BRDA:451,1075,0,0
+BRDA:453,1092,0,0
+BRDA:453,1092,1,0
+BRDA:454,1107,0,0
+BRDA:459,1154,1,0
+BRDA:459,1154,0,0
+BRDA:446,1023,1,0
+BRDA:468,1181,0,0
+BRDA:471,1200,0,0
+BRDA:471,1200,1,0
+BRDA:471,1215,0,0
+BRDA:428,815,1,0
+BRDA:428,833,1,0
+BRDA:428,854,1,0
+BRDA:428,875,1,0
+BRDA:434,910,1,0
+BRDA:448,1034,1,0
+BRDA:451,1075,1,0
+BRDA:454,1107,1,0
+BRDA:468,1181,1,0
+BRDA:471,1215,1,0
+BRDA:425,1238,0,0
+FN:484,Microsoft.OpenApi.OpenApiParameter Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentOperationTransformer::UnwrapOpenApiParameter(Microsoft.OpenApi.IOpenApiParameter)
+FNDA:0,Microsoft.OpenApi.OpenApiParameter Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentOperationTransformer::UnwrapOpenApiParameter(Microsoft.OpenApi.IOpenApiParameter)
+DA:485,0
+DA:487,0
+DA:489,0
+DA:493,0
+DA:496,0
+DA:498,0
+DA:502,0
+BRDA:485,8,0,0
+BRDA:487,23,0,0
+BRDA:487,23,1,0
+BRDA:485,8,1,0
+BRDA:496,46,0,0
+BRDA:496,46,1,0
+FN:512,System.Threading.Tasks.Task Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentSchemaTransformer::TransformAsync(Microsoft.OpenApi.OpenApiSchema,Microsoft.AspNetCore.OpenApi.OpenApiSchemaTransformerContext,System.Threading.CancellationToken)
+FNDA:0,System.Threading.Tasks.Task Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__XmlCommentSchemaTransformer::TransformAsync(Microsoft.OpenApi.OpenApiSchema,Microsoft.AspNetCore.OpenApi.OpenApiSchemaTransformerContext,System.Threading.CancellationToken)
+DA:513,0
+DA:515,0
+DA:516,0
+DA:518,0
+DA:522,0
+DA:525,0
+DA:527,0
+DA:528,0
+DA:530,0
+DA:532,0
+DA:534,0
+DA:536,0
+DA:537,0
+DA:538,0
+DA:541,0
+DA:542,0
+DA:544,0
+DA:550,0
+DA:552,0
+DA:554,0
+DA:556,0
+DA:561,0
+BRDA:513,33,0,0
+BRDA:516,54,0,0
+BRDA:516,54,1,0
+BRDA:516,67,0,0
+BRDA:513,33,1,0
+BRDA:516,67,1,0
+BRDA:522,123,0,0
+BRDA:522,142,0,0
+BRDA:525,170,0,0
+BRDA:528,191,0,0
+BRDA:528,205,0,0
+BRDA:528,191,1,0
+BRDA:528,205,1,0
+BRDA:532,237,0,0
+BRDA:532,237,1,0
+BRDA:536,254,0,0
+BRDA:536,274,0,0
+BRDA:536,254,1,0
+BRDA:536,274,1,0
+BRDA:536,288,0,0
+BRDA:542,306,0,0
+BRDA:542,306,1,0
+BRDA:542,321,0,0
+BRDA:536,288,1,0
+BRDA:550,377,0,0
+BRDA:550,377,1,0
+BRDA:554,405,0,0
+BRDA:554,405,1,0
+BRDA:554,420,0,0
+BRDA:522,123,1,0
+BRDA:522,142,1,0
+BRDA:525,170,1,0
+BRDA:542,321,1,0
+BRDA:554,420,1,0
+FN:569,System.Text.Json.Nodes.JsonNode Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__JsonNodeExtensions::Parse(System.String)
+FNDA:0,System.Text.Json.Nodes.JsonNode Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__JsonNodeExtensions::Parse(System.String)
+DA:570,0
+DA:572,0
+DA:577,0
+DA:579,0
+DA:584,0
+DA:586,0
+DA:588,0
+DA:591,0
+BRDA:570,1,0,0
+BRDA:570,1,1,0
+FN:599,Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__GeneratedServiceCollectionExtensions::AddOpenApi(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+FNDA:2,Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.AspNetCore.OpenApi.Generated.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__GeneratedServiceCollectionExtensions::AddOpenApi(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+DA:600,2
+DA:601,2
+DA:602,0
+DA:603,0
+DA:604,2
+FN:19,System.Void System.Runtime.CompilerServices.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__InterceptsLocationAttribute::.ctor(System.Int32,System.String)
+FNDA:0,System.Void System.Runtime.CompilerServices.<OpenApiXmlCommentSupport_generated>F0B317D0F06955257BDFCA660594734D4C64D7AEE19B49B39AAF6488490812CD5__InterceptsLocationAttribute::.ctor(System.Int32,System.String)
+DA:20,0
+DA:22,0
+LF:217
+LH:3
+BRF:206
+BRH:0
+FNF:26
+FNH:1
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Api\obj\Release\net10.0\JasperFx.SourceGenerator\JasperFx.SourceGenerator.EventModelDiscoveryGenerator\DiscoveredEventModels.g.cs
+FN:18,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+FNDA:0,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+DA:19,0
+FN:14,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+FNDA:0,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+DA:15,0
+DA:16,0
+DA:17,0
+LF:4
+LH:0
+BRF:0
+BRH:0
+FNF:2
+FNH:0
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Api\Middleware\ProblemDetailsMiddleware.cs
+FN:6,System.Void Lola.Api.Middleware.ProblemDetailsMiddleware::.ctor(Microsoft.AspNetCore.Http.RequestDelegate,Microsoft.Extensions.Logging.ILogger`1<Lola.Api.Middleware.ProblemDetailsMiddleware>)
+FNDA:3,System.Void Lola.Api.Middleware.ProblemDetailsMiddleware::.ctor(Microsoft.AspNetCore.Http.RequestDelegate,Microsoft.Extensions.Logging.ILogger`1<Lola.Api.Middleware.ProblemDetailsMiddleware>)
+DA:7,3
+FN:12,System.Void Lola.Api.Middleware.ProblemDetailsMiddleware/<InvokeAsync>d__3::MoveNext()
+FNDA:5,System.Void Lola.Api.Middleware.ProblemDetailsMiddleware/<InvokeAsync>d__3::MoveNext()
+DA:13,5
+DA:14,4
+DA:15,1
+DA:17,1
+DA:18,1
+DA:19,1
+DA:20,1
+DA:21,1
+DA:22,1
+DA:23,1
+DA:24,1
+DA:26,5
+LF:13
+LH:13
+BRF:0
+BRH:0
+FNF:2
+FNH:2
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Api\Middleware\SecurityHeadersMiddleware.cs
+FN:2,System.Void Lola.Api.Middleware.SecurityHeadersMiddleware::.ctor(Microsoft.AspNetCore.Http.RequestDelegate)
+FNDA:2,System.Void Lola.Api.Middleware.SecurityHeadersMiddleware::.ctor(Microsoft.AspNetCore.Http.RequestDelegate)
+DA:3,2
+FN:6,System.Void Lola.Api.Middleware.SecurityHeadersMiddleware/<InvokeAsync>d__2::MoveNext()
+FNDA:4,System.Void Lola.Api.Middleware.SecurityHeadersMiddleware/<InvokeAsync>d__2::MoveNext()
+DA:7,4
+DA:8,4
+DA:9,4
+DA:10,4
+DA:11,4
+DA:12,4
+LF:7
+LH:7
+BRF:0
+BRH:0
+FNF:2
+FNH:2
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Api\GraphQL\Query.cs
+FN:8,System.Threading.Tasks.Task`1<System.String> Lola.Api.GraphQL.Query::Ping(System.Threading.CancellationToken)
+FNDA:1,System.Threading.Tasks.Task`1<System.String> Lola.Api.GraphQL.Query::Ping(System.Threading.CancellationToken)
+DA:9,1
+FN:5,System.Void Lola.Api.GraphQL.Query::.ctor(Wolverine.IMessageBus)
+FNDA:1,System.Void Lola.Api.GraphQL.Query::.ctor(Wolverine.IMessageBus)
+DA:6,1
+LF:2
+LH:2
+BRF:0
+BRH:0
+FNF:2
+FNH:2
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Application\obj\Release\net10.0\JasperFx.SourceGenerator\JasperFx.SourceGenerator.EventModelDiscoveryGenerator\DiscoveredEventModels.g.cs
+FN:18,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+FNDA:0,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+DA:19,0
+FN:14,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+FNDA:0,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+DA:15,0
+DA:16,0
+DA:17,0
+LF:4
+LH:0
+BRF:0
+BRH:0
+FNF:2
+FNH:0
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Application\Messaging\Ping.cs
+FN:6,System.String Lola.Application.Messaging.PingHandler::Handle(Lola.Application.Messaging.PingQuery)
+FNDA:1,System.String Lola.Application.Messaging.PingHandler::Handle(Lola.Application.Messaging.PingQuery)
+DA:7,1
+LF:1
+LH:1
+BRF:0
+BRH:0
+FNF:1
+FNH:1
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Application\Behaviors\LogExecution.cs
+FN:11,System.Void Lola.Application.Behaviors.LogExecution::Before(Wolverine.Envelope,Microsoft.Extensions.Logging.ILogger`1<Lola.Application.Behaviors.LogExecution>)
+FNDA:1,System.Void Lola.Application.Behaviors.LogExecution::Before(Wolverine.Envelope,Microsoft.Extensions.Logging.ILogger`1<Lola.Application.Behaviors.LogExecution>)
+DA:12,1
+BRDA:12,21,0,0
+BRDA:12,21,1,1
+LF:1
+LH:1
+BRF:2
+BRH:1
+FNF:1
+FNH:1
+end_of_record
+SF:C:\wip\LOLA\src\Lola.ControlPlane\obj\Release\net10.0\JasperFx.SourceGenerator\JasperFx.SourceGenerator.EventModelDiscoveryGenerator\DiscoveredEventModels.g.cs
+FN:18,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+FNDA:0,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+DA:19,0
+FN:14,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+FNDA:0,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+DA:15,0
+DA:16,0
+DA:17,0
+LF:4
+LH:0
+BRF:0
+BRH:0
+FNF:2
+FNH:0
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Domain\Classification\PiiClassAttribute.cs
+FN:23,Lola.Domain.Classification.PiiClass Lola.Domain.Classification.PiiClassAttribute::get_Class()
+FNDA:0,Lola.Domain.Classification.PiiClass Lola.Domain.Classification.PiiClassAttribute::get_Class()
+DA:24,0
+FN:21,System.Void Lola.Domain.Classification.PiiClassAttribute::.ctor(Lola.Domain.Classification.PiiClass)
+FNDA:0,System.Void Lola.Domain.Classification.PiiClassAttribute::.ctor(Lola.Domain.Classification.PiiClass)
+DA:22,0
+LF:2
+LH:0
+BRF:0
+BRH:0
+FNF:2
+FNH:0
+end_of_record
+SF:C:\wip\LOLA\src\Lola.Infrastructure\obj\Release\net10.0\JasperFx.SourceGenerator\JasperFx.SourceGenerator.EventModelDiscoveryGenerator\DiscoveredEventModels.g.cs
+FN:18,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+FNDA:0,System.Collections.Generic.IReadOnlyList`1<System.Type> JasperFx.Generated.DiscoveredEventModels::get_DefinitionTypes()
+DA:19,0
+FN:14,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+FNDA:0,System.Void JasperFx.Generated.DiscoveredEventModels::.cctor()
+DA:15,0
+DA:16,0
+DA:17,0
+LF:4
+LH:0
+BRF:0
+BRH:0
+FNF:2
+FNH:0
+end_of_record
