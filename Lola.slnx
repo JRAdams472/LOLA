@@ -3,12 +3,14 @@
     <Project Path="src/Lola.Api/Lola.Api.csproj" />
     <Project Path="src/Lola.Application/Lola.Application.csproj" />
     <Project Path="src/Lola.ControlPlane/Lola.ControlPlane.csproj" />
+    <Project Path="src/Lola.DataPlane/Lola.DataPlane.csproj" />
     <Project Path="src/Lola.Domain/Lola.Domain.csproj" />
     <Project Path="src/Lola.Infrastructure/Lola.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Lola.Api.Tests/Lola.Api.Tests.csproj" />
     <Project Path="tests/Lola.ControlPlane.Tests/Lola.ControlPlane.Tests.csproj" />
+    <Project Path="tests/Lola.DataPlane.Tests/Lola.DataPlane.Tests.csproj" />
     <Project Path="tests/Lola.Domain.Tests/Lola.Domain.Tests.csproj" />
     <Project Path="tests/Lola.Infrastructure.Tests/Lola.Infrastructure.Tests.csproj" />
   </Folder>
