@@ -1,0 +1,4 @@
+# Historical finding: ephemeral in-CI SonarQube default admin cred
+# (admin:admin) passed to curl -u — not a real secret; pattern removed
+# in cbc1964 but remains in git history commit 70f1ac7.
+70f1ac733314f2b2cb1bb712848bd430eae42c1d:.github/workflows/ci.yml:curl-auth-user:95
