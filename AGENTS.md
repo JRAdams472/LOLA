@@ -227,12 +227,14 @@ After the final phase of a plan merges, before starting the next:
    list — a finding introduced by the plan's own code is a regression,
    not backlog. Record the final open-issue count in the close-out proof.
 
-## Code Size & Coverage Report (required on parent-ticket close-out)
+## Code Size & Shape Report (required on every ticket marked complete)
 
-When a **top-level** Linear ticket closes (all phase sub-issues merged
-and verified), post a size-and-shape report as a comment on the parent
-ticket via `save_comment`. Report absolute numbers, and deltas vs. the
-previous report if one exists on an earlier ticket.
+Post a code-shape report as a comment on **every** Linear ticket when it
+is marked Done — phase sub-issues and parent tickets alike. It's fun to
+watch the project change; the per-phase granularity is the point. Post
+it via `save_comment` together with (or right after) the proof comment.
+Report absolute numbers, and deltas vs. the previous report if one
+exists on an earlier ticket.
 
 Generate it as follows:
 

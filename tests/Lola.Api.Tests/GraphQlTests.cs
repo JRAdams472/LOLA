@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace Lola.Api.Tests;
 
-public class GraphQlTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory>
 {
     [Fact]
     public async Task Ping_routes_through_mediator()

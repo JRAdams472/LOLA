@@ -49,7 +49,8 @@ services:
       COLLECTOR_OTLP_ENABLED: "true"
     # host :17686 — :16686 is claimed by a concurrently running ISPPr/MPEx
     # stack; LOLA must coexist with them for integration work.
-    ports: ["17686:16686"]
+    # OTLP :14317 on host for local `dotnet run` (container net uses 4317).
+    ports: ["17686:16686", "14317:4317"]
 
   seq:
     image: datalust/seq:latest
@@ -66,9 +67,11 @@ services:
       OPENBAO_ADDR: http://openbao:8200
       S3_ENDPOINT: http://minio:9000
       CLAMAV_ADDR: clamav:3310
+      CONTROL_DB_PATH: /app/data/control.db
+      SEQ_URL: http://seq
       OTEL_SERVICE_NAME: lola
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
-      OTEL_LOGS_ENDPOINT: http://seq:5341/ingest/otlp
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    volumes: [lola-data:/app/data]
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8200/healthz || exit 1"]
       interval: 10s
@@ -81,3 +84,4 @@ services:
 
 volumes:
   minio-data:
+  lola-data:
