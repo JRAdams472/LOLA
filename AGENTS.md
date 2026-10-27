@@ -86,8 +86,14 @@ This is **protected personal data**. These rules outrank convenience:
   its branch, with scope + acceptance criteria; mark it **In Progress**
   when its phase starts.
 - On phase completion, post **proof of completion** on the sub-issue
-  before asking for merge approval: run logs, **Playwright screenshots**
-  for any user-facing change, green **GitHub CI run** link.
+  **before asking for merge approval and before moving the ticket toward
+  Done** — a sub-issue never closes on "looks good":
+  - Relevant run logs (build/test/verification output).
+  - **Playwright screenshots** of any user-facing change (the `playwright`
+    MCP is configured — capture real screens, don't describe them).
+  - A link/summary of the **GitHub CI run** showing all checks green.
+  - Proof maps 1:1 to the ticket's Acceptance bullets — every bullet gets
+    an explicit check, not verification-by-inspection.
 - Linear attachments: `prepare_attachment_upload` → PUT the file to the
   signed URL with the exact signed headers →
   `create_attachment_from_upload`. `SignatureDoesNotMatch` means the
@@ -108,23 +114,137 @@ This is **protected personal data**. These rules outrank convenience:
 - Boy-scout rule: fix trivial adjacent issues in a touched file when
   low-risk; never let it balloon the diff.
 
-## Evidence Gathering
+## Evidence Gathering (Observability)
 
-- Raw logs: `docker logs lola-api-1 --since 30m` (JSON output).
-- Observability stack (Seq/Jaeger/SonarQube) per compose; file a ticket
-  when something needs to change rather than silently shipping without it.
+Seq and Jaeger run in the compose stack and are both queryable over plain
+HTTP — no MCP needed. Use them to attach runtime evidence (logs, traces)
+to phase proof-of-completion.
+
+- **Seq** (structured logs, `http://localhost:5441` — host port remapped
+  for sibling coexistence; container still `:80`):
+  ```bash
+  # Recent events as JSON
+  curl -s 'http://localhost:5441/api/events?count=50'
+  # Filtered — e.g. errors only (Seq filter expression syntax)
+  curl -s 'http://localhost:5441/api/events?count=50&filter=level%20%3D%20%27ERROR%27'
+  ```
+- **Jaeger** (traces, `http://localhost:17686` — the v2 API is under
+  `/api/v3/`, NOT `/api/`):
+  ```bash
+  curl -s 'http://localhost:17686/api/v3/services'
+  # start_time_min/max are REQUIRED and must be RFC3339
+  curl -sG 'http://localhost:17686/api/v3/traces' \
+    --data-urlencode 'query.service_name=lola' \
+    --data-urlencode 'query.limit=10' \
+    --data-urlencode 'query.start_time_min=2026-01-01T00:00:00Z' \
+    --data-urlencode 'query.start_time_max=2030-01-01T00:00:00Z'
+  ```
+- **Raw fallback**: `docker logs lola-api-1 --since 30m` (JSON output).
+- **SonarQube Community Build** (`http://localhost:9000`, project key
+  `lola`): the `sonarqube` MCP server (`.devin/mcp_config.local.json`)
+  exposes issues/hotspots/quality-gate/measures tools; the API is plain
+  HTTP with token auth (`-u "$TOKEN:"`, token as username, empty
+  password). Rescan by mounting **source subdirs only** — a whole-repo
+  mount crawls `node_modules` and CI leftovers:
+  ```bash
+  docker run --rm \
+    -v "$PWD/src:/usr/src/src" -v "$PWD/tests:/usr/src/tests" \
+    -v "$PWD/migrations:/usr/src/migrations" \
+    -e SONAR_TOKEN="$TOKEN" sonarsource/sonar-scanner-cli \
+    -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.projectKey=lola \
+    -Dsonar.sources=. -Dsonar.exclusions='**/bin/**,**/obj/**' \
+    -Dsonar.cs.vscoveragexml.reportsPaths=coverage.xml
+  ```
+- **MCP helpers configured** (`.devin/mcp_config.local.json`, gitignored):
+  `playwright` (real screenshots for UI proof), `linear` (ticket
+  workflow), `github`, `sonarqube`.
+- **Boy-scout rule for findings:** when a change touches a file with open
+  low/info-severity SonarQube findings, fix them in the same change when
+  trivial and low-risk. Skip nontrivial findings rather than ballooning
+  the diff.
+- **No PII in evidence:** Seq/Jaeger payloads and `docker logs` output
+  must never contain plaintext PII — if they do, that's invariant-3
+  breakage, file it as a bug, and redact before quoting in tickets.
 
 ## Plan Close-Out
 
-After the final phase of a plan merges:
+After the final phase of a plan merges, before starting the next:
 
-1. Delete merged phase branches locally and on GitHub (verify with `gh`).
-2. No new feature at zero coverage — every new service, handler, or page
-   gets at least one unit or integration test.
-3. File Linear tickets (project **LOLA**, or the correct sibling project)
-   for improvements discovered during the work.
-4. Update `README.md` + `docs/` for what shipped — sweep for stale claims.
-5. **Size & coverage report** on the parent ticket at close-out.
+1. Delete merged phase branches locally and on GitHub (verify PR state
+   with `gh` first).
+2. Ensure no new feature is left at zero test coverage — every new
+   service, handler, or page needs at least one unit or integration test.
+3. Re-walk corrected audit/threat-model findings for regressions.
+4. File Linear tickets (project **LOLA**, or the correct sibling project —
+   e.g. ISPPr for e-signature) for improvements or new features inspired
+   by the completed work.
+5. Update `README.md` so features and architecture reflect what shipped —
+   including sweeping for stale claims (endpoint lists, env vars,
+   workflow names).
+6. Review every doc listed in `README.md`'s Documentation section plus
+   touched `clients/*/README.md` files for staleness.
+7. Update the GitHub wiki (`LOLA.wiki.git`) — it lives outside the repo,
+   so clone it, add/refresh pages for what shipped, and push to `master`.
+8. Refresh wiki **screenshots** when user-facing screens changed: run the
+   isolated `lolashots` stack per `.devin/skills/wiki-screenshots`,
+   inspect every PNG for spinners, publish under `images/`, and embed on
+   the relevant pages — **and verify no real or realistic PII appears in
+   any screenshot** (synthetic borrowers only).
+9. **SonarQube rescan gate (required):** if the plan remediated SonarQube
+   findings, run the documented rescan after the final phase merges and
+   confirm **zero new open issues** beyond the plan's accepted `wontfix`
+   list — a finding introduced by the plan's own code is a regression,
+   not backlog. Record the final open-issue count in the close-out proof.
+
+## Code Size & Coverage Report (required on parent-ticket close-out)
+
+When a **top-level** Linear ticket closes (all phase sub-issues merged
+and verified), post a size-and-shape report as a comment on the parent
+ticket via `save_comment`. Report absolute numbers, and deltas vs. the
+previous report if one exists on an earlier ticket.
+
+Generate it as follows:
+
+1. **Per-language LOC** — tokei (installed via winget; if not on PATH it's
+   at `%LOCALAPPDATA%\Microsoft\WinGet\Packages\XAMPPRocky.Tokei_*\tokei.exe`):
+   ```bash
+   tokei -e clients/*/node_modules -e '**/bin' -e '**/obj' src tests clients migrations
+   ```
+   Call out generated code separately in the report.
+2. **Source vs. test split** — bucket tracked files (`git ls-files`) by
+   path: C# tests are `tests/**` + `*.Tests.csproj` files; web tests are
+   `clients/*/__tests__`, `e2e`, `mocks`. Everything else is source. Sum
+   `wc -l` per bucket; "executable lines" = non-blank non-comment.
+3. **Test counts** — `grep -c '\[Fact\]\|\[Theory\]'` per test project;
+   count `it(|test(` in web `__tests__` + `e2e`.
+4. **Coverage** —
+   - .NET: `dotnet test --collect:"XPlat Code Coverage"` (lcov) — report
+     per-project numbers; `node tools/covercheck.mjs <lcov.info>` for the
+     floor check.
+   - Web: `npm test -- --coverage` (or read `coverage/lcov.info` — always
+     note its date; stale reports must be flagged).
+5. **Post** — `save_comment` on the parent ticket with the report as a
+   markdown table: LOC / executable / test LOC / test count / coverage
+   per feature area, plus a one-line caveats section (generated code
+   excluded, stale reports, skipped suites).
+
+## Coverage Policy (enforced in CI)
+
+- **Floor: 80% per module/endpoint** — `tools/covercheck.mjs` groups
+  coverage (`src/<Project>` granularity for .NET, directory for
+  `clients/*`); any module or endpoint area below 80% fails the build.
+  Uniformity matters: no ten endpoints at 100% and one at 0%.
+- **Goal: 85% overall** — reported by covercheck, directional only.
+- **Tests never need tests** — test files and test projects are fully
+  exempt from the floor; coverage is measured on source only.
+- **Exempt:** generated files (`<auto-generated`, `DO NOT EDIT`, `*.g.cs`,
+  `*.designer.cs`), test files/projects (`tests/**`, `*.test.*`,
+  `*.spec.*`, `__tests__/`), `migrations/**`, and `Program.cs`
+  composition roots (wiring verified via compose/e2e, not unit tests).
+- Run locally:
+  `dotnet test --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`
+  → `node tools/covercheck.mjs <lcov.info>`; for web,
+  `npx vitest run --coverage` → `node tools/covercheck.mjs clients/*/coverage/lcov.info`.
 
 ## Verification Commands
 
