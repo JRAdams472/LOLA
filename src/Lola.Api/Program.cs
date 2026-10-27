@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Threading.RateLimiting;
 using HotChocolate.AspNetCore;
+using Lola.Api.Admin;
 using Lola.Api.Identity;
 using Lola.Api.Middleware;
 using Lola.Api.Observability;
@@ -47,6 +48,7 @@ builder.Services.AddOpenTelemetry()
 builder.Host.UseWolverine(opts =>
 {
     opts.Discovery.IncludeAssembly(typeof(Lola.Application.Messaging.PingQuery).Assembly);
+    opts.Discovery.IncludeType(typeof(Lola.Application.Identity.AdminHandlers));
     opts.Policies.AddMiddleware<Lola.Application.Behaviors.LogExecution>();
 });
 
@@ -82,12 +84,14 @@ builder.Services.AddSingleton(sp => new ControlPlaneDb(
 builder.Services.AddLolaCrypto(builder.Configuration);
 builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();
 builder.Services.AddSingleton<IUserDirectory, UserDirectory>();
+builder.Services.AddSingleton<IGroupDirectory, GroupDirectory>();
+builder.Services.AddSingleton<IRoleVisibilityMap, RoleVisibilityMap>();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 
 // Identity — OpenIddict (ADR-0005): cookie login + OIDC server issuing
 // opaque access tokens + signed id_tokens; the api validates its own
 // tokens via UseLocalServer. Stores are the custom Dapper impls.
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(LolaPolicies.Register);
 builder.Services.AddAuthentication(
         OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
     .AddCookie(ConnectEndpoints.LoginScheme, o =>
@@ -179,6 +183,9 @@ app.UseMiddleware<ProblemDetailsMiddleware>();
 app.UseRateLimiter();
 app.UseCors();
 app.UseAuthentication();
+// Resolve `tid` → TenantContext/CipherContext/VisibilityContext once
+// per request, before authorization and any endpoint runs (MPE-86).
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 app.MapOpenApi();
@@ -195,6 +202,7 @@ app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, Ca
 });
 app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
+app.MapAdminEndpoints();
 
 app.Run();
 

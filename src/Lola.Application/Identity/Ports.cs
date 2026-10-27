@@ -1,3 +1,4 @@
+using Lola.Domain.Classification;
 using Lola.Domain.Identity;
 
 namespace Lola.Application.Identity;
@@ -39,6 +40,32 @@ public interface IUserDirectory
     Task InsertAsync(LolaUser user, CancellationToken ct = default);
     Task UpdatePasswordAsync(string userId, string passwordHash, string status, CancellationToken ct = default);
     Task SetStatusAsync(string userId, string status, CancellationToken ct = default);
+}
+
+/// Group directory over the control plane — group→role mapping lives
+/// here (ADR-0005: roles come from groups, not per-user flags).
+public interface IGroupDirectory
+{
+    Task<IReadOnlyList<LolaGroup>> ListByTenantAsync(string tenantId, CancellationToken ct = default);
+    Task<LolaGroup?> FindByIdAsync(string id, CancellationToken ct = default);
+    Task<int> MemberCountAsync(string groupId, CancellationToken ct = default);
+
+    Task InsertAsync(LolaGroup group, CancellationToken ct = default);
+    Task UpdateAsync(string id, string? name, string? description, CancellationToken ct = default);
+    Task SetRolesAsync(string groupId, IReadOnlyCollection<LolaRole> roles, CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
+
+    Task AddMemberAsync(string groupId, string userId, CancellationToken ct = default);
+    Task RemoveMemberAsync(string groupId, string userId, CancellationToken ct = default);
+}
+
+/// Role → PII-class visibility map (role_visibility table, ADR-0008).
+/// Effective visibility = union of plaintext grants across roles;
+/// absence means masked.
+public interface IRoleVisibilityMap
+{
+    Task<IReadOnlySet<PiiClass>> VisibleClassesAsync(
+        IReadOnlyCollection<LolaRole> roles, CancellationToken ct = default);
 }
 
 /// Password hashing port — Argon2id (PHC strings) in Infrastructure.

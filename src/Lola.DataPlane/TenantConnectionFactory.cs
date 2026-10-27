@@ -27,12 +27,14 @@ public sealed class TenantConnectionFactory(IFieldCipher cipher)
     {
         if (_fileKeyHex is not null) return _fileKeyHex;
         var scope = TenantContext.Required;
+        var wrapped = scope.DbKeyWrapped ?? throw new InvalidOperationException(
+            $"Tenant '{scope.TenantId}' has no data-plane key — provisioning is incomplete.");
         // The transit cipher needs the tenant in CipherContext — scope
         // it ourselves so the factory works even when middleware only
         // set TenantContext (e.g. tests, provisioning paths).
         using (CipherContext.Use(scope.TenantId))
         {
-            var b64 = await cipher.DecryptAsync(scope.DbKeyWrapped, ct);
+            var b64 = await cipher.DecryptAsync(wrapped, ct);
             _fileKeyHex = Convert.ToHexString(Convert.FromBase64String(b64));
         }
         return _fileKeyHex;

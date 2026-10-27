@@ -102,7 +102,8 @@ internal static class OidcJson
     public static ImmutableDictionary<string, string> JsonToStringDict(string? json)
         => string.IsNullOrEmpty(json)
             ? ImmutableDictionary<string, string>.Empty
-            : JsonSerializer.Deserialize<ImmutableDictionary<string, string>>(json, Options);
+            : JsonSerializer.Deserialize<ImmutableDictionary<string, string>>(json, Options)
+              ?? ImmutableDictionary<string, string>.Empty;
 
     public static string? PropertiesToJson(IReadOnlyDictionary<string, JsonElement>? values)
         => values is { Count: > 0 } ? JsonSerializer.Serialize(values, Options) : null;
@@ -110,7 +111,8 @@ internal static class OidcJson
     public static ImmutableDictionary<string, JsonElement> JsonToProperties(string? json)
         => string.IsNullOrEmpty(json)
             ? ImmutableDictionary<string, JsonElement>.Empty
-            : JsonSerializer.Deserialize<ImmutableDictionary<string, JsonElement>>(json, Options);
+            : JsonSerializer.Deserialize<ImmutableDictionary<string, JsonElement>>(json, Options)
+              ?? ImmutableDictionary<string, JsonElement>.Empty;
 
     public static JsonWebKeySet? JsonToJwks(string? json)
         => string.IsNullOrEmpty(json) ? null : new JsonWebKeySet(json);
