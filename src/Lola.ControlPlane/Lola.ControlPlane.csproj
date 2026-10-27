@@ -13,6 +13,7 @@
     <PackageReference Include="dbup-sqlite" Version="6.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
+    <PackageReference Include="WolverineFx" Version="6.56.0" />
   </ItemGroup>
 
   <PropertyGroup>

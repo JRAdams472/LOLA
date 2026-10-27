@@ -15,7 +15,7 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Sensitive" Version="2.1.0" />
     <PackageReference Include="Serilog.Sinks.Seq" Version="9.1.0" />
-    <PackageReference Include="WolverineFx" Version="6.55.0" />
+    <PackageReference Include="WolverineFx" Version="6.56.0" />
     <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.55.0" />
   </ItemGroup>
 

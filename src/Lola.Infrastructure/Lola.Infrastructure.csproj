@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="WolverineFx" Version="6.56.0" />
     <ProjectReference Include="..\Lola.Application\Lola.Application.csproj" />
   </ItemGroup>
 
