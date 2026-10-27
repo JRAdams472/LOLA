@@ -33,7 +33,8 @@ Bootstrap — see milestone tickets under megaplan **MPE-63**.
 
 ## Observability
 
-The compose stack includes **Jaeger** (traces, http://localhost:16686) and
-**Seq** (structured logs, http://localhost:5341). The API exports only when
+The compose stack includes **Jaeger** (traces, http://localhost:17686) and
+**Seq** (structured logs, http://localhost:5441) — remapped so LOLA runs
+alongside the sibling stacks. The API exports only when
 the `OTEL_*` env vars are set — exporter-free otherwise. **PII never enters
 logs or spans** — a redaction filter enforces this in CI.
