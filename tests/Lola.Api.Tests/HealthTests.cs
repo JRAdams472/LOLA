@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace Lola.Api.Tests;
 
-public class HealthTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class HealthTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory>
 {
     [Fact]
     public async Task Healthz_returns_ok()
@@ -14,10 +14,11 @@ public class HealthTests(WebApplicationFactory<Program> factory) : IClassFixture
     }
 
     [Fact]
-    public async Task Api_health_reports_service()
+    public async Task Api_health_reports_service_and_db()
     {
         var body = await factory.CreateClient().GetStringAsync("/api/health");
         body.ShouldContain("lola");
+        body.ShouldContain("\"db\":\"up\"");
     }
 
     [Fact]
