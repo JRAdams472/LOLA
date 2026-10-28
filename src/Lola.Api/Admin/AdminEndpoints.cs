@@ -4,6 +4,7 @@ using Lola.Application.Admin.Borrowers;
 using Lola.Application.Admin.Groups;
 using Lola.Application.Admin.Tenants;
 using Lola.Application.Admin.Users;
+using Lola.Application.Identity;
 using Lola.Application.Security;
 using Lola.Application.Tenancy;
 using Lola.Domain.Identity;
@@ -44,6 +45,27 @@ public static class AdminEndpoints
         admin.MapPost("/migrations", async (IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<MigrationRunResult>(
                 new RunMigrationsCommand(), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
+        // Encrypted snapshot lifecycle (MPE-95) — unscoped operator
+        // surface: backups stay under the tenant's own file key, so the
+        // Provision policy that already runs fleet jobs guards them.
+        admin.MapPost("/tenants/{id}/backup", async (
+                string id, IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<TenantBackupInfo>(
+                new BackupTenantCommand(id), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
+        admin.MapGet("/tenants/{id}/backups", async (
+                string id, IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<IReadOnlyList<TenantBackupInfo>>(
+                new ListTenantBackupsQuery(id), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
+        admin.MapPost("/tenants/{id}/restore", async (
+                string id, RestoreRequest body, IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<TenantBackupInfo>(
+                new RestoreTenantBackupCommand(id, body.Name), ct)))
             .RequireAuthorization(LolaPolicies.Provision);
 
         admin.MapGet("/tenants/{id}", async (
@@ -167,4 +189,6 @@ public static class AdminEndpoints
     public sealed record ProvisionTenantRequest(string TenantId, string Slug, string DisplayName);
 
     public sealed record InviteRequest(string Email);
+
+    public sealed record RestoreRequest(string Name);
 }

@@ -45,3 +45,20 @@ internal sealed class FakeMigrationRunner : ITenantMigrationRunner
     public Task<IReadOnlyList<TenantMigrationResult>> MigrateAllAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<TenantMigrationResult>>([]);
 }
+
+/// Hermetic backup/restore stand-in — the real VACUUM INTO + keyed
+/// restore path is proven in Lola.DataPlane.Tests against real
+/// SQLCipher + OpenBao; the API e2e only exercises the routes.
+internal sealed class FakeTenantBackup : ITenantBackup
+{
+    private static readonly TenantBackupInfo[] Infos =
+        [new("t", "20261028T000000000Z.db", "2026-10-28T00:00:00.000Z", "ab12", 1024)];
+
+    public Task<TenantBackupInfo> BackupAsync(TenantRecord tenant, CancellationToken ct = default)
+        => Task.FromResult(Infos[0] with { TenantId = tenant.Id });
+    public Task<IReadOnlyList<TenantBackupInfo>> ListAsync(string tenantId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<TenantBackupInfo>>(
+            [Infos[0] with { TenantId = tenantId }]);
+    public Task<TenantBackupInfo> RestoreAsync(TenantRecord tenant, string name, CancellationToken ct = default)
+        => Task.FromResult(Infos[0] with { TenantId = tenant.Id, Name = name });
+}

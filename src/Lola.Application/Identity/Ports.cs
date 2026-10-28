@@ -128,6 +128,25 @@ public interface ITenantMigrationRunner
 public sealed record TenantMigrationResult(
     string TenantId, bool Success, IReadOnlyList<string> Scripts, string? Error);
 
+/// Tenant data-plane backup/restore (MPE-95): VACUUM INTO snapshots
+/// under backups/<tenant>/ — the copy stays SQLCipher-encrypted under
+/// the tenant's own file key — plus a sha256 manifest per snapshot.
+/// Job surface: takes an explicit TenantRecord like the migration
+/// runner; there is no request-scoped tenant to rely on.
+public interface ITenantBackup
+{
+    Task<TenantBackupInfo> BackupAsync(TenantRecord tenant, CancellationToken ct = default);
+    Task<IReadOnlyList<TenantBackupInfo>> ListAsync(string tenantId, CancellationToken ct = default);
+
+    /// Verifies the snapshot's manifest + keyed integrity_check, then
+    /// checkpoints and replaces the live file. The wrong key fails at
+    /// the integrity probe — before any bytes move.
+    Task<TenantBackupInfo> RestoreAsync(TenantRecord tenant, string name, CancellationToken ct = default);
+}
+
+public sealed record TenantBackupInfo(
+    string TenantId, string Name, string Utc, string Sha256, long Bytes);
+
 /// Control-plane tracking for tenant migration rollouts — observability
 /// only; each tenant file's own DbUp journal is authoritative.
 public interface IMigrationTracker
