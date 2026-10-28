@@ -7,7 +7,6 @@ using Dapper;
 using Lola.ControlPlane;
 using Lola.Domain.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Shouldly;
 
 namespace Lola.Api.Tests;
@@ -19,7 +18,6 @@ namespace Lola.Api.Tests;
 public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
     : IClassFixture<LolaApiFactory>
 {
-    private const string Password = "correct horse battery staple";
 
     [Fact]
     public async Task Marquee_provision_invite_accept_borrower_login()
@@ -50,8 +48,7 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // 2. Officer user + PKCE login → create the borrower invite.
-        var officerToken = await LoginAsync(factory, "lola-officer-console",
-            "http://localhost:3200/callback", tenant, LolaRole.TenantAdmin);
+        var officerToken = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin);
         var officer = factory.CreateClient();
         officer.DefaultRequestHeaders.Authorization = new("Bearer", officerToken);
 
@@ -66,15 +63,15 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
         // 3. Accept — creates the borrower user; single-use enforced.
         var accept = await factory.CreateClient().PostAsJsonAsync(
             "/api/invites/accept",
-            new { token, displayName = "Borrower One", password = Password });
+            new { token, displayName = "Borrower One", password = PkceLogin.Password });
         accept.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await factory.CreateClient().PostAsJsonAsync("/api/invites/accept",
-                new { token, displayName = "Again", password = Password }))
+                new { token, displayName = "Again", password = PkceLogin.Password }))
             .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         // 4. Borrower PKCE login — token carries tid + Borrower role.
-        var borrowerToken = await LoginAsync(factory, "lola-borrower-portal",
-            "http://localhost:3300/callback", tenant, LolaRole.Borrower,
+        var borrowerToken = await PkceLogin.TokenAsync(factory, tenant, LolaRole.Borrower,
+            "lola-borrower-portal", "http://localhost:3300/callback",
             email: $"borrower-{tenant}@test.dev", seed: false);
         var borrower = factory.CreateClient();
         borrower.DefaultRequestHeaders.Authorization = new("Bearer", borrowerToken);
@@ -109,7 +106,7 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
 
         var client = factory.CreateClient();
         (await client.PostAsJsonAsync("/api/invites/accept",
-                new { token = "bogus-token", displayName = "X", password = Password }))
+                new { token = "bogus-token", displayName = "X", password = PkceLogin.Password }))
             .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         // Expired invite — seed a past-TTL row directly, then accept.
@@ -133,7 +130,7 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
             });
         }
         var resp = await client.PostAsJsonAsync("/api/invites/accept",
-            new { token = expiredToken, displayName = "Late", password = Password });
+            new { token = expiredToken, displayName = "Late", password = PkceLogin.Password });
         resp.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await resp.Content.ReadAsStringAsync()).ShouldContain("expired");
     }
@@ -175,54 +172,4 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
         return (await resp.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("access_token").GetString()!;
     }
-
-    /// Full dev PKCE dance — optionally seeds the user first.
-    private static async Task<string> LoginAsync(
-        LolaApiFactory factory, string clientId, string redirectUri, string tenant,
-        LolaRole role, string? email = null, bool seed = true)
-    {
-        email ??= $"{tenant}-{role}@test.dev";
-        if (seed)
-            await factory.SeedUserAsync(tenant, email, Password, role);
-
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            HandleCookies = true
-        });
-        var verifier = B64Url(RandomNumberGenerator.GetBytes(32));
-        var challenge = B64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
-        var authorize = "/connect/authorize?response_type=code" +
-            $"&client_id={clientId}" +
-            $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
-            "&scope=openid%20profile%20lola-api%20offline_access" +
-            $"&code_challenge={challenge}&code_challenge_method=S256";
-
-        await client.GetAsync(authorize);
-        await client.PostAsync("/account/login", new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["email"] = email,
-                ["password"] = Password,
-                ["returnUrl"] = authorize
-            }));
-        var second = await client.GetAsync(authorize);
-        var location = second.Headers.Location!.ToString();
-        var code = Uri.UnescapeDataString(location.Split("code=")[1].Split('&')[0]);
-
-        var tokens = await client.PostAsync("/connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["client_id"] = clientId,
-                ["redirect_uri"] = redirectUri,
-                ["code"] = code,
-                ["code_verifier"] = verifier
-            }));
-        return (await tokens.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("access_token").GetString()!;
-    }
-
-    private static string B64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }

@@ -18,10 +18,14 @@ public static class CreateOfficerUserHandler
         IPasswordHasher hasher, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (string.IsNullOrWhiteSpace(c.Email))
-            throw DomainException.BadRequest("email is required");
+        var email = InputValidation.RequireEmail(c.Email);
+        var displayName = InputValidation.RequireDisplayName(c.DisplayName);
+        // Null/empty password = invited account (activated via the
+        // invite flow); a provided password must meet policy.
+        if (!string.IsNullOrEmpty(c.Password))
+            InputValidation.RequirePassword(c.Password);
         var user = new LolaUser(
-            $"u-{Guid.NewGuid():N}", c.TenantId, c.Email, c.DisplayName,
+            $"u-{Guid.NewGuid():N}", c.TenantId, email, displayName,
             string.IsNullOrEmpty(c.Password) ? null : hasher.Hash(c.Password),
             string.IsNullOrEmpty(c.Password) ? UserStatus.Invited : UserStatus.Active,
             MfaEnabled: false, DateTimeOffset.UtcNow.ToString("O"));

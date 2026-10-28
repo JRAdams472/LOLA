@@ -20,8 +20,12 @@ public static class AcceptInviteHandler
         AcceptInviteCommand c, IInviteDirectory invites, IUserDirectory users,
         IGroupDirectory groups, IPasswordHasher hasher, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(c.Token) || string.IsNullOrWhiteSpace(c.Password))
-            throw DomainException.BadRequest("token and password are required");
+        // Cheap boundary validation before any lookup — a malformed
+        // request fails identically whether or not the token is real.
+        if (string.IsNullOrWhiteSpace(c.Token))
+            throw DomainException.BadRequest("token is required");
+        var displayName = InputValidation.RequireDisplayName(c.DisplayName);
+        InputValidation.RequirePassword(c.Password);
 
         var hash = Convert.ToHexString(SHA256.HashData(
             System.Text.Encoding.ASCII.GetBytes(c.Token))).ToLowerInvariant();
@@ -36,7 +40,7 @@ public static class AcceptInviteHandler
 
         var user = new LolaUser(
             $"u-{Guid.NewGuid():N}", invite.TenantId, invite.Email,
-            c.DisplayName, hasher.Hash(c.Password), UserStatus.Active,
+            displayName, hasher.Hash(c.Password), UserStatus.Active,
             MfaEnabled: false, DateTimeOffset.UtcNow.ToString("O"));
         await users.InsertAsync(user, ct);
 

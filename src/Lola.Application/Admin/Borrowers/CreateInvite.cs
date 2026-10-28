@@ -19,9 +19,8 @@ public static class CreateInviteHandler
         IUserDirectory users, IInviteDelivery delivery, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (string.IsNullOrWhiteSpace(c.Email))
-            throw DomainException.BadRequest("email is required");
-        if (await users.FindByEmailInTenantAsync(c.TenantId, c.Email, ct) is not null)
+        var email = InputValidation.RequireEmail(c.Email);
+        if (await users.FindByEmailInTenantAsync(c.TenantId, email, ct) is not null)
             throw DomainException.BadRequest("a user with this email already exists");
 
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
@@ -30,11 +29,11 @@ public static class CreateInviteHandler
             System.Text.Encoding.ASCII.GetBytes(token))).ToLowerInvariant();
         var expires = DateTimeOffset.UtcNow.AddHours(72).ToString("O");
         var invite = new InviteRecord(
-            $"i-{Guid.NewGuid():N}", c.TenantId, c.Email, LolaRole.Borrower,
+            $"i-{Guid.NewGuid():N}", c.TenantId, email, LolaRole.Borrower,
             hash, expires, null, c.CreatedBy);
         await invites.InsertAsync(invite, ct);
 
-        var link = await delivery.DeliverAsync(c.Email, c.TenantId, token, ct);
+        var link = await delivery.DeliverAsync(email, c.TenantId, token, ct);
         return new InviteCreatedResult(invite.Id, link, expires);
     }
 }
