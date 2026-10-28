@@ -42,6 +42,7 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<ITenantKeyManager>(new FakeKeyManager());
             services.AddSingleton<ITenantMigrationRunner>(new FakeMigrationRunner());
             services.AddSingleton<ITenantBackup>(new FakeTenantBackup());
+            services.AddSingleton<ITenantEraser>(new FakeTenantEraser());
             services.AddSingleton<ITenantDbProvisioner>(
                 new FakeTenantDbProvisioner(Path.Combine(
                     Path.GetTempPath(), "lola-tests", "tenants")));

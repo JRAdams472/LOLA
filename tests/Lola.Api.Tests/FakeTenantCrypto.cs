@@ -62,3 +62,12 @@ internal sealed class FakeTenantBackup : ITenantBackup
     public Task<TenantBackupInfo> RestoreAsync(TenantRecord tenant, string name, CancellationToken ct = default)
         => Task.FromResult(Infos[0] with { TenantId = tenant.Id, Name = name });
 }
+
+/// Hermetic erasure stand-in — real crypto-shredding is proven in
+/// Lola.DataPlane.Tests; the API e2e only exercises the route guards.
+internal sealed class FakeTenantEraser : ITenantEraser
+{
+    public Task<TenantErasureResult> EraseAsync(
+        TenantRecord tenant, CancellationToken ct = default)
+        => Task.FromResult(new TenantErasureResult(tenant.Id, 3));
+}

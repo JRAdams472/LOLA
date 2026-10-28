@@ -147,6 +147,21 @@ public interface ITenantBackup
 public sealed record TenantBackupInfo(
     string TenantId, string Name, string Utc, string Sha256, long Bytes);
 
+/// Tenant data-plane erasure (MPE-96): crypto-shredding per invariant 9 —
+/// transit keys are destroyed BEFORE any file is touched, so a crash
+/// mid-erasure leaves ciphertext nobody can ever read, never plaintext
+/// orphaned on disk. Job surface like the runner/backup — explicit
+/// TenantRecord, no TenantContext.
+public interface ITenantEraser
+{
+    /// Destroys both transit keys, removes the tenant file (+ -wal/-shm)
+    /// and backups/<id>/, then marks the registry row `retired`.
+    /// Retention gating is a caller concern (M6 adds the Reg B check).
+    Task<TenantErasureResult> EraseAsync(TenantRecord tenant, CancellationToken ct = default);
+}
+
+public sealed record TenantErasureResult(string TenantId, int FilesRemoved);
+
 /// Control-plane tracking for tenant migration rollouts — observability
 /// only; each tenant file's own DbUp journal is authoritative.
 public interface IMigrationTracker

@@ -111,12 +111,21 @@ public sealed class TenantBackupService(
                     $"backup '{name}' failed integrity_check: {check}");
         }
 
-        // Checkpoint the live file so no WAL frames outlive the swap,
-        // then replace the file and verify it opens under the key.
+        // Checkpoint the live file so no WAL frames outlive the swap —
+        // a busy checkpoint means another connection holds a snapshot
+        // and stale frames could replay into the new file; abort with
+        // an honest error rather than corrupting the restore.
         using (var live = KeyedSqliteConnectionManager.OpenKeyed(tenant.DbPath, keyHex))
-            await live.ExecuteAsync("PRAGMA wal_checkpoint(TRUNCATE)");
-        File.Delete(tenant.DbPath + "-wal");
-        File.Delete(tenant.DbPath + "-shm");
+        {
+            var busy = await live.ExecuteScalarAsync<int>(
+                "PRAGMA wal_checkpoint(TRUNCATE)");
+            if (busy != 0)
+                throw new InvalidOperationException(
+                    "tenant file is busy — restore aborted before the " +
+                    "swap; retry in a write-quiet window");
+        }
+        TryDelete(tenant.DbPath + "-wal");
+        TryDelete(tenant.DbPath + "-shm");
 
         File.Copy(backupPath, tenant.DbPath, overwrite: true);
         using (var verify = KeyedSqliteConnectionManager.OpenKeyed(tenant.DbPath, keyHex))
@@ -127,6 +136,15 @@ public sealed class TenantBackupService(
                     $"restored tenant file failed integrity_check: {check}");
         }
         return info;
+    }
+
+    /// A drained -wal/-shm is cosmetic debris — deletion is best-effort
+    /// (a still-open connection holds the file on Windows) since the
+    /// TRUNCATE checkpoint already proved it empty.
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); }
+        catch (IOException) { }
     }
 
     /// Read-only keyed probe — verifies a snapshot without mutating it:
