@@ -68,6 +68,14 @@ public static class AdminEndpoints
                 new RestoreTenantBackupCommand(id, body.Name), ct)))
             .RequireAuthorization(LolaPolicies.Provision);
 
+        // Crypto-shred erasure (MPE-96) — keys die before files
+        // (invariant 9); the handler guards retired/unknown tenants.
+        admin.MapDelete("/tenants/{id}", async (
+                string id, IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<TenantErasureResult>(
+                new EraseTenantCommand(id), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
         admin.MapGet("/tenants/{id}", async (
                 string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await GuardedStatus(id, ctx.User, async () => Results.Ok(
