@@ -102,6 +102,8 @@ builder.Services.AddSingleton<IInviteDelivery, DevInviteDelivery>();
 builder.Services.AddSingleton<IServiceClientProvisioner, TenantServiceClientProvisioner>();
 builder.Services.AddSingleton<IRoleVisibilityMap, RoleVisibilityMap>();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
+builder.Services.AddSingleton<IMigrationTracker, TenantMigrationTracker>();
+builder.Services.AddSingleton<ITenantMigrationRunner, TenantMigrationRunner>();
 
 // Identity — OpenIddict (ADR-0005): cookie login + OIDC server issuing
 // opaque access tokens + signed id_tokens; the api validates its own
@@ -192,6 +194,7 @@ builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningSe
     sp.GetRequiredService<ITenantKeyManager>(),
     sp.GetRequiredService<ITenantDbProvisioner>(),
     sp.GetRequiredService<IServiceClientProvisioner>(),
+    sp.GetRequiredService<ITenantMigrationRunner>(),
     builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants"));
 
 var app = builder.Build();

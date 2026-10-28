@@ -26,7 +26,9 @@ public sealed class TenantConnectionFactoryTests(OpenBaoFixture fixture)
             var cipher = new TransitFieldCipher(fixture.Transit);
             var svc = new TenantProvisioningService(
                 registry, new TransitKeyManager(fixture.Transit),
-                new TenantDbProvisioner(cipher), new StubServiceClients(), fixture.DataDir);
+                new TenantDbProvisioner(cipher), new StubServiceClients(),
+                new TenantMigrationRunner(cipher, registry, new TenantMigrationTracker(db)),
+                fixture.DataDir);
             var tenant = (await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"))).Tenant;
 
             var factory = new TenantConnectionFactory(cipher);

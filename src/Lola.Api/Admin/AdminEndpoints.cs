@@ -38,6 +38,14 @@ public static class AdminEndpoints
                     new ProvisionTenantCommand(body.TenantId, body.Slug, body.DisplayName), ct)))
             .RequireAuthorization(LolaPolicies.Provision);
 
+        // Fleet migration rollout (MPE-93) — unscoped operator surface:
+        // rolls every active tenant file to the latest migration,
+        // isolating failures per tenant.
+        admin.MapPost("/migrations", async (IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<MigrationRunResult>(
+                new RunMigrationsCommand(), ct)))
+            .RequireAuthorization(LolaPolicies.Provision);
+
         admin.MapGet("/tenants/{id}", async (
                 string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await GuardedStatus(id, ctx.User, async () => Results.Ok(

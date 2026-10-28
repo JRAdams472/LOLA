@@ -9,6 +9,7 @@ namespace Lola.Application.Tenancy;
 ///   RegistryStep  → registry row (status=provisioning)
 ///   KeysStep      → transit DEK + index key (idempotent ensure)
 ///   DataFileStep  → SQLCipher file + wrapped file key on the row
+///   MigrateStep   → tenant-file schema to latest (MPE-93)
 ///   ActivateStep  → status=active
 ///   SvcClientStep → `svc-{tenant}` client-credentials OIDC client
 /// A row left in `provisioning` IS the failure state — there is no
@@ -19,6 +20,7 @@ public sealed class TenantProvisioningService(
     ITenantKeyManager keys,
     ITenantDbProvisioner dataPlane,
     IServiceClientProvisioner svcClients,
+    ITenantMigrationRunner migrations,
     string tenantDataDir = "data/tenants") : ITenantProvisioner
 {
     public async Task<ProvisionResult> ProvisionAsync(
@@ -49,8 +51,17 @@ public sealed class TenantProvisioningService(
         {
             var wrapped = await dataPlane.ProvisionFileAsync(tenant, ct);
             await registry.SetDbKeyAsync(tenantId, wrapped, ct);
+            tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
             steps.Add("data-file");
         }
+
+        // Schema to latest before activation — a failed migrate leaves
+        // the row in `provisioning` and the next run resumes here.
+        var migration = await migrations.MigrateAsync(tenant, ct);
+        if (!migration.Success)
+            throw new InvalidOperationException(
+                $"Tenant migration failed: {migration.Error}");
+        steps.Add("migrate");
 
         if (tenant.Status != "active")
         {

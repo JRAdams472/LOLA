@@ -115,6 +115,32 @@ public interface IServiceClientProvisioner
 
 public sealed record ServiceClientResult(string ClientId, string? PlaintextSecret);
 
+/// Tenant data-plane migration runner (MPE-93): applies embedded DbUp
+/// migrations inside keyed tenant files, per-tenant or fleet-wide with
+/// per-tenant failure isolation. Job surface — takes an explicit
+/// TenantRecord rather than reading TenantContext.
+public interface ITenantMigrationRunner
+{
+    Task<TenantMigrationResult> MigrateAsync(TenantRecord tenant, CancellationToken ct = default);
+    Task<IReadOnlyList<TenantMigrationResult>> MigrateAllAsync(CancellationToken ct = default);
+}
+
+public sealed record TenantMigrationResult(
+    string TenantId, bool Success, IReadOnlyList<string> Scripts, string? Error);
+
+/// Control-plane tracking for tenant migration rollouts — observability
+/// only; each tenant file's own DbUp journal is authoritative.
+public interface IMigrationTracker
+{
+    Task RecordAsync(string tenantId, int version, string name, string status,
+        string? error, CancellationToken ct = default);
+    Task<IReadOnlyList<MigrationRow>> ListAsync(string? tenantId = null, CancellationToken ct = default);
+}
+
+public sealed record MigrationRow(
+    string TenantId, long Version, string Name, string AppliedUtc,
+    string Status, string? Error);
+
 /// Tenant provisioning job (MPE-67): registry row → transit keys →
 /// SQLCipher file → downstream client creds. Steps are idempotent —
 /// re-running after a failure resumes, not duplicates.

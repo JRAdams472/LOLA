@@ -9,11 +9,13 @@ using SQLitePCL;
 
 namespace Lola.DataPlane;
 
-/// Creates a tenant's SQLCipher data-plane file (MPE-67 minimal slice —
-/// M4 adds rolling migrations/backup). The file key is a fresh random
-/// 256-bit key wrapped by the tenant's transit key; only the `vault:`
-/// ciphertext returns to the caller for the registry. The plaintext
-/// key exists in memory just long enough to create the file.
+/// Creates a tenant's SQLCipher data-plane file. The file key is a
+/// fresh random 256-bit key wrapped by the tenant's transit key; only
+/// the `vault:` ciphertext returns to the caller for the registry. The
+/// plaintext key exists in memory just long enough to create the file.
+/// Schema lives in migrations (Migrations/*.sql applied by
+/// TenantMigrationRunner at the pipeline's `migrate` step) — this
+/// creates only the empty keyed file.
 public sealed class TenantDbProvisioner(IFieldCipher cipher) : ITenantDbProvisioner
 {
     // Explicit provider — see ControlPlaneDb: plain e_sqlite3 and
@@ -57,12 +59,6 @@ public sealed class TenantDbProvisioner(IFieldCipher cipher) : ITenantDbProvisio
                 PRAGMA auto_vacuum=FULL;
                 PRAGMA journal_mode=WAL;
                 PRAGMA foreign_keys=ON;
-                CREATE TABLE IF NOT EXISTS schema_info (
-                    version     INTEGER NOT NULL DEFAULT 1,
-                    created_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-                );
-                INSERT INTO schema_info (version)
-                SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM schema_info);
                 """);
         }
 
