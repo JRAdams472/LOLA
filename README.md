@@ -32,10 +32,18 @@ invariants in [`AGENTS.md`](AGENTS.md) and the megaplan in
 Control plane live — OIDC login (PKCE + client credentials), tenant
 provisioning with per-tenant SQLCipher files, role→visibility masking
 on every response, borrower invites, and admin tenant/user/group
-management. See milestone tickets under megaplan **MPE-63**.
+management.
+
+Data plane live (M4) — DbUp rolling migrations inside keyed tenant
+files with fleet rollout + per-tenant tracking, a context-scoped
+repository seam, encrypted `VACUUM INTO` backups with sha256 manifests
+and guarded restore, and key-first crypto-shredding erasure
+(`DELETE /api/admin/tenants/{id}`). See milestone tickets under
+megaplan **MPE-63**.
 
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
-[`docs/identity-runbook.md`](docs/identity-runbook.md)
+[`docs/identity-runbook.md`](docs/identity-runbook.md) ·
+[`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
 
 ## Observability
 
