@@ -104,6 +104,9 @@ builder.Services.AddSingleton<IRoleVisibilityMap, RoleVisibilityMap>();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddSingleton<IMigrationTracker, TenantMigrationTracker>();
 builder.Services.AddSingleton<ITenantMigrationRunner, TenantMigrationRunner>();
+builder.Services.AddSingleton<ITenantBackup>(sp => new TenantBackupService(
+    sp.GetRequiredService<IFieldCipher>(),
+    builder.Configuration["TENANT_BACKUP_DIR"] ?? "data/backups"));
 
 // Identity — OpenIddict (ADR-0005): cookie login + OIDC server issuing
 // opaque access tokens + signed id_tokens; the api validates its own

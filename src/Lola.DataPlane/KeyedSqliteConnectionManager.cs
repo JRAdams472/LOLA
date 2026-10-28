@@ -22,7 +22,10 @@ public sealed class KeyedSqliteConnectionManager : DatabaseConnectionManager
     public override IEnumerable<string> SplitScriptIntoCommands(string scriptContents)
         => [scriptContents];
 
-    private static IDbConnection OpenKeyed(string dbPath, string fileKeyHex)
+    /// Keyed open shared with job surfaces that open tenant files
+    /// outside DbUp (backup/restore, DataPlane tests) — same PRAGMA
+    /// order and hygiene pragmas as every data-plane connection.
+    public static IDbConnection OpenKeyed(string dbPath, string fileKeyHex)
     {
         var conn = new SqliteConnection(new SqliteConnectionStringBuilder
         {
