@@ -31,6 +31,7 @@ public sealed class ProvisioningTests(OpenBaoFixture fixture)
                     new TransitKeyManager(fixture.Transit),
                     new TenantDbProvisioner(cipher),
                     new StubServiceClients(),
+                    new TenantMigrationRunner(cipher, registry, new TenantMigrationTracker(db)),
                     fixture.DataDir),
                 registry);
     }
@@ -48,7 +49,7 @@ public sealed class ProvisioningTests(OpenBaoFixture fixture)
             result.Tenant.Status.ShouldBe("active");
             result.Tenant.DbKeyWrapped.ShouldStartWith("vault:v");
             result.StepsCompleted.ShouldBe(
-                ["registry", "transit-keys", "data-file", "activate", "svc-client"]);
+                ["registry", "transit-keys", "data-file", "migrate", "activate", "svc-client"]);
 
             // Transit keys exist (EnsureKeys ran); file exists and is
             // keyed: unkeyed open fails, keyed open works.

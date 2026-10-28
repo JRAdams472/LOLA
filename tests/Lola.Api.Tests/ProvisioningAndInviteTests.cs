@@ -136,6 +136,18 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
     }
 
     [Fact]
+    public async Task Migrations_endpoint_runs_rollout_for_service()
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new("Bearer", await ServiceTokenAsync(client, "lola-svc", "svc-secret-value"));
+        var resp = await client.PostAsync("/api/admin/migrations", null);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("applied").GetInt32().ShouldBeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
     public async Task Auth_tight_rate_limit_kicks_in_on_token_endpoint()
     {
         // The auth-tight partition keys on RemoteIpAddress — null under

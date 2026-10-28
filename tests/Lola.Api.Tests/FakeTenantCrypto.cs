@@ -33,3 +33,15 @@ internal sealed class FakeTenantDbProvisioner(string dataDir) : ITenantDbProvisi
         return Task.FromResult($"vault:v1:test-wrapped-{tenant.Id}");
     }
 }
+
+/// API tests have no OpenBao — the provisioning pipeline's migrate
+/// step is faked to success (the real runner is proven against real
+/// SQLCipher + real OpenBao in Lola.DataPlane.Tests).
+internal sealed class FakeMigrationRunner : ITenantMigrationRunner
+{
+    public Task<TenantMigrationResult> MigrateAsync(
+        TenantRecord tenant, CancellationToken ct = default)
+        => Task.FromResult(new TenantMigrationResult(tenant.Id, true, ["0001_baseline"], null));
+    public Task<IReadOnlyList<TenantMigrationResult>> MigrateAllAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<TenantMigrationResult>>([]);
+}
