@@ -189,6 +189,7 @@ builder.Services.AddOpenIddict()
 builder.Services.AddHostedService<OidcClientSeeder>();
 builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
 builder.Services.AddScoped<TenantConnectionFactory>();
+builder.Services.AddScoped<SchemaInfoRepository>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
