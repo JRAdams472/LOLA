@@ -33,11 +33,14 @@ public sealed class TransitKeyManager(OpenBaoTransitClient transit) : ITenantKey
     /// Crypto-shredding: deletion_allowed → delete, on BOTH keys.
     /// Irreversible — after this every tenant ciphertext and blind index
     /// is permanently unrecoverable. Retention checks are the caller's
-    /// job before invoking (Reg B 25-month, invariant 9).
+    /// job before invoking (Reg B 25-month, invariant 9). Idempotent:
+    /// an already-destroyed key reads as absent and is skipped, so a
+    /// retried erasure converges instead of dying on 404s (MPE-107).
     public async Task DestroyAsync(string tenantId, CancellationToken ct = default)
     {
         foreach (var key in new[] { DataKey(tenantId), IndexKey(tenantId) })
         {
+            if (!await transit.KeyExistsAsync(key, ct)) continue;
             await transit.SetDeletionAllowedAsync(key, ct);
             await transit.DeleteKeyAsync(key, ct);
         }
