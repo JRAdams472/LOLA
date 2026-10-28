@@ -1,10 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Lola.Domain.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Shouldly;
 
 namespace Lola.Api.Tests;
@@ -15,8 +12,6 @@ namespace Lola.Api.Tests;
 public sealed class TenantAccessTests(LolaApiFactory factory)
     : IClassFixture<LolaApiFactory>
 {
-    private const string Password = "correct horse battery staple";
-
     [Theory]
     [InlineData(LolaRole.TenantAdmin, false, false)] // full plaintext
     [InlineData(LolaRole.LoanOfficer, false, true)]  // Contact/Name plaintext, Account masked
@@ -25,7 +20,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
         LolaRole role, bool expectMaskedContact, bool expectMaskedAccount)
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        var token = await LoginAsync(tenant, role);
+        var token = await PkceLogin.TokenAsync(factory, tenant, role);
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
@@ -63,7 +58,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     public async Task Graphql_tenantUsers_masks_identically_to_rest()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        var token = await LoginAsync(tenant, LolaRole.Service);
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.Service);
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
@@ -92,8 +87,8 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     {
         var a = $"t{Guid.NewGuid():N}"[..12];
         var b = $"t{Guid.NewGuid():N}"[..12];
-        await factory.SeedUserAsync(b, $"{b}@test.dev", Password);
-        var tokenA = await LoginAsync(a, LolaRole.TenantAdmin);
+        await factory.SeedUserAsync(b, $"{b}@test.dev", PkceLogin.Password);
+        var tokenA = await PkceLogin.TokenAsync(factory, a, LolaRole.TenantAdmin);
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", tokenA);
@@ -116,7 +111,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
         // Provisioning-status tenant — resolution must refuse.
-        var token = await LoginAsync(tenant, LolaRole.TenantAdmin, tenantStatus: "provisioning");
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin, tenantStatus: "provisioning");
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
@@ -129,7 +124,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     public async Task Borrower_is_denied_admin_endpoints()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        var token = await LoginAsync(tenant, LolaRole.Borrower);
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.Borrower);
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
@@ -143,7 +138,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     public async Task Traversal_and_garbage_tenant_ids_are_403()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        var token = await LoginAsync(tenant, LolaRole.TenantAdmin);
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin);
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
@@ -158,7 +153,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     public async Task Group_crud_membership_and_officer_user_round_trip()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        var token = await LoginAsync(tenant, LolaRole.TenantAdmin);
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin);
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
@@ -178,7 +173,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
             {
                 email = $"officer-{tenant}@test.dev",
                 displayName = "Officer One",
-                password = Password
+                password = PkceLogin.Password
             });
         made.StatusCode.ShouldBe(HttpStatusCode.Created);
         var officer = await made.Content.ReadFromJsonAsync<JsonElement>();
@@ -225,54 +220,4 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
         groups.EnumerateArray().Any(g => g.GetProperty("id").GetString() == gid)
             .ShouldBeFalse();
     }
-
-    /// Full dev PKCE dance → opaque access token for a seeded user.
-    private async Task<string> LoginAsync(
-        string tenant, LolaRole role, string tenantStatus = "active")
-    {
-        var email = $"{tenant}-{role}@test.dev";
-        await factory.SeedUserAsync(
-            tenant, email, Password, role, tenantStatus: tenantStatus);
-
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            HandleCookies = true
-        });
-
-        var verifier = B64Url(RandomNumberGenerator.GetBytes(32));
-        var challenge = B64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
-        var authorize = "/connect/authorize?response_type=code" +
-            "&client_id=lola-officer-console" +
-            "&redirect_uri=http%3A%2F%2Flocalhost%3A3200%2Fcallback" +
-            "&scope=openid%20profile%20lola-api%20offline_access" +
-            $"&code_challenge={challenge}&code_challenge_method=S256";
-
-        await client.GetAsync(authorize);
-        await client.PostAsync("/account/login", new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["email"] = email,
-                ["password"] = Password,
-                ["returnUrl"] = authorize
-            }));
-        var second = await client.GetAsync(authorize);
-        var location = second.Headers.Location!.ToString();
-        var code = Uri.UnescapeDataString(location.Split("code=")[1].Split('&')[0]);
-
-        var tokens = await client.PostAsync("/connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["client_id"] = "lola-officer-console",
-                ["redirect_uri"] = "http://localhost:3200/callback",
-                ["code"] = code,
-                ["code_verifier"] = verifier
-            }));
-        return (await tokens.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("access_token").GetString()!;
-    }
-
-    private static string B64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }

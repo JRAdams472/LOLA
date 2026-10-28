@@ -12,25 +12,29 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         string tenantId, CancellationToken ct = default)
     {
         using var conn = db.Open();
-        var rows = await conn.QueryAsync<GroupRow>(new CommandDefinition("""
+        // LEFT JOIN over real columns only — a computed JSON aggregate
+        // column reports byte[] to Dapper on the zero-row path and
+        // breaks materialization (found via AcceptInvite on a
+        // group-less tenant, MPE-90).
+        var rows = await conn.QueryAsync<GroupRoleRow>(new CommandDefinition("""
             SELECT g.id, g.tenant_id AS TenantId, g.name, g.description,
-                   (SELECT json_group_array(role) FROM group_roles
-                     WHERE group_id = g.id) AS RolesJson
-            FROM groups g WHERE g.tenant_id = @tenantId ORDER BY g.name
+                   gr.role AS Role
+            FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
+            WHERE g.tenant_id = @tenantId ORDER BY g.name
             """, new { tenantId }, cancellationToken: ct));
-        return rows.Select(r => r.ToGroup()).ToList();
+        return ToGroups(rows);
     }
 
     public async Task<LolaGroup?> FindByIdAsync(string id, CancellationToken ct = default)
     {
         using var conn = db.Open();
-        var row = await conn.QuerySingleOrDefaultAsync<GroupRow>(new CommandDefinition("""
+        var rows = await conn.QueryAsync<GroupRoleRow>(new CommandDefinition("""
             SELECT g.id, g.tenant_id AS TenantId, g.name, g.description,
-                   (SELECT json_group_array(role) FROM group_roles
-                     WHERE group_id = g.id) AS RolesJson
-            FROM groups g WHERE g.id = @id
+                   gr.role AS Role
+            FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
+            WHERE g.id = @id
             """, new { id }, cancellationToken: ct));
-        return row?.ToGroup();
+        return ToGroups(rows).FirstOrDefault();
     }
 
     public async Task<int> MemberCountAsync(string groupId, CancellationToken ct = default)
@@ -112,17 +116,16 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
             """, new { userId, groupId }, cancellationToken: ct));
     }
 
-    private sealed record GroupRow(
-        string Id, string TenantId, string Name, string? Description, string RolesJson)
-    {
-        public LolaGroup ToGroup()
-        {
-            var roles = string.IsNullOrEmpty(RolesJson)
-                ? new List<LolaRole>()
-                : System.Text.Json.JsonSerializer
-                    .Deserialize<List<string>>(RolesJson)!
-                    .Select(Enum.Parse<LolaRole>).ToList();
-            return new LolaGroup(Id, TenantId, Name, Description, roles);
-        }
-    }
+    private sealed record GroupRoleRow(
+        string Id, string TenantId, string Name, string? Description, string? Role);
+
+    private static IReadOnlyList<LolaGroup> ToGroups(IEnumerable<GroupRoleRow> rows)
+        => rows.GroupBy(r => r.Id).Select(g =>
+            {
+                var first = g.First();
+                var roles = g.Where(r => r.Role is not null)
+                    .Select(r => Enum.Parse<LolaRole>(r.Role!)).ToList();
+                return new LolaGroup(first.Id, first.TenantId, first.Name,
+                    first.Description, roles);
+            }).ToList();
 }
