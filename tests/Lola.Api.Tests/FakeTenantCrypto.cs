@@ -69,5 +69,5 @@ internal sealed class FakeTenantEraser : ITenantEraser
 {
     public Task<TenantErasureResult> EraseAsync(
         TenantRecord tenant, CancellationToken ct = default)
-        => Task.FromResult(new TenantErasureResult(tenant.Id, 3));
+        => Task.FromResult(new TenantErasureResult(tenant.Id, 3, []));
 }

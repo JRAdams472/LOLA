@@ -105,6 +105,15 @@ public sealed class OpenBaoTransitClient
         await PostVoidAsync($"{Mount}/keys/{keyName}/rotate", null, ct);
     }
 
+    /// Key existence probe — lets crypto-shred be idempotent: an
+    /// already-deleted key reads as absent, not an error.
+    public async Task<bool> KeyExistsAsync(string keyName, CancellationToken ct = default)
+    {
+        using var resp = await SendOnceOrRetryAsync(
+            () => CreateRequest(HttpMethod.Get, $"{Mount}/keys/{keyName}"), ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     /// Step 1 of the two-step crypto-shred — transit refuses key
     /// deletion until this flag is set. Deliberate, not convenience.
     public async Task SetDeletionAllowedAsync(string keyName, CancellationToken ct = default)

@@ -160,7 +160,11 @@ public interface ITenantEraser
     Task<TenantErasureResult> EraseAsync(TenantRecord tenant, CancellationToken ct = default);
 }
 
-public sealed record TenantErasureResult(string TenantId, int FilesRemoved);
+/// `UnresolvedPaths` lists anything file-deletion couldn't remove —
+/// after key destruction those bytes are already unreadable, so the
+/// tenant still converges to `retired` and ops sweeps the paths.
+public sealed record TenantErasureResult(
+    string TenantId, int FilesRemoved, IReadOnlyList<string> UnresolvedPaths);
 
 /// Control-plane tracking for tenant migration rollouts — observability
 /// only; each tenant file's own DbUp journal is authoritative.

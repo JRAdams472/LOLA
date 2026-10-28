@@ -31,27 +31,44 @@ public sealed class TenantErasureService(
         // KEYS FIRST — invariant 9. After this both transit keys are
         // two-step deleted; every ciphertext, blind index, and wrapped
         // file key for the tenant is permanently unrecoverable.
+        // DestroyAsync is idempotent (MPE-107): a retried erase whose
+        // keys already died reads them as absent, not an error.
         await keys.DestroyAsync(tenant.Id, ct);
 
+        // Cleanup is best-effort: a locked or missing file must not
+        // wedge the lifecycle — once keys are dead the bytes are
+        // unreadable regardless, so converge to `retired` and report
+        // whatever didn't delete for the operator to sweep.
         var removed = 0;
+        var unresolved = new List<string>();
         foreach (var path in new[]
         {
             tenant.DbPath, tenant.DbPath + "-wal", tenant.DbPath + "-shm"
         })
         {
             if (!File.Exists(path)) continue;
-            File.Delete(path);
-            removed++;
+            try
+            {
+                File.Delete(path);
+                removed++;
+            }
+            catch (IOException) { unresolved.Add(path); }
+            catch (UnauthorizedAccessException) { unresolved.Add(path); }
         }
 
         var backups = Path.Combine(backupDir, tenant.Id);
         if (Directory.Exists(backups))
         {
-            removed += Directory.EnumerateFiles(backups).Count();
-            Directory.Delete(backups, recursive: true);
+            try
+            {
+                removed += Directory.EnumerateFiles(backups).Count();
+                Directory.Delete(backups, recursive: true);
+            }
+            catch (IOException) { unresolved.Add(backups); }
+            catch (UnauthorizedAccessException) { unresolved.Add(backups); }
         }
 
         await registry.SetStatusAsync(tenant.Id, "retired", ct);
-        return new TenantErasureResult(tenant.Id, removed);
+        return new TenantErasureResult(tenant.Id, removed, unresolved);
     }
 }

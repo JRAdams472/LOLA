@@ -105,6 +105,12 @@ disk is ciphertext with destroyed keys — deletion is cleanup, not the
 security boundary. Erasure is refused for already-`retired` tenants
 (400) and unknown ids (404).
 
+Retry-safety (MPE-107): re-running an erase that died mid-way is safe —
+already-destroyed keys read as absent (not an error), file cleanup is
+best-effort, and the tenant always converges to `retired`. Anything
+that failed to delete is reported in `unresolvedPaths` for an operator
+sweep; the bytes are unreadable once keys are gone either way.
+
 **Retention caveat:** Reg B/ECOA retention gating is not yet enforced
 in code (M6). Until then, `DELETE` is an operator-only action — do not
 erase a tenant that may still owe retention of application records.
