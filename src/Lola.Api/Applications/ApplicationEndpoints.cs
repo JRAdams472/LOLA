@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Lola.Api.Identity;
 using Lola.Application.Applications;
+using Lola.Application.Interop;
 using Lola.Application.Security;
 using Lola.Domain.Identity;
 using Microsoft.AspNetCore.Http;
@@ -68,6 +69,27 @@ public static class ApplicationEndpoints
             Guarded(id, async () => await bus.InvokeAsync<TransitionResult>(
                 new TransitionApplicationCommand(id, appId, body.Target,
                     Actor(user), IsBorrower(user)), ct)));
+
+        // Interop (MPE-111) — exports carry the real values (a masked
+        // MISMO/ULDD file is useless); import always lands as a draft.
+        group.MapGet("/{appId}/export-mismo", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<XmlResult>(
+                new ExportMismoQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapPost("/import-mismo", async (string id,
+                ImportMismoRequest body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<MismoImportResult>(
+                new ImportMismoCommand(id, body.Xml,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/export-uldd", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<XmlResult>(
+                new ExportUlddQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
     }
 
     /// Path tenant must equal the resolved scope — the middleware
@@ -79,12 +101,16 @@ public static class ApplicationEndpoints
             return Results.Problem(statusCode: StatusCodes.Status403Forbidden,
                 title: "request tenant does not match the resolved tenant");
         var result = await work();
-        return result is SubmitResult { Ok: false } failed
-            ? Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity,
+        return result switch
+        {
+            SubmitResult { Ok: false } failed => Results.Problem(
+                statusCode: StatusCodes.Status422UnprocessableEntity,
                 title: "validation failed",
                 extensions: new Dictionary<string, object?>
-                { ["errors"] = failed.Errors })
-            : Results.Ok(result);
+                { ["errors"] = failed.Errors }),
+            XmlResult xml => Results.Text(xml.Xml, "application/xml"),
+            _ => Results.Ok(result)
+        };
     }
 
     private static string Actor(ClaimsPrincipal user) =>
@@ -96,4 +122,5 @@ public static class ApplicationEndpoints
     public sealed record CreateDraftRequest(string? BorrowerUserId);
     public sealed record UpdateDraftRequest(IReadOnlyDictionary<string, string> Patch);
     public sealed record TransitionRequest(string Target);
+    public sealed record ImportMismoRequest(string Xml);
 }
