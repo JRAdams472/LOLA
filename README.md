@@ -38,7 +38,18 @@ Data plane live (M4) — DbUp rolling migrations inside keyed tenant
 files with fleet rollout + per-tenant tracking, a context-scoped
 repository seam, encrypted `VACUUM INTO` backups with sha256 manifests
 and guarded restore, and key-first crypto-shredding erasure
-(`DELETE /api/admin/tenants/{id}`). See milestone tickets under
+(`DELETE /api/admin/tenants/{id}`).
+
+Intake live (M5) — a MISMO-aligned field catalog drives everything:
+JSON1 application documents, encrypted PII leaves (`vault:`) with
+blind-index (`idx:`) search, catalog-driven validation, and the
+hand-rolled MISMO XML import/export + ULDD export mappers.
+REST `/api/tenants/{id}/applications` and GraphQL share the same
+handlers — draft → submit → in_review → decisioned, officer-any /
+borrower-own scoping, masked-by-default reads, operator corrections
+as append-only versions, a once-only TRID clock with business-day
+deadline, and the `POSIntake → Validate → PPE → Fee → Doc → Package`
+named-step workflow seam. See milestone tickets under
 megaplan **MPE-63**.
 
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
