@@ -243,3 +243,55 @@ public sealed class FakePricingRepository
         return Task.CompletedTask;
     }
 }
+
+/// In-memory rate-lock store — tenant-scoped like the pricing fake
+/// so parallel test tenants can't see each other's locks.
+public sealed class FakeRateLockRepository
+    : Lola.Application.Pricing.IRateLockRepository
+{
+    public Dictionary<string, Lola.Application.Pricing.RateLockRecord>
+        Rows
+    { get; } = new();
+
+    private static string? Tenant =>
+        Lola.Application.Tenancy.TenantContext.Current?.TenantId;
+    private readonly Dictionary<string, string?> _tenant = new();
+
+    public Task InsertAsync(
+        Lola.Application.Pricing.RateLockRecord row,
+        CancellationToken ct = default)
+    {
+        Rows[row.LockId] = row;
+        _tenant[row.LockId] = Tenant;
+        return Task.CompletedTask;
+    }
+
+    public Task<Lola.Application.Pricing.RateLockRecord?> GetActiveAsync(
+        string appId, CancellationToken ct = default)
+        => Task.FromResult(Rows.Values.FirstOrDefault(r =>
+            r.ApplicationId == appId && r.Status == "active" &&
+            _tenant.GetValueOrDefault(r.LockId) == Tenant));
+
+    public Task<IReadOnlyList<Lola.Application.Pricing.RateLockRecord>>
+        ListAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Pricing.RateLockRecord>>(
+            Rows.Values.Where(r => r.ApplicationId == appId &&
+                _tenant.GetValueOrDefault(r.LockId) == Tenant)
+                .OrderBy(r => r.LockedUtc).ToList());
+
+    public Task UnlockAsync(string lockId, string reason,
+        string unlockedBy, string unlockedUtc,
+        CancellationToken ct = default)
+    {
+        var r = Rows[lockId];
+        Rows[lockId] = r with
+        {
+            Status = "unlocked",
+            UnlockReason = reason,
+            UnlockedBy = unlockedBy,
+            UnlockedUtc = unlockedUtc
+        };
+        return Task.CompletedTask;
+    }
+}

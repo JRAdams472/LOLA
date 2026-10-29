@@ -18,13 +18,15 @@ public static class CorrectApplicationHandler
 
     public static async Task<SubmitResult> Handle(
         CorrectApplicationCommand c, IApplicationRepository apps,
-        Audit.ITenantAuditLog audit, CancellationToken ct)
+        Audit.ITenantAuditLog audit,
+        Pricing.IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.ActorIsBorrower)
             throw DomainException.Forbidden("correction is staff-only");
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, c.AppId, c.ActorId, false, ct);
+        await Pricing.RateFreeze.EnforceAsync(locks, c.AppId, c.Patch.Keys, ct);
         if (app.Status is "draft" or "decisioned")
             throw DomainException.BadRequest(
                 $"corrections apply to submitted/in-review applications (status is '{app.Status}')");

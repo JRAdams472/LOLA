@@ -81,6 +81,9 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton(new FakePricingRepository());
             services.AddSingleton<Lola.Application.Pricing.IPricingRepository>(
                 sp => sp.GetRequiredService<FakePricingRepository>());
+            services.AddSingleton(new FakeRateLockRepository());
+            services.AddSingleton<Lola.Application.Pricing.IRateLockRepository>(
+                sp => sp.GetRequiredService<FakeRateLockRepository>());
             services.AddSingleton<Lola.Application.Pricing.IPricingService,
                 AltStubPricingAdapter>();
         });

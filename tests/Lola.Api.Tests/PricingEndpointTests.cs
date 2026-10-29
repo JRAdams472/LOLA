@@ -144,6 +144,91 @@ public sealed class PricingEndpointTests(LolaApiFactory factory)
     }
 
     [Fact]
+    public async Task Lock_freezes_paths_unlock_clears_relock_appends()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+        var appId = await DraftWithScenarioAsync(officer, base_);
+
+        // Price + drain to a `done` eval, then lock it.
+        await officer.PostAsJsonAsync($"{base_}/{appId}/price",
+            new { lockTermDays = 30 });
+        var rec = await factory.Services
+            .GetRequiredService<ITenantRegistry>()
+            .FindByIdAsync(tenant);
+        await factory.Services
+            .GetRequiredService<Lola.Api.Pricing.PricingOutboxProcessor>()
+            .DrainTenantAsync(rec!);
+
+        // Lock before eval is done must 409 — prove via a second app.
+        var locked = await officer.PostAsJsonAsync(
+            $"{base_}/{appId}/lock",
+            new { productCode = "alt-30", rate = 5.99m, lockTermDays = 30 });
+        locked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var lockDto = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/lock");
+        lockDto.GetProperty("status").GetString().ShouldBe("active");
+        lockDto.GetProperty("productCode").GetString()
+            .ShouldBe("alt-30");
+        DateTimeOffset.Parse(lockDto.GetProperty("expiresUtc")
+            .GetString()!).ShouldBeGreaterThan(DateTimeOffset.UtcNow
+            .AddDays(29));
+        // App DTO carries lock + expiry.
+        var appDto = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}");
+        appDto.GetProperty("lock")
+            .GetProperty("expiresUtc").GetString().ShouldNotBeNull();
+
+        // Frozen path rejected 409 with the field list; non-frozen ok.
+        var frozen = await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}",
+            new
+            {
+                patch = new Dictionary<string, string>
+                {
+                    ["loan.base_amount"] = "360000",
+                    ["party[0].credit_score"] = "710"
+                }
+            });
+        frozen.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var frozenBody = await frozen.Content
+            .ReadFromJsonAsync<JsonElement>();
+        frozenBody.GetProperty("frozenFields").GetArrayLength()
+            .ShouldBe(2);
+        var allowed = await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}",
+            new
+            {
+                patch = new Dictionary<string, string>
+                { ["party[0].first_name"] = "Renamed" }
+            });
+        allowed.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Unlock with reason clears the freeze; re-lock appends.
+        var unlocked = await officer.PostAsJsonAsync(
+            $"{base_}/{appId}/unlock", new { reason = "re-shop" });
+        unlocked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var getLock = await officer.GetAsync($"{base_}/{appId}/lock");
+        getLock.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var after = await officer.PatchAsJsonAsync($"{base_}/{appId}",
+            new
+            {
+                patch = new Dictionary<string, string>
+                { ["loan.base_amount"] = "360000" }
+            });
+        after.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var relock = await officer.PostAsJsonAsync(
+            $"{base_}/{appId}/lock",
+            new { productCode = "alt-30", rate = 5.99m, lockTermDays = 30 });
+        relock.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var lockRepo = factory.Services
+            .GetRequiredService<FakeRateLockRepository>();
+        lockRepo.Rows.Values.Count(
+            r => r.ApplicationId == appId).ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Borrower_cannot_price()
     {
         var (tenant, officer) = await SetupAsync();

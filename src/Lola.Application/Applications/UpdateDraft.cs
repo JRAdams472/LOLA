@@ -19,12 +19,14 @@ public static class UpdateDraftHandler
 
     public static async Task<int> Handle(
         UpdateDraftCommand c, IApplicationRepository apps,
-        Audit.ITenantAuditLog audit, CancellationToken ct)
+        Audit.ITenantAuditLog audit,
+        Pricing.IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await RequireAppAsync(apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
         if (app.Status != "draft")
             throw DomainException.BadRequest("only drafts can be patched");
+        await Pricing.RateFreeze.EnforceAsync(locks, c.AppId, c.Patch.Keys, ct);
 
         var doc = app.Doc;
         foreach (var (path, value) in c.Patch)

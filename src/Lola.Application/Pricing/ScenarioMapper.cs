@@ -10,6 +10,21 @@ namespace Lola.Application.Pricing;
 /// path for them appears below; the firewall test enforces it.
 public static class ScenarioMapper
 {
+    /// The catalog paths that feed the pricing scenario — the frozen
+    /// set an active rate lock guards (MPE-131). Patches hitting any
+    /// of these while locked are rejected 409; everything else is
+    /// editable. Party paths pin index 0 (the priced borrower).
+    public static readonly IReadOnlyList<string> FrozenPaths =
+    [
+        "loan_purpose", "loan.product_type", "loan.base_amount",
+        "loan_amount", "loan_term_months", "amortization_type",
+        "loan.ltv", "loan.cltv", "subject_property.units",
+        "subject_property.property_type", "subject_property.usage",
+        "subject_property.state", "subject_property.est_value",
+        "declaration.first_time_buyer", "party[0].credit_score",
+        "party[0].credit_model", "party[0].employment[0].self_employed",
+    ];
+
     // Canonical path → egress member, with enum normalization into the
     // vocabulary MPEx rules expect. Unmapped catalog values emit as
     // absent (null), never passed through raw — a wrong enum is worse

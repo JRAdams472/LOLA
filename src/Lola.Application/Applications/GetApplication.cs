@@ -11,7 +11,8 @@ public static class GetApplicationHandler
 {
     public static async Task<ApplicationDto?> Handle(
         GetApplicationQuery q, IApplicationRepository apps,
-        Audit.ITenantAuditLog audit, CancellationToken ct)
+        Audit.ITenantAuditLog audit,
+        Pricing.IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
@@ -19,9 +20,11 @@ public static class GetApplicationHandler
         await audit.WriteAsync(q.ActorId, "read", "application", q.AppId,
             Audit.AuditFields.InDoc(app.Doc), null, ct);
         DocMasker.MaskInPlace(app.Doc);
+        var active = await locks.GetActiveAsync(app.Id, ct);
         return new ApplicationDto(app.Id, app.Status, app.PipelineStep,
             app.BorrowerUserId, app.CurrentVersion, app.TridClockStart,
             TridClock.DeadlineUtc(app.TridClockStart),
-            app.SubmittedUtc, app.Doc.CloneRoot());
+            app.SubmittedUtc, app.Doc.CloneRoot(),
+            active is null ? null : Pricing.RateLockDtos.ToDto(active));
     }
 }

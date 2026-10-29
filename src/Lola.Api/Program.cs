@@ -227,6 +227,8 @@ builder.Services.AddSingleton<Lola.Application.Audit.IControlPlaneAuditLog, Cont
 // anything else gets the deterministic stub.
 builder.Services.AddScoped<Lola.Application.Pricing.IPricingRepository,
     PricingRepository>();
+builder.Services.AddScoped<Lola.Application.Pricing.IRateLockRepository,
+    RateLockRepository>();
 builder.Services.AddSingleton<Lola.Api.Pricing.PricingOutboxProcessor>();
 if (builder.Configuration["PRICING_ADAPTER"]?.Equals("mpex",
         StringComparison.OrdinalIgnoreCase) == true)
