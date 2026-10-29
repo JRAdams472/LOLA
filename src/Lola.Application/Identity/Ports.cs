@@ -166,6 +166,28 @@ public interface ITenantEraser
 public sealed record TenantErasureResult(
     string TenantId, int FilesRemoved, IReadOnlyList<string> UnresolvedPaths);
 
+/// Control-plane residual cleanup for an erased tenant (MPE-108/119):
+/// the crypto-shred destroys tenant-file data but identity rows live in
+/// the control plane — leaving them would keep credentials usable and
+/// auth identifiers (emails) recoverable after "erasure". The eraser
+/// calls this before marking the tenant `retired`: everything except
+/// the audit spine (tenants row, tenant_migrations, audit_events) is
+/// removed or anonymized in one transaction.
+public interface IControlPlaneResiduals
+{
+    /// Deletes invites, OIDC tokens/authorizations, the `svc-{tenant}`
+    /// client, and groups/user_groups/group_roles; anonymizes `users`
+    /// (email→`erased-{id}@erased`, display_name→`erased`,
+    /// password_hash→NULL, status→`disabled`). Idempotent — a retried
+    /// erase finds nothing left to delete.
+    Task<ResidualCleanup> CleanAsync(string tenantId, CancellationToken ct = default);
+}
+
+/// Per-area counts from a residual pass — observability + test proof.
+public sealed record ResidualCleanup(
+    int Tokens, int Authorizations, int Clients,
+    int Invites, int Groups, int UsersAnonymized);
+
 /// Control-plane tracking for tenant migration rollouts — observability
 /// only; each tenant file's own DbUp journal is authoritative.
 public interface IMigrationTracker

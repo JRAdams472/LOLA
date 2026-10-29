@@ -48,12 +48,16 @@ public sealed class RetentionGateTests
             new EraseTenantCommand("t1", Force: true, "court order", "ops"));
         result.TenantId.ShouldBe("t1");
         erased.ShouldBe(["t1"]);
-        var ev = audit.Events.ShouldHaveSingleItem();
+        audit.Events.Count.ShouldBe(2);
+        var ev = audit.Events[0];
         ev.Action.ShouldBe("retention_override");
         ev.Entity.ShouldBe("tenant");
         ev.EntityId.ShouldBe("t1");
         ev.Actor.ShouldBe("ops");
         ev.Reason.ShouldBe("court order");
+        // The erasure itself is attributed in the control-plane log —
+        // the tenant file's own chain is shredded with the data.
+        audit.Events[1].Action.ShouldBe("tenant_erased");
     }
 
     [Fact]
@@ -70,7 +74,8 @@ public sealed class RetentionGateTests
         (await empty(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         emptyErased.ShouldBe(["t1"]);
-        emptyAudit.Events.ShouldBeEmpty();
+        // No override needed — but the erase itself is still attributed.
+        emptyAudit.Events.Select(e => e.Action).ShouldBe(["tenant_erased"]);
     }
 
     private static (Func<EraseTenantCommand, Task<TenantErasureResult>> Run,

@@ -33,7 +33,8 @@ public sealed class TenantErasureTests(OpenBaoFixture fixture)
             registry, keys, new TenantDbProvisioner(cipher),
             new StubServiceClients(), runner, fixture.DataDir);
         var eraser = new TenantErasureService(
-            keys, registry, Path.Combine(fixture.DataDir, "backups"));
+            keys, registry, new ControlPlaneResiduals(db),
+            Path.Combine(fixture.DataDir, "backups"));
         return (eraser, svc, registry, keys);
     }
 

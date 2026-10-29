@@ -13,6 +13,7 @@ namespace Lola.DataPlane;
 public sealed class TenantErasureService(
     ITenantKeyManager keys,
     ITenantRegistry registry,
+    IControlPlaneResiduals residuals,
     string backupDir = "data/backups") : ITenantEraser
 {
     public async Task<TenantErasureResult> EraseAsync(
@@ -67,6 +68,15 @@ public sealed class TenantErasureService(
             catch (IOException) { unresolved.Add(backups); }
             catch (UnauthorizedAccessException) { unresolved.Add(backups); }
         }
+
+        // Control-plane residuals (MPE-108/119): identity rows live
+        // OUTSIDE the shredded file, so keys dying doesn't touch them —
+        // they are deleted/anonymized here, before `retired` flips.
+        // Ordering matters: `retired` is the terminal convergence flag,
+        // so it is written only after every destructive step succeeded.
+        // A residuals failure leaves the tenant non-retired and this
+        // whole erase retryable; the cleanup itself is idempotent.
+        await residuals.CleanAsync(tenant.Id, ct);
 
         await registry.SetStatusAsync(tenant.Id, "retired", ct);
         return new TenantErasureResult(tenant.Id, removed, unresolved);

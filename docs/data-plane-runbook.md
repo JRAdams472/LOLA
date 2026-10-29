@@ -99,12 +99,40 @@ DELETE /api/admin/tenants/{id}?force=true&reason=...   # retention override
    in `backups/<tenant>/` is permanently unrecoverable.
 2. Deletes `data/tenants/<id>.db` (+ `-wal`/`-shm`) and
    `data/backups/<id>/`.
-3. Registry status → `retired`.
+3. Control-plane residual lifecycle (`IControlPlaneResiduals`,
+   MPE-108/119) — see below.
+4. Registry status → `retired` — written LAST, as the terminal
+   convergence flag: a residuals failure leaves the tenant non-retired
+   so the whole erase retries (residual cleanup is idempotent).
 
 Ordering rationale: if a crash lands mid-erasure, whatever survives on
 disk is ciphertext with destroyed keys — deletion is cleanup, not the
 security boundary. Erasure is refused for already-`retired` tenants
 (400) and unknown ids (404).
+
+**Control-plane residuals (MPE-108/119):** crypto-shredding removes the
+tenant FILE; identity rows live in the control plane and would outlive
+"erasure" as usable credentials and recoverable identifiers. One
+transaction deletes or anonymizes all of them:
+
+- `openiddict_tokens` / `openiddict_authorizations` — every row whose
+  subject is a tenant user id or `svc-{id}`, plus all rows on the
+  `svc-{id}` application.
+- `openiddict_applications` — the `svc-{id}` client itself (inert AND
+  gone: token mints fail `invalid_client`).
+- `invites` — outstanding single-use invites.
+- `groups` + `user_groups` + `group_roles` — the role structure.
+- `users` — **anonymized, not deleted**: `email → erased-{id}@erased`,
+  `display_name → erased`, `password_hash → NULL`, MFA cleared,
+  `status → disabled`. The row stays as a tombstone because audit
+  actors and `invites.created_by` reference user ids — a tombstone
+  keeps those joins resolvable with no credential and no PII.
+
+**Retained — the explicit audit spine:** the `tenants` row (status
+`retired`), `tenant_migrations` (rollout history), and `audit_events`
+(the control-plane hash chain, including `retention_override` and
+`tenant_erased`). After erasure, NOTHING in the control plane can
+authenticate as, or identify a person from, the retired tenant.
 
 Retry-safety (MPE-107): re-running an erase that died mid-way is safe —
 already-destroyed keys read as absent (not an error), file cleanup is

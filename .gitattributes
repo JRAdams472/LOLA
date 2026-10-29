@@ -4,3 +4,6 @@
 *.sql       text eol=lf
 *.hcl       text eol=lf
 Dockerfile  text eol=lf
+# Generated artifact — the drift test byte-compares, so checkout must
+# never inject CRLF regardless of the platform's autocrlf setting.
+docs/pii-data-map.json text eol=lf
