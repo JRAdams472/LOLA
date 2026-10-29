@@ -16,12 +16,15 @@ public static class SearchApplicationsHandler
 {
     public static async Task<ApplicationSearchResult> Handle(
         SearchApplicationsQuery q, IApplicationPartyRepository parties,
-        CancellationToken ct)
+        Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
         if (q.ActorIsBorrower)
             throw DomainException.Forbidden("blind search is staff-only");
         var ids = await parties.SearchAsync(q.Field, q.Value, ct);
+        await audit.WriteAsync(q.ActorId, "search", "application", null,
+            Audit.AuditFields.ForPath(q.Field),
+            $"blind search ({ids.Count} hits)", ct);
         return new ApplicationSearchResult(ids);
     }
 }

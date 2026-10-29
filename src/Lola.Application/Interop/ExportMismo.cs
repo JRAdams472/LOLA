@@ -14,11 +14,14 @@ public sealed record XmlResult(string Xml);
 public static class ExportMismoHandler
 {
     public static async Task<XmlResult> Handle(
-        ExportMismoQuery c, IApplicationRepository apps, CancellationToken ct)
+        ExportMismoQuery c, IApplicationRepository apps,
+        Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
+        await audit.WriteAsync(c.ActorId, "export", "application", c.AppId,
+            Audit.AuditFields.InDoc(app.Doc), "mismo xml", ct);
         return new XmlResult(MismoXmlExporter.Export(app.Doc));
     }
 }

@@ -17,7 +17,8 @@ public static class CorrectApplicationHandler
     private static readonly FieldCatalog Catalog = FieldCatalog.Current;
 
     public static async Task<SubmitResult> Handle(
-        CorrectApplicationCommand c, IApplicationRepository apps, CancellationToken ct)
+        CorrectApplicationCommand c, IApplicationRepository apps,
+        Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.ActorIsBorrower)
@@ -41,6 +42,8 @@ public static class CorrectApplicationHandler
 
         var version = await apps.WriteVersionAsync(
             c.AppId, doc, app.Status, c.ActorId, submitted: true, ct);
+        await audit.WriteAsync(c.ActorId, "write", "application", c.AppId,
+            Audit.AuditFields.ForPaths(c.Patch.Keys), "operator correction", ct);
         return SubmitResult.Success(version);
     }
 }

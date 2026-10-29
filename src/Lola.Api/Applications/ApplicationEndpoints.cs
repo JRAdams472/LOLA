@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Lola.Api.Identity;
 using Lola.Application.Applications;
+using Lola.Application.Audit;
 using Lola.Application.Interop;
 using Lola.Application.Security;
 using Lola.Domain.Identity;
@@ -97,6 +98,13 @@ public static class ApplicationEndpoints
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
                 new GetApplicationStepsQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        // Audit chain verification (MPE-116) — staff-only.
+        group.MapGet("/audit/verify", async (string id,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<AuditVerifyResult>(
+                new VerifyAuditQuery(id,
                     Actor(user), IsBorrower(user)), ct)));
     }
 
