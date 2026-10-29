@@ -38,7 +38,8 @@ public sealed class MarqueeE2ETests(OpenBaoFixture fixture)
             registry, keys, new TenantDbProvisioner(cipher),
             new StubServiceClients(), runner, fixture.DataDir);
         var backup = new TenantBackupService(cipher, backupDir);
-        var eraser = new TenantErasureService(keys, registry, backupDir);
+        var eraser = new TenantErasureService(
+            keys, registry, new ControlPlaneResiduals(db), backupDir);
 
         var id = fixture.NewTenant();
         await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"));

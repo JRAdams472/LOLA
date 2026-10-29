@@ -75,7 +75,10 @@ public static class PiiDataMap
 
     public static string GenerateJson(params Assembly[] memberAssemblies) =>
         Generate(memberAssemblies).ToJsonString(
-            new JsonSerializerOptions { WriteIndented = true }) + "\n";
+            // NewLine pinned to LF — the default is Environment.NewLine,
+            // which made generation platform-dependent (CRLF on Windows)
+            // and broke the byte-compare drift test.
+            new JsonSerializerOptions { WriteIndented = true, NewLine = "\n" }) + "\n";
 
     private static IEnumerable<(Type Type, string Member, string Class)>
         AttributedMembers(Assembly asm)

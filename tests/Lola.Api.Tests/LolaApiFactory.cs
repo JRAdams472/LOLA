@@ -2,6 +2,7 @@ using Dapper;
 using Lola.Application.Identity;
 using Lola.Application.Security;
 using Lola.ControlPlane;
+using Lola.DataPlane;
 using Lola.Domain.Identity;
 using Lola.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
@@ -44,7 +45,15 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<ITenantKeyManager>(new FakeKeyManager());
             services.AddSingleton<ITenantMigrationRunner>(new FakeMigrationRunner());
             services.AddSingleton<ITenantBackup>(new FakeTenantBackup());
-            services.AddSingleton<ITenantEraser>(new FakeTenantEraser());
+            // REAL eraser, not a stub: key destruction is faked (no
+            // OpenBao) but file deletion and the control-plane residual
+            // lifecycle run for real — the M6 marquee asserts invites/
+            // OIDC rows/groups die and users anonymize on erase.
+            services.AddSingleton<ITenantEraser>(sp => new TenantErasureService(
+                sp.GetRequiredService<ITenantKeyManager>(),
+                sp.GetRequiredService<ITenantRegistry>(),
+                sp.GetRequiredService<IControlPlaneResiduals>(),
+                Path.Combine(Path.GetTempPath(), "lola-tests", "backups")));
             services.AddSingleton<ITenantDbProvisioner>(
                 new FakeTenantDbProvisioner(Path.Combine(
                     Path.GetTempPath(), "lola-tests", "tenants")));

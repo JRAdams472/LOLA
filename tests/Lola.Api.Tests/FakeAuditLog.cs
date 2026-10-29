@@ -36,6 +36,21 @@ public sealed class FakeTenantAuditLog : ITenantAuditLog
             broken is null, broken, snapshot.Count));
     }
 
+    /// Test-only stand-in for a raw UPDATE against the audit table:
+    /// flips a stored row's content without touching its hash, so
+    /// VerifyChain must report that seq as broken — the same detection
+    /// the SQLCipher log's tamper test proves in Lola.DataPlane.Tests.
+    public void TamperForTest(long seq = 1)
+    {
+        lock (_events)
+        {
+            var i = _events.FindIndex(e => e.Seq == seq);
+            if (i < 0)
+                throw new InvalidOperationException($"no audit row at seq {seq}");
+            _events[i] = _events[i] with { Action = _events[i].Action + "-x" };
+        }
+    }
+
     public Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditFilter filter,
         CancellationToken ct = default)
     {

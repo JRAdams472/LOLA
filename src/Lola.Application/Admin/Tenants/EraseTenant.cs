@@ -57,6 +57,13 @@ public static class EraseTenantHandler
                 "tenant", c.TenantId, [], c.Reason, ct);
         }
 
-        return await eraser.EraseAsync(tenant, ct);
+        var result = await eraser.EraseAsync(tenant, ct);
+        // The shred destroys the tenant file's own audit log, so the
+        // erasure itself is attributed in the CONTROL-PLANE log — the
+        // spine (tenants row + tenant_migrations + audit_events) is
+        // what survives erasure by design (MPE-119).
+        await audit.WriteAsync(c.ActorId, "tenant_erased",
+            "tenant", c.TenantId, [], null, ct);
+        return result;
     }
 }
