@@ -36,13 +36,20 @@ public sealed class FakeTenantAuditLog : ITenantAuditLog
             broken is null, broken, snapshot.Count));
     }
 
-    public Task<IReadOnlyList<AuditEvent>> QueryAsync(string? entity = null,
-        string? entityId = null, CancellationToken ct = default)
+    public Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditFilter filter,
+        CancellationToken ct = default)
     {
         lock (_events)
             return Task.FromResult<IReadOnlyList<AuditEvent>>(_events
-                .Where(e => (entity is null || e.Entity == entity) &&
-                            (entityId is null || e.EntityId == entityId))
+                .Where(e =>
+                    (filter.Entity is null || e.Entity == filter.Entity) &&
+                    (filter.EntityId is null || e.EntityId == filter.EntityId) &&
+                    (filter.Actor is null || e.Actor == filter.Actor) &&
+                    (filter.Action is null || e.Action == filter.Action) &&
+                    (filter.Since is null || string.CompareOrdinal(
+                        e.CreatedUtc, filter.Since) >= 0) &&
+                    (filter.Until is null || string.CompareOrdinal(
+                        e.CreatedUtc, filter.Until) <= 0))
                 .ToList());
     }
 }

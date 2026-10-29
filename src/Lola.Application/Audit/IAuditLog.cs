@@ -12,8 +12,8 @@ public interface ITenantAuditLog
         string? entityId, IReadOnlyList<string> fieldClasses,
         string? reason, CancellationToken ct = default);
     Task<AuditVerifyResult> VerifyChainAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<AuditEvent>> QueryAsync(string? entity = null,
-        string? entityId = null, CancellationToken ct = default);
+    Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditFilter filter,
+        CancellationToken ct = default);
 }
 
 public interface IControlPlaneAuditLog
@@ -22,6 +22,6 @@ public interface IControlPlaneAuditLog
         string? entityId, IReadOnlyList<string> fieldClasses,
         string? reason, CancellationToken ct = default);
     Task<AuditVerifyResult> VerifyChainAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<AuditEvent>> QueryAsync(string? entity = null,
-        string? entityId = null, CancellationToken ct = default);
+    Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditFilter filter,
+        CancellationToken ct = default);
 }

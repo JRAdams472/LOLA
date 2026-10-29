@@ -5,7 +5,8 @@ using Lola.Domain.Identity;
 namespace Lola.Application.Admin.Users;
 
 public sealed record CreateOfficerUserCommand(
-    string TenantId, string Email, string DisplayName, string? Password);
+    string TenantId, string Email, string DisplayName, string? Password,
+    string ActorId);
 
 public sealed record OfficerUserResult(string Id, string Email, string Status);
 
@@ -15,7 +16,8 @@ public static class CreateOfficerUserHandler
 {
     public static async Task<OfficerUserResult> Handle(
         CreateOfficerUserCommand c, IUserDirectory users,
-        IPasswordHasher hasher, CancellationToken ct)
+        IPasswordHasher hasher, Audit.IControlPlaneAuditLog audit,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var email = InputValidation.RequireEmail(c.Email);
@@ -30,6 +32,10 @@ public static class CreateOfficerUserHandler
             string.IsNullOrEmpty(c.Password) ? UserStatus.Invited : UserStatus.Active,
             MfaEnabled: false, DateTimeOffset.UtcNow.ToString("O"));
         await users.InsertAsync(user, ct);
+        // Control-plane audit (MPE-117): a PII write on the identity
+        // surface — classes only, never values.
+        await audit.WriteAsync(c.ActorId, "write", "user", user.Id,
+            ["Contact", "Name"], "officer user create", ct);
         return new OfficerUserResult(user.Id, user.Email,
             user.Status.ToString().ToLowerInvariant());
     }

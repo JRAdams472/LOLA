@@ -18,9 +18,9 @@ public class Query(IMessageBus bus)
     /// Same masked invoke seam as REST /api/admin/tenants/{id}/users —
     /// masking is identical by construction (ADR-0011).
     public Task<IReadOnlyList<AdminUserDto>> TenantUsers(
-        string tenantId, CancellationToken cancellationToken)
+        string tenantId, IResolverContext context, CancellationToken cancellationToken)
         => bus.InvokeMaskedAsync<IReadOnlyList<AdminUserDto>>(
-            new GetTenantUsersQuery(tenantId), cancellationToken);
+            new GetTenantUsersQuery(tenantId, Actor(context).ActorId), cancellationToken);
 
     /// Intake reads (MPE-110) — same handlers as REST; the doc's PII
     /// is masked inside the handler per VisibilityContext. `docJson`
