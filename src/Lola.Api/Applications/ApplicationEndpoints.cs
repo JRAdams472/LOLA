@@ -127,6 +127,15 @@ public static class ApplicationEndpoints
                     Actor(user), IsBorrower(user)), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
+        // Reg B retention report (MPE-118) — per-app 25-month windows
+        // plus the tenant earliest-clear date. Staff-only, report-only.
+        app.MapGet("/api/tenants/{id}/retention", async (string id,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<TenantRetentionReport>(
+                new GetTenantRetentionQuery(id,
+                    Actor(user), IsBorrower(user)), ct)))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
+
         app.MapGet("/api/tenants/{id}/audit", async (string id,
                 string? actor, string? action, string? since, string? until,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await

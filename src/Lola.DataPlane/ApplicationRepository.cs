@@ -113,6 +113,15 @@ public sealed class ApplicationRepository(
             FROM applications ORDER BY created_utc DESC
             """, ct: ct);
 
+    /// Reg B retention input (MPE-118) — id + created_utc, no payload.
+    public async Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
+        CancellationToken ct = default)
+        => await QueryAsync<ApplicationRetentionRow>(
+            """
+            SELECT id AS Id, created_utc AS CreatedUtc
+            FROM applications ORDER BY created_utc
+            """, ct: ct);
+
     /// Status-only transition — never touches version rows.
     public async Task UpdateStatusAsync(string id, string status,
         CancellationToken ct = default)

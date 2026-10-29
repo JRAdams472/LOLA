@@ -88,6 +88,7 @@ loses the backups too; that is the intended crypto-shred property.
 
 ```bash
 DELETE /api/admin/tenants/{id}               # Provision policy
+DELETE /api/admin/tenants/{id}?force=true&reason=...   # retention override
 ```
 
 `TenantErasureService` destroys keys **before** files (invariant 9):
@@ -111,9 +112,23 @@ best-effort, and the tenant always converges to `retired`. Anything
 that failed to delete is reported in `unresolvedPaths` for an operator
 sweep; the bytes are unreadable once keys are gone either way.
 
-**Retention caveat:** Reg B/ECOA retention gating is not yet enforced
-in code (M6). Until then, `DELETE` is an operator-only action — do not
-erase a tenant that may still owe retention of application records.
+**Retention gate (MPE-118):** Reg B/ECOA requires application records
+be kept 25 months. Erasure crypto-shreds every application in the file,
+so `EraseTenantHandler` computes each app's `retention_until =
+created_utc + 25 months` and the tenant's earliest-clear date (the last
+window to close) BEFORE keys die:
+
+- Any app inside its window → **409** carrying the earliest-clear date;
+  nothing is touched.
+- `?force=true&reason=<required>` overrides the window: the erase
+  proceeds, and a `retention_override` event is written to the
+  **control-plane** `audit_events` table first — the in-file audit log
+  is shredded with the data it describes, so the only durable record
+  of the override lives outside the tenant file.
+- An empty tenant (no applications) has no retention barrier.
+- Per-application disposal is report-only for now — see
+  `GET /api/tenants/{id}/retention` for per-app windows and the
+  tenant's earliest-clear date.
 
 ## Failure notes
 

@@ -20,6 +20,9 @@ public sealed record StepEventDto(
     string Id, string Step, string Event, string Actor,
     string? Reason, string CreatedUtc);
 
+/// Retention input (MPE-118) — id + created_utc only; no payload.
+public sealed record ApplicationRetentionRow(string Id, string CreatedUtc);
+
 /// Application store seam (M5 P2) — the DataPlane implementation runs
 /// the JSON1 payload + ciphertext/blind columns; handlers only see this.
 public interface IApplicationRepository
@@ -48,6 +51,11 @@ public interface IApplicationRepository
 
     Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(
         string id, CancellationToken ct = default);
+
+    /// Per-application created_utc — the Reg B retention engine reads
+    /// windows from this; it deliberately returns no document payload.
+    Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
+        CancellationToken ct = default);
 
     Task<ApplicationRecord?> GetAsync(string id, CancellationToken ct = default);
     Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default);
