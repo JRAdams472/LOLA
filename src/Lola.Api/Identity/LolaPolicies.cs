@@ -22,6 +22,10 @@ public static class LolaPolicies
     /// (borrower invites).
     public const string TenantStaff = "tenant-staff";
 
+    /// All four roles — the intake surface. Borrower reach is
+    /// structurally own-draft-only via handler guards (MPE-110).
+    public const string Applications = "applications";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(TenantAdmin, p => p.RequireAssertion(
@@ -39,6 +43,12 @@ public static class LolaPolicies
             ctx => HasRole(ctx.User,
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer)));
+        options.AddPolicy(Applications, p => p.RequireAssertion(
+            ctx => HasRole(ctx.User,
+                Domain.Identity.LolaRole.TenantAdmin,
+                Domain.Identity.LolaRole.LoanOfficer,
+                Domain.Identity.LolaRole.Borrower,
+                Domain.Identity.LolaRole.Service)));
     }
 
     public static bool HasRole(ClaimsPrincipal user, params Domain.Identity.LolaRole[] roles)

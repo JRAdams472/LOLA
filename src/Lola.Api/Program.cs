@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Threading.RateLimiting;
 using HotChocolate.AspNetCore;
 using Lola.Api.Admin;
+using Lola.Api.Applications;
 using Lola.Api.Identity;
 using Lola.Api.Invites;
 using Lola.Api.Middleware;
@@ -198,7 +199,11 @@ builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
 builder.Services.AddScoped<TenantConnectionFactory>();
 builder.Services.AddScoped<SchemaInfoRepository>();
 builder.Services.AddScoped<ApplicationPartyRepository>();
+builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartyRepository>(
+    sp => sp.GetRequiredService<ApplicationPartyRepository>());
 builder.Services.AddScoped<ApplicationRepository>();
+builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository>(
+    sp => sp.GetRequiredService<ApplicationRepository>());
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
@@ -239,6 +244,7 @@ app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, Ca
 app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
 app.MapAdminEndpoints();
+app.MapApplicationEndpoints();
 app.MapInviteEndpoints();
 
 app.Run();
