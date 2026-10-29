@@ -3,6 +3,7 @@ using Lola.Api.Identity;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Interop;
+using Lola.Application.Pricing;
 using Lola.Application.Security;
 using Lola.Domain.Identity;
 using Microsoft.AspNetCore.Http;
@@ -93,6 +94,33 @@ public static class ApplicationEndpoints
                 new ExportUlddQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Pricing (MPE-130) — enqueue is 202; the outbox worker runs
+        // the adapter call asynchronously. Latest eval + full history
+        // read the append-only pricing_evals spine. Group-level
+        // "intake" rate-limit policy already applies (MPE-114).
+        group.MapPost("/{appId}/price", async (string id, string appId,
+                PriceRequest? body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<PriceResult>(
+                new PriceApplicationCommand(id, appId, Actor(user),
+                    IsBorrower(user), body?.Products, body?.Rate,
+                    body?.LockTermDays, body?.AsOf,
+                    body?.EligibilityOnly ?? false), ct)));
+
+        group.MapGet("/{appId}/pricing", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<PricingEvalDto?>(
+                new GetApplicationPricingQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/pricing/history", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<PricingEvalDto>>(
+                new GetPricingHistoryQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
@@ -162,6 +190,8 @@ public static class ApplicationEndpoints
                 extensions: new Dictionary<string, object?>
                 { ["errors"] = failed.Errors }),
             XmlResult xml => Results.Text(xml.Xml, "application/xml"),
+            PriceResult price => Results.Accepted(null, price),
+            null => Results.NotFound(),
             _ => Results.Ok(result)
         };
     }
@@ -177,4 +207,7 @@ public static class ApplicationEndpoints
     public sealed record TransitionRequest(string Target);
     public sealed record RevealRequest(string Reason);
     public sealed record ImportMismoRequest(string Xml);
+    public sealed record PriceRequest(
+        IReadOnlyList<string>? Products, decimal? Rate,
+        int? LockTermDays, string? AsOf, bool? EligibilityOnly);
 }

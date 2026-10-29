@@ -10,6 +10,9 @@ namespace Lola.Application.Pricing;
 /// 2, enforced by the reflection firewall test).
 public interface IPricingService
 {
+    /// Adapter identity stamped onto eval rows ("stub", "mpex").
+    string Adapter { get; }
+
     /// Eligibility + pricing for one scenario. `asOf` selects the
     /// publication snapshot: null = latest, "draft", or an RFC3339
     /// timestamp for historic re-evaluation.

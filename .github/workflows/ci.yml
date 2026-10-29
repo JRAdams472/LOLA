@@ -31,6 +31,19 @@ jobs:
   dotnet:
     name: .NET — format / build / test
     runs-on: ubuntu-latest
+    # MPEx's store — the live eval backend for the never-skip
+    # MpexLiveTests round-trip (mirrors MPEx's own CI e2e job).
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: mpex
+          POSTGRES_PASSWORD: pg-${{ github.run_id }}-${{ github.run_attempt }}
+          POSTGRES_DB: mpex
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mpex -d mpex"
+          --health-interval 5s --health-timeout 3s --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -56,11 +69,56 @@ jobs:
             sleep 1
           done
           echo "openbao did not come up"; docker logs openbao --tail 30; exit 1
+      - name: Checkout MPEx (live eval backend)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: JRAdams472/MPEx
+          path: mpex-srv
+      - uses: dtolnay/rust-toolchain@stable
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        with:
+          workspaces: mpex-srv
+      - name: Build MPEx + start Dex & api
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # Same recipe as MPEx's own CI e2e job: generated Dex secrets,
+        # seeded binary, draft artifacts. Lola.Infrastructure.Tests
+        # MpexLive* hard-requires this stack (never-skip).
+        run: |
+          cargo build --manifest-path mpex-srv/Cargo.toml
+          SVC_SECRET=$(openssl rand -hex 16)
+          CI_SECRET=$(openssl rand -hex 16)
+          echo "MPEX_CLIENT_SECRET=$SVC_SECRET" >> "$GITHUB_ENV"
+          echo "MPEX_SEED_CLIENT_SECRET=$CI_SECRET" >> "$GITHUB_ENV"
+          docker run -d --name dex -p 5556:5556 \
+            -v "$PWD/mpex-srv/dex/config.dev.yaml:/etc/dex/config.yaml" \
+            -e "DEX_MPEX_SVC_SECRET=$SVC_SECRET" \
+            -e "DEX_MPEX_CI_SECRET=$CI_SECRET" \
+            dexidp/dex:v2.46.0 dex serve /etc/dex/config.yaml
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5556/dex/.well-known/openid-configuration >/dev/null && break
+            sleep 1
+          done
+          DATABASE_URL="postgres://mpex:pg-${{ github.run_id }}-${{ github.run_attempt }}@localhost:5432/mpex" \
+          RUN_SEED=1 SEED_DIR="$PWD/mpex-srv/seed" \
+          OIDC_ISSUER=http://localhost:5556/dex \
+          OIDC_AUDIENCE=mpex-api,mpex-web,mpex-svc,mpex-ci \
+          ./mpex-srv/target/debug/mpex &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/healthz && exit 0 || sleep 1
+          done
+          echo "mpex did not come up"; exit 1
       - name: dotnet test (coverage)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         env:
           OPENBAO_ADDR: http://localhost:8200
           OPENBAO_TOKEN: devroot
+          MPEX_BASE_URL: http://localhost:8080
+          MPEX_TOKEN_URL: http://localhost:5556/dex/token
+          MPEX_CLIENT_ID: mpex-svc
+          MPEX_SEED_CLIENT_ID: mpex-ci
         run: >
           dotnet test -c Release --collect:"XPlat Code Coverage" --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
