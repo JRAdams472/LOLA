@@ -34,6 +34,8 @@ public static class UpdateDraftHandler
         }
         var version = await apps.WriteVersionAsync(
             c.AppId, doc, "draft", c.ActorId, submitted: false, ct);
+        if (TridClock.Complete(doc))
+            await apps.EnsureTridClockStartAsync(c.AppId, ct);
         return version;
     }
 

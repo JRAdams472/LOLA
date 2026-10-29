@@ -18,6 +18,7 @@ public static class GetApplicationHandler
         DocMasker.MaskInPlace(app.Doc);
         return new ApplicationDto(app.Id, app.Status, app.PipelineStep,
             app.BorrowerUserId, app.CurrentVersion, app.TridClockStart,
+            TridClock.DeadlineUtc(app.TridClockStart),
             app.SubmittedUtc, app.Doc.CloneRoot());
     }
 }

@@ -123,6 +123,57 @@ public sealed class ApplicationRepository(
             WHERE id=@id
             """, new { status, id }, ct);
 
+    /// Once-only stamp — the NULL guard makes repeats no-ops so the
+    /// first co-presence timestamp is immutable.
+    public async Task EnsureTridClockStartAsync(string id,
+        CancellationToken ct = default)
+        => await ExecuteAsync(
+            """
+            UPDATE applications SET trid_clock_start=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+                   updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id=@id AND trid_clock_start IS NULL
+            """, new { id }, ct);
+
+    public async Task UpdatePipelineStepAsync(string id, string step,
+        CancellationToken ct = default)
+        => await ExecuteAsync(
+            """
+            UPDATE applications SET pipeline_step=@step,
+                   updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id=@id
+            """, new { step, id }, ct);
+
+    /// Append-only step event — ids come from the application id +
+    /// a monotonic suffix derived inside the row insert.
+    public async Task RecordStepEventAsync(string id, string step,
+        string event_, string actor, string? reason,
+        CancellationToken ct = default)
+        => await ExecuteAsync(
+            """
+            INSERT INTO application_step_events
+                (id, application_id, step, event, actor, reason)
+            VALUES (@eventId, @id, @step, @event, @actor, @reason)
+            """,
+            new
+            {
+                eventId = $"{id}-step-{Guid.NewGuid():N}",
+                id,
+                step,
+                @event = event_,
+                actor,
+                reason
+            }, ct);
+
+    public async Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(
+        string id, CancellationToken ct = default)
+        => await QueryAsync<StepEventDto>(
+            """
+            SELECT id AS Id, step AS Step, event AS Event, actor AS Actor,
+                   reason AS Reason, created_utc AS CreatedUtc
+            FROM application_step_events
+            WHERE application_id=@id ORDER BY created_utc, id
+            """, new { id }, ct);
+
     private async Task<MetaRow?> GetMetaAsync(string id, CancellationToken ct)
     {
         var row = await QuerySingleOrDefaultAsync<MetaRow>(
