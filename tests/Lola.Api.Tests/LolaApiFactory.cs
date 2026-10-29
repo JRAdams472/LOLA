@@ -26,6 +26,10 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             Path.Combine(Path.GetTempPath(), "lola-tests", $"oidc-{Guid.NewGuid():N}.json"));
         Environment.SetEnvironmentVariable("OIDC_ENCRYPTION_KEY_PATH",
             Path.Combine(Path.GetTempPath(), "lola-tests", $"oidc-enc-{Guid.NewGuid():N}.json"));
+        // Read eagerly during service registration like the OIDC key
+        // paths — must be a real env var, not an in-memory override.
+        // Tests drain PricingOutboxProcessor explicitly.
+        Environment.SetEnvironmentVariable("PRICING_OUTBOX_ENABLED", "false");
 
         builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -70,6 +74,15 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 Lola.Application.Applications.WorkflowPipeline>();
             services.AddSingleton<Lola.Application.Audit.ITenantAuditLog,
                 FakeTenantAuditLog>();
+            // Pricing (MPE-130) — hermetic store + the swap-proof
+            // second adapter: implementing IPricingService is the
+            // whole contract, so this registration replaces the
+            // production stub with zero other changes.
+            services.AddSingleton(new FakePricingRepository());
+            services.AddSingleton<Lola.Application.Pricing.IPricingRepository>(
+                sp => sp.GetRequiredService<FakePricingRepository>());
+            services.AddSingleton<Lola.Application.Pricing.IPricingService,
+                AltStubPricingAdapter>();
         });
     }
 

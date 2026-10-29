@@ -11,6 +11,8 @@ public sealed class StubPricingAdapter : IPricingService
 {
     public const string AdapterName = "stub";
 
+    public string Adapter => AdapterName;
+
     public Task<PricingEvaluation> EvaluateAsync(
         PricingScenario s, PricingRequestOptions options,
         CancellationToken ct = default)

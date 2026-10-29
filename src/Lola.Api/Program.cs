@@ -223,10 +223,33 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<Lola.Application.Audit.ITenantAuditLog, TenantAuditLog>();
 builder.Services.AddSingleton<Lola.Application.Audit.IControlPlaneAuditLog, ControlPlaneAuditLog>();
 // Pricing seam (MPE-71, ADR-0007): `PRICING_ADAPTER=mpex` selects the
-// real MPEx adapter — wired in MPE-130 (P2); until then every config
-// gets the deterministic stub so the seam is exercisable now.
-builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
-    Lola.Infrastructure.Pricing.StubPricingAdapter>();
+// real MPEx adapter (Dex client-credentials + evaluate endpoints);
+// anything else gets the deterministic stub.
+builder.Services.AddScoped<Lola.Application.Pricing.IPricingRepository,
+    PricingRepository>();
+builder.Services.AddSingleton<Lola.Api.Pricing.PricingOutboxProcessor>();
+if (builder.Configuration["PRICING_ADAPTER"]?.Equals("mpex",
+        StringComparison.OrdinalIgnoreCase) == true)
+{
+    string Require(string key) => builder.Configuration[key]
+        ?? throw new InvalidOperationException(
+            $"{key} is required when PRICING_ADAPTER=mpex");
+    builder.Services.AddSingleton(
+        new Lola.Infrastructure.Pricing.MpexPricingOptions(
+            Require("MPEX_BASE_URL"), Require("MPEX_TOKEN_URL"),
+            Require("MPEX_CLIENT_ID"), Require("MPEX_CLIENT_SECRET"),
+            builder.Configuration["MPEX_AUDIENCE"]));
+    builder.Services.AddHttpClient<Lola.Application.Pricing.IPricingService,
+        Lola.Infrastructure.Pricing.MpexPricingAdapter>();
+}
+else
+{
+    builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
+        Lola.Infrastructure.Pricing.StubPricingAdapter>();
+}
+if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
