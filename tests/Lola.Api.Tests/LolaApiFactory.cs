@@ -33,6 +33,7 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 ["CONTROL_DB_PATH"] = Path.Combine(
                     Path.GetTempPath(), "lola-tests", $"control-{Guid.NewGuid():N}.db"),
                 ["OIDC_SEED_SVC_SECRET"] = "svc-secret-value",
+                ["OIDC_SEED_OPS_SECRET"] = "ops-secret-value",
                 ["TENANT_DATA_DIR"] = Path.Combine(
                     Path.GetTempPath(), "lola-tests", "tenants")
             }));

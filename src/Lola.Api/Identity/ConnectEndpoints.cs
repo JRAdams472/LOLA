@@ -60,7 +60,11 @@ public static class ConnectEndpoints
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                 identity.AddClaim(new Claim(Claims.Subject, request.ClientId!));
                 identity.AddClaim(new Claim(Claims.Name, request.ClientId!));
-                identity.AddClaim(new Claim(Claims.Role, "Service"));
+                // lola-ops is the platform operator (MPE-91): its tokens
+                // carry the ops role, not Service — the global registry
+                // surface keys on it via the PlatformOps policy.
+                identity.AddClaim(new Claim(Claims.Role,
+                    request.ClientId == "lola-ops" ? "lola-ops" : "Service"));
                 if (request.ClientId?.StartsWith("svc-", StringComparison.Ordinal) == true
                     && request.ClientId.Length > 4)
                     identity.AddClaim(new Claim("tid", request.ClientId[4..]));

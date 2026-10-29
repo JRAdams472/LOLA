@@ -52,6 +52,28 @@ public sealed class OidcClientSeeder(
                 }
             }, cancellationToken);
         }
+
+        // Platform operator (MPE-91, folded into M7): the `lola-ops`
+        // client-credentials principal that owns the global tenant
+        // registry surface — scoped to ops routes only, no tenant data.
+        var opsSecret = config["OIDC_SEED_OPS_SECRET"];
+        if (await applications.FindByClientIdAsync("lola-ops", cancellationToken) is null
+            && !string.IsNullOrWhiteSpace(opsSecret))
+        {
+            await applications.CreateAsync(new OpenIddictApplicationDescriptor
+            {
+                ClientId = "lola-ops",
+                ClientSecret = opsSecret,
+                ClientType = ClientTypes.Confidential,
+                DisplayName = "LOLA platform operator",
+                Permissions =
+                {
+                    Permissions.Endpoints.Token,
+                    Permissions.GrantTypes.ClientCredentials,
+                    Permissions.Prefixes.Scope + "lola-api"
+                }
+            }, cancellationToken);
+        }
     }
 
     private static async Task EnsurePublicClient(

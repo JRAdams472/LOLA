@@ -1,74 +1,658 @@
 {
   "version": "mismo-3.4-subset",
-  "note": "Field catalog — canonical path → MISMO XML path → ULDD field → piiClass → index(none|ciphertext|blind) → validation → trid. The single truth for the model, validator, and both mappers.",
+  "note": "Field catalog \u00e2\u20ac\u201d canonical path \u00e2\u2020\u2019 MISMO XML path \u00e2\u2020\u2019 ULDD field \u00e2\u2020\u2019 piiClass \u00e2\u2020\u2019 index(none|ciphertext|blind) \u00e2\u2020\u2019 validation \u00e2\u2020\u2019 trid. The single truth for the model, validator, and both mappers.",
   "fields": [
-    { "path": "loan_amount", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanAmount", "ulddField": "LOAN/NoteAmount", "type": "decimal", "required": true, "core": true, "trid": true },
-    { "path": "loan_purpose", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanPurposeType", "ulddField": "LOAN/LoanPurposeType", "type": "enum", "enum": ["purchase", "refinance", "construction", "other"], "required": true, "core": true },
-    { "path": "amortization_type", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/Amortization/AmortizationType", "ulddField": "LOAN/AmortizationType", "type": "enum", "enum": ["fixed", "arm", "interest_only", "graduated"], "required": true, "core": true },
-    { "path": "loan_term_months", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanTermMonths", "ulddField": "LOAN/LoanTermMonths", "type": "int", "required": true, "core": true },
-    { "path": "interest_rate", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/NoteRatePercent", "ulddField": "LOAN/NoteRate", "type": "decimal", "required": false, "core": true },
-
-    { "path": "party[0].first_name", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/FirstName", "ulddField": "BORROWER/FirstName", "type": "string", "piiClass": "Name", "index": "blind", "required": true, "core": true, "trid": true },
-    { "path": "party[0].middle_name", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/MiddleName", "ulddField": "BORROWER/MiddleName", "type": "string", "piiClass": "Name", "index": "ciphertext", "required": false, "core": false },
-    { "path": "party[0].last_name", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/LastName", "ulddField": "BORROWER/LastName", "type": "string", "piiClass": "Name", "index": "blind", "required": true, "core": true },
-    { "path": "party[0].suffix", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/NameSuffix", "ulddField": "BORROWER/NameSuffix", "type": "string", "piiClass": "Name", "index": "ciphertext", "required": false, "core": false },
-    { "path": "party[0].ssn", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/TAX_IDENTIFIERS/TaxpayerIdentifierValue", "ulddField": "BORROWER/TaxId", "type": "string", "piiClass": "Ssn", "index": "blind", "required": true, "core": true, "trid": true, "pattern": "^[0-9]{9}$" },
-    { "path": "party[0].dob", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/BirthDate", "ulddField": "BORROWER/DateOfBirth", "type": "date", "piiClass": "Dob", "index": "ciphertext", "required": true, "core": true },
-    { "path": "party[0].email", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CONTACTS/CONTACT[0]/Email", "ulddField": "BORROWER/Email", "type": "string", "piiClass": "Contact", "index": "blind", "required": true, "core": true },
-    { "path": "party[0].phone", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CONTACTS/CONTACT[0]/PhoneNumber", "ulddField": "BORROWER/Phone", "type": "string", "piiClass": "Contact", "index": "blind", "required": true, "core": true },
-    { "path": "party[0].role", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ROLES/ROLE/RoleType", "ulddField": "BORROWER/Role", "type": "enum", "enum": ["borrower", "co_borrower", "guarantor"], "required": true, "core": true },
-    { "path": "party[0].citizenship", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/CitizenshipType", "ulddField": "BORROWER/Citizenship", "type": "enum", "enum": ["us_citizen", "permanent_resident", "non_permanent_resident", "foreign_national"], "required": false, "core": false },
-    { "path": "party[0].marital_status", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/MaritalStatusType", "ulddField": "BORROWER/MaritalStatus", "type": "enum", "enum": ["married", "unmarried", "separated"], "required": false, "core": false },
-
-    { "path": "party[0].address[0].street", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/AddressLineText", "ulddField": "ADDRESS/Street", "type": "string", "piiClass": "Address", "index": "blind", "required": true, "core": true },
-    { "path": "party[0].address[0].unit", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/AddressUnitDesignator", "ulddField": "ADDRESS/Unit", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": false, "core": false },
-    { "path": "party[0].address[0].city", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/CityName", "ulddField": "ADDRESS/City", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true },
-    { "path": "party[0].address[0].state", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/StateCode", "ulddField": "ADDRESS/State", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true, "pattern": "^[A-Z]{2}$" },
-    { "path": "party[0].address[0].zip", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/PostalCode", "ulddField": "ADDRESS/Zip", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true, "pattern": "^[0-9]{5}(-[0-9]{4})?$" },
-    { "path": "party[0].address[0].years_at", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/DurationYears", "ulddField": "ADDRESS/YearsAt", "type": "decimal", "required": false, "core": false },
-
-    { "path": "party[0].employment[0].employer_name", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EMPLOYER/LEGAL_ENTITY/Name", "ulddField": "EMPLOYER/Name", "type": "string", "piiClass": "Other", "index": "ciphertext", "required": true, "core": true },
-    { "path": "party[0].employment[0].position", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentPositionDescription", "ulddField": "EMPLOYER/Position", "type": "string", "required": false, "core": false },
-    { "path": "party[0].employment[0].start_date", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentStartDate", "ulddField": "EMPLOYER/StartDate", "type": "date", "required": true, "core": true },
-    { "path": "party[0].employment[0].self_employed", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentBorrowerSelfEmployedIndicator", "ulddField": "EMPLOYER/SelfEmployed", "type": "bool", "required": true, "core": true },
-    { "path": "party[0].employment[0].monthly_income", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/CURRENT_INCOME/MonthlyIncomeAmount", "ulddField": "INCOME/MonthlyAmount", "type": "decimal", "piiClass": "Income", "index": "ciphertext", "required": true, "core": true, "trid": true },
-
-    { "path": "asset[0].asset_type", "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetType", "ulddField": "ASSET/Type", "type": "enum", "enum": ["checking", "savings", "investment", "retirement", "other"], "required": true, "core": true },
-    { "path": "asset[0].institution", "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetHolder/Name", "ulddField": "ASSET/Institution", "type": "string", "required": true, "core": true },
-    { "path": "asset[0].account_number", "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetAccountIdentifier", "ulddField": "ASSET/AccountId", "type": "string", "piiClass": "Account", "index": "ciphertext", "required": true, "core": true },
-    { "path": "asset[0].balance", "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetCashOrMarketValueAmount", "ulddField": "ASSET/Balance", "type": "decimal", "required": true, "core": true },
-
-    { "path": "liability[0].liability_type", "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityType", "ulddField": "LIABILITY/Type", "type": "enum", "enum": ["mortgage", "auto", "installment", "revolving", "other"], "required": true, "core": true },
-    { "path": "liability[0].creditor", "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityHolder/Name", "ulddField": "LIABILITY/Creditor", "type": "string", "required": true, "core": true },
-    { "path": "liability[0].account_number", "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityAccountIdentifier", "ulddField": "LIABILITY/AccountId", "type": "string", "piiClass": "Account", "index": "ciphertext", "required": false, "core": false },
-    { "path": "liability[0].monthly_payment", "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityMonthlyPaymentAmount", "ulddField": "LIABILITY/MonthlyPayment", "type": "decimal", "required": true, "core": true },
-    { "path": "liability[0].balance", "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityUnpaidBalanceAmount", "ulddField": "LIABILITY/Balance", "type": "decimal", "required": true, "core": true },
-
-    { "path": "declaration.intent_to_occupy", "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/IntentToOccupyType", "ulddField": "DECLARATION/IntentToOccupy", "type": "enum", "enum": ["yes", "no"], "required": true, "core": true },
-    { "path": "declaration.first_time_buyer", "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/FirstTimeHomebuyerIndicator", "ulddField": "DECLARATION/FirstTimeBuyer", "type": "bool", "required": true, "core": true },
-    { "path": "declaration.property_will_be", "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/PropertyUsageType", "ulddField": "DECLARATION/PropertyUsage", "type": "enum", "enum": ["primary_residence", "second_home", "investment"], "required": true, "core": true },
-    { "path": "declaration.ownership_interest", "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/OwnershipInterestType", "ulddField": "DECLARATION/OwnershipInterest", "type": "enum", "enum": ["none", "primary", "second", "investment"], "required": false, "core": false },
-    { "path": "declaration.borrowed_down_payment", "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/BorrowedDownPaymentIndicator", "ulddField": "DECLARATION/BorrowedDownPayment", "type": "bool", "required": false, "core": false },
-
-    { "path": "subject_property.street", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/AddressLineText", "ulddField": "PROPERTY/Street", "type": "string", "piiClass": "Address", "index": "blind", "required": true, "core": true, "trid": true },
-    { "path": "subject_property.city", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/CityName", "ulddField": "PROPERTY/City", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true },
-    { "path": "subject_property.state", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/StateCode", "ulddField": "PROPERTY/State", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true, "pattern": "^[A-Z]{2}$" },
-    { "path": "subject_property.zip", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/PostalCode", "ulddField": "PROPERTY/Zip", "type": "string", "piiClass": "Address", "index": "ciphertext", "required": true, "core": true, "pattern": "^[0-9]{5}(-[0-9]{4})?$" },
-    { "path": "subject_property.county", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/CountyName", "ulddField": "PROPERTY/County", "type": "string", "required": false, "core": false },
-    { "path": "subject_property.est_value", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyEstimatedValueAmount", "ulddField": "PROPERTY/EstimatedValue", "type": "decimal", "required": true, "core": true, "trid": true },
-    { "path": "subject_property.property_type", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyType", "ulddField": "PROPERTY/Type", "type": "enum", "enum": ["single_family", "condo", "townhouse", "multi_family", "manufactured"], "required": true, "core": true },
-    { "path": "subject_property.units", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/FinancedUnitCount", "ulddField": "PROPERTY/Units", "type": "int", "required": false, "core": false },
-    { "path": "subject_property.usage", "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyUsageType", "ulddField": "PROPERTY/Usage", "type": "enum", "enum": ["primary_residence", "second_home", "investment"], "required": true, "core": true },
-
-    { "path": "demographics.ethnicity", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/EthnicityType", "ulddField": "HMDA/Ethnicity", "type": "enum", "enum": ["hispanic_or_latino", "not_hispanic_or_latino", "not_provided"], "required": true, "core": true },
-    { "path": "demographics.race", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/RaceType", "ulddField": "HMDA/Race", "type": "enum", "enum": ["american_indian", "asian", "black", "hawaiian", "white", "not_provided"], "required": true, "core": true },
-    { "path": "demographics.sex", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/SexType", "ulddField": "HMDA/Sex", "type": "enum", "enum": ["male", "female", "not_provided"], "required": true, "core": true },
-    { "path": "demographics.collection_method", "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/CollectionMethodType", "ulddField": "HMDA/CollectionMethod", "type": "enum", "enum": ["face_to_face", "telephone", "mail", "internet"], "required": false, "core": false },
-
-    { "path": "loan.base_amount", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/BaseLoanAmount", "ulddField": "LOAN/BaseAmount", "type": "decimal", "required": true, "core": true },
-    { "path": "loan.ltv", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LTVPercent", "ulddField": "LOAN/LTV", "type": "decimal", "required": true, "core": true },
-    { "path": "loan.cltv", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/CLTVPercent", "ulddField": "LOAN/CLTV", "type": "decimal", "required": false, "core": false },
-    { "path": "loan.lien_position", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LienPriorityType", "ulddField": "LOAN/LienPosition", "type": "enum", "enum": ["first", "second", "subordinate"], "required": true, "core": true },
-    { "path": "loan.product_type", "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanProductType", "ulddField": "LOAN/ProductType", "type": "enum", "enum": ["conventional", "fha", "va", "usda", "jumbo"], "required": true, "core": true }
+    {
+      "path": "loan_amount",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanAmount",
+      "ulddField": "LOAN/NoteAmount",
+      "type": "decimal",
+      "required": true,
+      "core": true,
+      "trid": true
+    },
+    {
+      "path": "loan_purpose",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanPurposeType",
+      "ulddField": "LOAN/LoanPurposeType",
+      "type": "enum",
+      "enum": [
+        "purchase",
+        "refinance",
+        "construction",
+        "other"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "amortization_type",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/Amortization/AmortizationType",
+      "ulddField": "LOAN/AmortizationType",
+      "type": "enum",
+      "enum": [
+        "fixed",
+        "arm",
+        "interest_only",
+        "graduated"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "loan_term_months",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanTermMonths",
+      "ulddField": "LOAN/LoanTermMonths",
+      "type": "int",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "interest_rate",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/NoteRatePercent",
+      "ulddField": "LOAN/NoteRate",
+      "type": "decimal",
+      "required": false,
+      "core": true
+    },
+    {
+      "path": "party[0].first_name",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/FirstName",
+      "ulddField": "BORROWER/FirstName",
+      "type": "string",
+      "piiClass": "Name",
+      "index": "blind",
+      "required": true,
+      "core": true,
+      "trid": true
+    },
+    {
+      "path": "party[0].middle_name",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/MiddleName",
+      "ulddField": "BORROWER/MiddleName",
+      "type": "string",
+      "piiClass": "Name",
+      "index": "ciphertext",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].last_name",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/LastName",
+      "ulddField": "BORROWER/LastName",
+      "type": "string",
+      "piiClass": "Name",
+      "index": "blind",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].suffix",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/NAME/NameSuffix",
+      "ulddField": "BORROWER/NameSuffix",
+      "type": "string",
+      "piiClass": "Name",
+      "index": "ciphertext",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].ssn",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/TAX_IDENTIFIERS/TaxpayerIdentifierValue",
+      "ulddField": "BORROWER/TaxId",
+      "type": "string",
+      "piiClass": "Ssn",
+      "index": "blind",
+      "required": true,
+      "core": true,
+      "trid": true,
+      "pattern": "^[0-9]{9}$"
+    },
+    {
+      "path": "party[0].dob",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/BirthDate",
+      "ulddField": "BORROWER/DateOfBirth",
+      "type": "date",
+      "piiClass": "Dob",
+      "index": "ciphertext",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].email",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CONTACTS/CONTACT[0]/Email",
+      "ulddField": "BORROWER/Email",
+      "type": "string",
+      "piiClass": "Contact",
+      "index": "blind",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].phone",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CONTACTS/CONTACT[0]/PhoneNumber",
+      "ulddField": "BORROWER/Phone",
+      "type": "string",
+      "piiClass": "Contact",
+      "index": "blind",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].role",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ROLES/ROLE/RoleType",
+      "ulddField": "BORROWER/Role",
+      "type": "enum",
+      "enum": [
+        "borrower",
+        "co_borrower",
+        "guarantor"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].citizenship",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/CitizenshipType",
+      "ulddField": "BORROWER/Citizenship",
+      "type": "enum",
+      "enum": [
+        "us_citizen",
+        "permanent_resident",
+        "non_permanent_resident",
+        "foreign_national"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].marital_status",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/MaritalStatusType",
+      "ulddField": "BORROWER/MaritalStatus",
+      "type": "enum",
+      "enum": [
+        "married",
+        "unmarried",
+        "separated"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].address[0].street",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/AddressLineText",
+      "ulddField": "ADDRESS/Street",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "blind",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].address[0].unit",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/AddressUnitDesignator",
+      "ulddField": "ADDRESS/Unit",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].address[0].city",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/CityName",
+      "ulddField": "ADDRESS/City",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].address[0].state",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/StateCode",
+      "ulddField": "ADDRESS/State",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true,
+      "pattern": "^[A-Z]{2}$"
+    },
+    {
+      "path": "party[0].address[0].zip",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/PostalCode",
+      "ulddField": "ADDRESS/Zip",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true,
+      "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+    },
+    {
+      "path": "party[0].address[0].years_at",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/ADDRESSES/ADDRESS[0]/DurationYears",
+      "ulddField": "ADDRESS/YearsAt",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].employment[0].employer_name",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EMPLOYER/LEGAL_ENTITY/Name",
+      "ulddField": "EMPLOYER/Name",
+      "type": "string",
+      "piiClass": "Other",
+      "index": "ciphertext",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].employment[0].position",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentPositionDescription",
+      "ulddField": "EMPLOYER/Position",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].employment[0].start_date",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentStartDate",
+      "ulddField": "EMPLOYER/StartDate",
+      "type": "date",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].employment[0].self_employed",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/EmploymentBorrowerSelfEmployedIndicator",
+      "ulddField": "EMPLOYER/SelfEmployed",
+      "type": "bool",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].employment[0].monthly_income",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/EMPLOYMENT/CURRENT_INCOME/MonthlyIncomeAmount",
+      "ulddField": "INCOME/MonthlyAmount",
+      "type": "decimal",
+      "piiClass": "Income",
+      "index": "ciphertext",
+      "required": true,
+      "core": true,
+      "trid": true
+    },
+    {
+      "path": "asset[0].asset_type",
+      "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetType",
+      "ulddField": "ASSET/Type",
+      "type": "enum",
+      "enum": [
+        "checking",
+        "savings",
+        "investment",
+        "retirement",
+        "other"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "asset[0].institution",
+      "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetHolder/Name",
+      "ulddField": "ASSET/Institution",
+      "type": "string",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "asset[0].account_number",
+      "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetAccountIdentifier",
+      "ulddField": "ASSET/AccountId",
+      "type": "string",
+      "piiClass": "Account",
+      "index": "ciphertext",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "asset[0].balance",
+      "mismoPath": "LOAN_APPLICATION/ASSETS/ASSET[0]/AssetCashOrMarketValueAmount",
+      "ulddField": "ASSET/Balance",
+      "type": "decimal",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "liability[0].liability_type",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityType",
+      "ulddField": "LIABILITY/Type",
+      "type": "enum",
+      "enum": [
+        "mortgage",
+        "auto",
+        "installment",
+        "revolving",
+        "other"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "liability[0].creditor",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityHolder/Name",
+      "ulddField": "LIABILITY/Creditor",
+      "type": "string",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "liability[0].account_number",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityAccountIdentifier",
+      "ulddField": "LIABILITY/AccountId",
+      "type": "string",
+      "piiClass": "Account",
+      "index": "ciphertext",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "liability[0].monthly_payment",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityMonthlyPaymentAmount",
+      "ulddField": "LIABILITY/MonthlyPayment",
+      "type": "decimal",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "liability[0].balance",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilityUnpaidBalanceAmount",
+      "ulddField": "LIABILITY/Balance",
+      "type": "decimal",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "declaration.intent_to_occupy",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/IntentToOccupyType",
+      "ulddField": "DECLARATION/IntentToOccupy",
+      "type": "enum",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "declaration.first_time_buyer",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/FirstTimeHomebuyerIndicator",
+      "ulddField": "DECLARATION/FirstTimeBuyer",
+      "type": "bool",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "declaration.property_will_be",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/PropertyUsageType",
+      "ulddField": "DECLARATION/PropertyUsage",
+      "type": "enum",
+      "enum": [
+        "primary_residence",
+        "second_home",
+        "investment"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "declaration.ownership_interest",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/OwnershipInterestType",
+      "ulddField": "DECLARATION/OwnershipInterest",
+      "type": "enum",
+      "enum": [
+        "none",
+        "primary",
+        "second",
+        "investment"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "declaration.borrowed_down_payment",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/BorrowedDownPaymentIndicator",
+      "ulddField": "DECLARATION/BorrowedDownPayment",
+      "type": "bool",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "subject_property.street",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/AddressLineText",
+      "ulddField": "PROPERTY/Street",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "blind",
+      "required": true,
+      "core": true,
+      "trid": true
+    },
+    {
+      "path": "subject_property.city",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/CityName",
+      "ulddField": "PROPERTY/City",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "subject_property.state",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/StateCode",
+      "ulddField": "PROPERTY/State",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true,
+      "pattern": "^[A-Z]{2}$"
+    },
+    {
+      "path": "subject_property.zip",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/PostalCode",
+      "ulddField": "PROPERTY/Zip",
+      "type": "string",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "required": true,
+      "core": true,
+      "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+    },
+    {
+      "path": "subject_property.county",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/ADDRESS/CountyName",
+      "ulddField": "PROPERTY/County",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "subject_property.est_value",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyEstimatedValueAmount",
+      "ulddField": "PROPERTY/EstimatedValue",
+      "type": "decimal",
+      "required": true,
+      "core": true,
+      "trid": true
+    },
+    {
+      "path": "subject_property.property_type",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyType",
+      "ulddField": "PROPERTY/Type",
+      "type": "enum",
+      "enum": [
+        "single_family",
+        "condo",
+        "townhouse",
+        "multi_family",
+        "manufactured"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "subject_property.units",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/FinancedUnitCount",
+      "ulddField": "PROPERTY/Units",
+      "type": "int",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "subject_property.usage",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyUsageType",
+      "ulddField": "PROPERTY/Usage",
+      "type": "enum",
+      "enum": [
+        "primary_residence",
+        "second_home",
+        "investment"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "demographics.ethnicity",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/EthnicityType",
+      "ulddField": "HMDA/Ethnicity",
+      "type": "enum",
+      "enum": [
+        "hispanic_or_latino",
+        "not_hispanic_or_latino",
+        "not_provided"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "demographics.race",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/RaceType",
+      "ulddField": "HMDA/Race",
+      "type": "enum",
+      "enum": [
+        "american_indian",
+        "asian",
+        "black",
+        "hawaiian",
+        "white",
+        "not_provided"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "demographics.sex",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/SexType",
+      "ulddField": "HMDA/Sex",
+      "type": "enum",
+      "enum": [
+        "male",
+        "female",
+        "not_provided"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "demographics.collection_method",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/INDIVIDUAL/DEMOGRAPHICS/CollectionMethodType",
+      "ulddField": "HMDA/CollectionMethod",
+      "type": "enum",
+      "enum": [
+        "face_to_face",
+        "telephone",
+        "mail",
+        "internet"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.base_amount",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/BaseLoanAmount",
+      "ulddField": "LOAN/BaseAmount",
+      "type": "decimal",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "loan.ltv",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LTVPercent",
+      "ulddField": "LOAN/LTV",
+      "type": "decimal",
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "loan.cltv",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/CLTVPercent",
+      "ulddField": "LOAN/CLTV",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.lien_position",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LienPriorityType",
+      "ulddField": "LOAN/LienPosition",
+      "type": "enum",
+      "enum": [
+        "first",
+        "second",
+        "subordinate"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "loan.product_type",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/LoanDetail/LoanProductType",
+      "ulddField": "LOAN/ProductType",
+      "type": "enum",
+      "enum": [
+        "conventional",
+        "fha",
+        "va",
+        "usda",
+        "jumbo"
+      ],
+      "required": true,
+      "core": true
+    },
+    {
+      "path": "party[0].credit_score",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CREDIT/CREDIT_SCORE/CreditScoreValue",
+      "ulddField": "PARTY/CreditScoreValue",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "party[0].credit_model",
+      "mismoPath": "LOAN_APPLICATION/PARTIES/PARTY[0]/CREDIT/CREDIT_SCORE/CreditScoreModelName",
+      "ulddField": "PARTY/CreditScoreModelType",
+      "type": "enum",
+      "enum": [
+        "fico",
+        "vantage",
+        "fico10t",
+        "other"
+      ],
+      "required": false,
+      "core": false
+    }
   ]
 }

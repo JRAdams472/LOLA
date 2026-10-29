@@ -30,6 +30,12 @@ public static class LolaPolicies
     /// invariant 8). Borrowers and service clients can never unmask.
     public const string RevealPii = "reveal-pii";
 
+    /// lola-ops + Service — the platform-operator surface (MPE-91):
+    /// global tenant-registry actions (list/create/erase, fleet jobs)
+    /// belong to the ops principal, not any tenant's admin. Service
+    /// keeps working so automation isn't split by identity kind.
+    public const string PlatformOps = "platform-ops";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(TenantAdmin, p => p.RequireAssertion(
@@ -57,11 +63,16 @@ public static class LolaPolicies
             ctx => HasRole(ctx.User,
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer)));
+        options.AddPolicy(PlatformOps, p => p.RequireAssertion(
+            ctx => HasRole(ctx.User, "lola-ops", "Service")));
     }
 
     public static bool HasRole(ClaimsPrincipal user, params Domain.Identity.LolaRole[] roles)
+        => HasRole(user, roles.Select(r => r.ToString()).ToArray());
+
+    public static bool HasRole(ClaimsPrincipal user, params string[] roles)
     {
-        var wanted = roles.Select(r => r.ToString()).ToHashSet();
+        var wanted = roles.ToHashSet();
         return user.Claims.Any(c =>
             (c.Type == "role" || c.Type == ClaimTypes.Role) && wanted.Contains(c.Value));
     }
