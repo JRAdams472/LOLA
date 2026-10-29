@@ -1,4 +1,5 @@
 using Dapper;
+using Lola.Application.Applications;
 using Lola.Application.Security;
 using Lola.Domain.Applications;
 using Lola.Domain.Classification;
@@ -14,7 +15,7 @@ namespace Lola.DataPlane;
 public sealed class ApplicationPartyRepository(
     TenantConnectionFactory factory,
     IFieldCipher cipher,
-    IBlindIndex blind) : TenantRepository(factory)
+    IBlindIndex blind) : TenantRepository(factory), IApplicationPartyRepository
 {
     private static readonly FieldCatalog Catalog = FieldCatalog.Current;
 

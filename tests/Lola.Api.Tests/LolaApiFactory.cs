@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenIddict.Abstractions;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Lola.Api.Tests;
 
@@ -46,6 +48,14 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<ITenantDbProvisioner>(
                 new FakeTenantDbProvisioner(Path.Combine(
                     Path.GetTempPath(), "lola-tests", "tenants")));
+            // Intake surface (MPE-110) — handler shape + masking + role
+            // scoping verified hermetic; the real repos are proven in
+            // Lola.DataPlane.Tests.
+            services.AddSingleton(new FakeApplicationStore());
+            services.AddSingleton<Lola.Application.Applications.IApplicationRepository,
+                FakeApplicationRepository>();
+            services.AddSingleton<Lola.Application.Applications.IApplicationPartyRepository,
+                FakeApplicationPartyRepository>();
         });
     }
 
@@ -72,10 +82,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         await users.InsertAsync(user);
 
         // Group + role + membership so RolesForUserAsync resolves.
+        // Name = gid: (tenant_id, name) is UNIQUE and one tenant can
+        // hold several seeded users across a test.
         using var conn = db.Open();
         var gid = $"g-{Guid.NewGuid():N}";
         await conn.ExecuteAsync(
-            "INSERT INTO groups (id, tenant_id, name) VALUES (@gid, @t, 'g')",
+            "INSERT INTO groups (id, tenant_id, name) VALUES (@gid, @t, @gid)",
             new { gid, t = tenantId });
         await conn.ExecuteAsync(
             "INSERT INTO group_roles (group_id, role) VALUES (@gid, @r)",
@@ -84,5 +96,32 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             "INSERT INTO user_groups (user_id, group_id) VALUES (@uid, @gid)",
             new { uid = user.Id, gid });
         return user;
+    }
+
+    /// Provisioning generates a random svc-{tenant} secret nobody
+    /// keeps; tests recreate the client with a known secret through
+    /// the manager so tid-scoped service tokens can be minted.
+    public async Task ResetServiceClientSecretAsync(string tenantId, string secret)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var applications = scope.ServiceProvider
+            .GetRequiredService<IOpenIddictApplicationManager>();
+        var clientId = $"svc-{tenantId}";
+        var client = await applications.FindByClientIdAsync(clientId)
+            ?? throw new InvalidOperationException($"{clientId} not provisioned");
+        await applications.DeleteAsync(client);
+        await applications.CreateAsync(new OpenIddictApplicationDescriptor
+        {
+            ClientId = clientId,
+            ClientSecret = secret,
+            ClientType = ClientTypes.Confidential,
+            DisplayName = $"Service account — {tenantId}",
+            Permissions =
+            {
+                Permissions.Endpoints.Token,
+                Permissions.GrantTypes.ClientCredentials,
+                Permissions.Prefixes.Scope + "lola-api"
+            }
+        });
     }
 }

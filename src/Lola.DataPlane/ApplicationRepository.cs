@@ -1,23 +1,11 @@
 using Dapper;
+using Lola.Application.Applications;
 using Lola.Application.Security;
 using Lola.Domain.Applications;
 using Lola.Domain.Classification;
 using System.Text.Json.Nodes;
 
 namespace Lola.DataPlane;
-
-/// One application row plus its current plaintext document — the shape
-/// handlers consume. `SubmittedUtc` non-null marks an immutable snapshot
-/// (invariant 6); TridClockStart is stamped once (P4).
-public sealed record ApplicationRecord(
-    string Id,
-    string Status,
-    string PipelineStep,
-    string? BorrowerUserId,
-    int CurrentVersion,
-    string? TridClockStart,
-    string? SubmittedUtc,
-    ApplicationDocument Doc);
 
 /// Real consumer of the tenant repository seam (M5): the canonical JSON1
 /// payload plus append-only versions (ADR-0006). The crypto boundary is
@@ -28,7 +16,7 @@ public sealed record ApplicationRecord(
 public sealed class ApplicationRepository(
     TenantConnectionFactory factory,
     IFieldCipher cipher,
-    ApplicationPartyRepository parties) : TenantRepository(factory)
+    ApplicationPartyRepository parties) : TenantRepository(factory), IApplicationRepository
 {
     private static readonly FieldCatalog Catalog = FieldCatalog.Current;
 
@@ -120,9 +108,20 @@ public sealed class ApplicationRepository(
         => await QueryAsync<ApplicationMeta>(
             """
             SELECT id AS Id, status AS Status, pipeline_step AS PipelineStep,
-                   current_version AS CurrentVersion, trid_clock_start AS TridClockStart
+                   borrower_user_id AS BorrowerUserId, current_version AS CurrentVersion,
+                   trid_clock_start AS TridClockStart
             FROM applications ORDER BY created_utc DESC
             """, ct: ct);
+
+    /// Status-only transition — never touches version rows.
+    public async Task UpdateStatusAsync(string id, string status,
+        CancellationToken ct = default)
+        => await ExecuteAsync(
+            """
+            UPDATE applications SET status=@status,
+                   updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id=@id
+            """, new { status, id }, ct);
 
     private async Task<MetaRow?> GetMetaAsync(string id, CancellationToken ct)
     {
@@ -178,6 +177,3 @@ public sealed class ApplicationRepository(
 
     private sealed record MetaRow(long CurrentVersion, string VersionId);
 }
-
-public sealed record ApplicationMeta(
-    string Id, string Status, string PipelineStep, long CurrentVersion, string? TridClockStart);
