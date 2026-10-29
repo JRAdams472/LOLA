@@ -18,7 +18,8 @@ public static class UpdateDraftHandler
     private static readonly FieldCatalog Catalog = FieldCatalog.Current;
 
     public static async Task<int> Handle(
-        UpdateDraftCommand c, IApplicationRepository apps, CancellationToken ct)
+        UpdateDraftCommand c, IApplicationRepository apps,
+        Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await RequireAppAsync(apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
@@ -36,6 +37,8 @@ public static class UpdateDraftHandler
             c.AppId, doc, "draft", c.ActorId, submitted: false, ct);
         if (TridClock.Complete(doc))
             await apps.EnsureTridClockStartAsync(c.AppId, ct);
+        await audit.WriteAsync(c.ActorId, "write", "application", c.AppId,
+            Audit.AuditFields.ForPaths(c.Patch.Keys), "draft patch", ct);
         return version;
     }
 

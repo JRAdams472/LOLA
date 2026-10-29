@@ -15,7 +15,8 @@ public sealed record MismoImportResult(string Id, int ImportedFields);
 public static class ImportMismoHandler
 {
     public static async Task<MismoImportResult> Handle(
-        ImportMismoCommand c, IApplicationRepository apps, CancellationToken ct)
+        ImportMismoCommand c, IApplicationRepository apps,
+        Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var (doc, imported) = MismoXmlImporter.Import(c.Xml);
@@ -24,6 +25,8 @@ public static class ImportMismoHandler
         await apps.InsertAsync(id, doc, "draft", borrowerId, c.ActorId, ct);
         if (TridClock.Complete(doc))
             await apps.EnsureTridClockStartAsync(id, ct);
+        await audit.WriteAsync(c.ActorId, "write", "application", id,
+            Audit.AuditFields.InDoc(doc), $"mismo import ({imported} fields)", ct);
         return new MismoImportResult(id, imported);
     }
 }

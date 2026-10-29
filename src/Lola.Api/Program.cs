@@ -217,6 +217,8 @@ builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository>
     sp => sp.GetRequiredService<ApplicationRepository>());
 builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
     Lola.Application.Applications.WorkflowPipeline>();
+builder.Services.AddScoped<Lola.Application.Audit.ITenantAuditLog, TenantAuditLog>();
+builder.Services.AddSingleton<Lola.Application.Audit.IControlPlaneAuditLog, ControlPlaneAuditLog>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),

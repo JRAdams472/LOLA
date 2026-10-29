@@ -47,6 +47,7 @@ public sealed class ControlPlaneDb
             PRAGMA auto_vacuum=FULL;
             PRAGMA journal_mode=WAL;
             PRAGMA foreign_keys=ON;
+            PRAGMA busy_timeout=5000;
             """);
         return conn;
     }

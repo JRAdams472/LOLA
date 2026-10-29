@@ -21,7 +21,8 @@ public static class SubmitApplicationHandler
 {
     public static async Task<SubmitResult> Handle(
         SubmitApplicationCommand c, IApplicationRepository apps,
-        IWorkflowPipeline pipeline, CancellationToken ct)
+        IWorkflowPipeline pipeline, Audit.ITenantAuditLog audit,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
@@ -38,6 +39,8 @@ public static class SubmitApplicationHandler
         var version = await apps.WriteVersionAsync(
             c.AppId, app.Doc, "submitted", c.ActorId, submitted: true, ct);
         await pipeline.AdvanceAsync(app, "Validate", c.ActorId, "submitted", ct);
+        await audit.WriteAsync(c.ActorId, "write", "application", c.AppId,
+            Audit.AuditFields.InDoc(app.Doc), "submit", ct);
         return SubmitResult.Success(version);
     }
 }
