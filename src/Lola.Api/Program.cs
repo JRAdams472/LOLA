@@ -222,6 +222,11 @@ builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<Lola.Application.Audit.ITenantAuditLog, TenantAuditLog>();
 builder.Services.AddSingleton<Lola.Application.Audit.IControlPlaneAuditLog, ControlPlaneAuditLog>();
+// Pricing seam (MPE-71, ADR-0007): `PRICING_ADAPTER=mpex` selects the
+// real MPEx adapter — wired in MPE-130 (P2); until then every config
+// gets the deterministic stub so the seam is exercisable now.
+builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
+    Lola.Infrastructure.Pricing.StubPricingAdapter>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),

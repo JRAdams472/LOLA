@@ -27,7 +27,7 @@ public static class AdminEndpoints
         admin.MapGet("/tenants", async (IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<IReadOnlyList<TenantAdminDto>>(
                 new GetTenantsQuery(), ct)))
-            .RequireAuthorization(LolaPolicies.TenantAdmin);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         // Tenant lifecycle (MPE-87): create is unscoped by definition —
         // the tenant does not exist yet; status reads are own-tenant
@@ -37,7 +37,7 @@ public static class AdminEndpoints
             Results.Created($"/api/admin/tenants/{body.TenantId}",
                 await bus.InvokeMaskedAsync<ProvisionTenantResult>(
                     new ProvisionTenantCommand(body.TenantId, body.Slug, body.DisplayName), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         // Fleet migration rollout (MPE-93) — unscoped operator surface:
         // rolls every active tenant file to the latest migration,
@@ -45,7 +45,7 @@ public static class AdminEndpoints
         admin.MapPost("/migrations", async (IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<MigrationRunResult>(
                 new RunMigrationsCommand(), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         // Encrypted snapshot lifecycle (MPE-95) — unscoped operator
         // surface: backups stay under the tenant's own file key, so the
@@ -54,19 +54,19 @@ public static class AdminEndpoints
                 string id, IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<TenantBackupInfo>(
                 new BackupTenantCommand(id), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         admin.MapGet("/tenants/{id}/backups", async (
                 string id, IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<IReadOnlyList<TenantBackupInfo>>(
                 new ListTenantBackupsQuery(id), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         admin.MapPost("/tenants/{id}/restore", async (
                 string id, RestoreRequest body, IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<TenantBackupInfo>(
                 new RestoreTenantBackupCommand(id, body.Name), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         // Crypto-shred erasure (MPE-96) — keys die before files
         // (invariant 9); the handler guards retired/unknown tenants and
@@ -78,7 +78,7 @@ public static class AdminEndpoints
             Results.Ok(await bus.InvokeMaskedAsync<TenantErasureResult>(
                 new EraseTenantCommand(id, force == true, reason,
                     ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct)))
-            .RequireAuthorization(LolaPolicies.Provision);
+            .RequireAuthorization(LolaPolicies.PlatformOps);
 
         admin.MapGet("/tenants/{id}", async (
                 string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
