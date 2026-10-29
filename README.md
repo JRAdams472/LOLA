@@ -52,6 +52,16 @@ deadline, and the `POSIntake → Validate → PPE → Fee → Doc → Package`
 named-step workflow seam. See milestone tickets under
 megaplan **MPE-63**.
 
+Data hygiene live (M6) — append-only hash-chained audit in every
+tenant file plus the control plane (actor, entity, PII classes, reason —
+never values), tamper-evident `…/audit/verify`, audited officer reveal
+(`POST …/{id}/reveal {reason}`) inside masked-by-default reads, access
+review reports, a generated `docs/pii-data-map.json` with a CI drift
+test, a 25-month Reg B retention gate on erasure (`?force&reason`
+writes `retention_override` to the surviving control-plane log), and a
+post-erasure residual lifecycle that deletes invites/OIDC credentials/
+groups and anonymizes users while retaining the audit spine.
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
