@@ -81,6 +81,17 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1)
             }));
+    // Intake surface (MPE-114) — per-tenant+actor budget so one
+    // misbehaving token can't draft-spam a tenant file or starve the
+    // tenant's other actors. Generous for PATCH-heavy intake traffic.
+    options.AddPolicy("intake", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"{ctx.Request.RouteValues["id"]}|{ctx.User.FindFirst("sub")?.Value ?? "anon"}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 var corsOrigin = builder.Configuration["CORS_ORIGIN"];

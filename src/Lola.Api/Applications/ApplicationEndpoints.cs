@@ -19,7 +19,8 @@ public static class ApplicationEndpoints
     public static void MapApplicationEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/tenants/{id}/applications")
-            .RequireAuthorization(LolaPolicies.Applications);
+            .RequireAuthorization(LolaPolicies.Applications)
+            .RequireRateLimiting("intake");
 
         group.MapPost("", async (string id, CreateDraftRequest? body,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
