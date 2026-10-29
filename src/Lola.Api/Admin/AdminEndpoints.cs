@@ -91,10 +91,11 @@ public static class AdminEndpoints
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
         admin.MapGet("/tenants/{id}/users", async (
-                string id, IMessageBus bus, CancellationToken ct) =>
+                string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await Guarded(id, async () => Results.Ok(
                 await bus.InvokeMaskedAsync<IReadOnlyList<AdminUserDto>>(
-                    new GetTenantUsersQuery(id), ct))))
+                    new GetTenantUsersQuery(id,
+                        ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct))))
             .RequireAuthorization(LolaPolicies.AdminRead);
 
         admin.MapGet("/tenants/{id}/groups", async (
@@ -105,11 +106,12 @@ public static class AdminEndpoints
             .RequireAuthorization(LolaPolicies.AdminRead);
 
         admin.MapPost("/tenants/{id}/users", async (
-                string id, CreateUserRequest body, IMessageBus bus, CancellationToken ct) =>
+                string id, CreateUserRequest body, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await Guarded(id, async () => Results.Created(
                 $"/api/admin/tenants/{id}/users",
                 await bus.InvokeMaskedAsync<OfficerUserResult>(new CreateOfficerUserCommand(
-                    id, body.Email, body.DisplayName, body.Password), ct))))
+                    id, body.Email, body.DisplayName, body.Password,
+                    ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct))))
             .RequireAuthorization(LolaPolicies.TenantAdmin);
 
         admin.MapPost("/tenants/{id}/groups", async (

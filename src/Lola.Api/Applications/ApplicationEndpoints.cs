@@ -106,6 +106,34 @@ public static class ApplicationEndpoints
             Guarded(id, async () => await bus.InvokeAsync<AuditVerifyResult>(
                 new VerifyAuditQuery(id,
                     Actor(user), IsBorrower(user)), ct)));
+
+        // Audited PII reveal (MPE-117, invariant 8) — the explicit
+        // staff action returning the UNMASKED document with a required
+        // reason; the reveal itself writes an audit event.
+        group.MapPost("/{appId}/reveal", async (string id, string appId,
+                RevealRequest body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ApplicationDto?>(
+                new RevealApplicationQuery(id, appId,
+                    Actor(user), body.Reason, IsBorrower(user)), ct)))
+            .RequireAuthorization(LolaPolicies.RevealPii);
+
+        // Access-review reports (MPE-117) — staff-only; attribution
+        // metadata only, never field values.
+        group.MapGet("/{appId}/audit", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
+                new GetApplicationAuditQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
+
+        app.MapGet("/api/tenants/{id}/audit", async (string id,
+                string? actor, string? action, string? since, string? until,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
+                new GetTenantAuditQuery(id, Actor(user), IsBorrower(user),
+                    actor, action, since, until), ct)))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
     }
 
     /// Path tenant must equal the resolved scope — the middleware
@@ -138,5 +166,6 @@ public static class ApplicationEndpoints
     public sealed record CreateDraftRequest(string? BorrowerUserId);
     public sealed record UpdateDraftRequest(IReadOnlyDictionary<string, string> Patch);
     public sealed record TransitionRequest(string Target);
+    public sealed record RevealRequest(string Reason);
     public sealed record ImportMismoRequest(string Xml);
 }

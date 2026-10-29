@@ -3,7 +3,7 @@ using Lola.Domain.Classification;
 
 namespace Lola.Application.Admin.Users;
 
-public sealed record GetTenantUsersQuery(string TenantId);
+public sealed record GetTenantUsersQuery(string TenantId, string ActorId);
 
 /// Admin user view. Email/name are Contact/Name-class PII; the MFA
 /// secret reference is Account-class credential material — all masked
@@ -21,7 +21,8 @@ public sealed record AdminUserDto(
 public static class GetTenantUsersHandler
 {
     public static async Task<IReadOnlyList<AdminUserDto>> Handle(
-        GetTenantUsersQuery q, IUserDirectory users, CancellationToken ct)
+        GetTenantUsersQuery q, IUserDirectory users,
+        Audit.IControlPlaneAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
         var result = new List<AdminUserDto>();
@@ -32,6 +33,10 @@ public static class GetTenantUsersHandler
                 u.Status.ToString().ToLowerInvariant(),
                 roles.Select(r => r.ToString()).ToList(), u.MfaSecretRef));
         }
+        // Control-plane audit (MPE-117): identity PII reads land in the
+        // control-plane log — classes only, never values (invariant 3).
+        await audit.WriteAsync(q.ActorId, "read", "user", null,
+            ["Contact", "Name", "Account"], "tenant user list", ct);
         return result;
     }
 }

@@ -63,14 +63,13 @@ public sealed class ControlPlaneAuditLog(ControlPlaneDb db)
     public async Task<AuditVerifyResult> VerifyChainAsync(
         CancellationToken ct = default)
     {
-        var events = await QueryAsync(null, null, ct);
+        var events = await QueryAsync(new AuditFilter(), ct);
         var broken = HashChain.FirstBroken(events);
         return new AuditVerifyResult(broken is null, broken, events.Count);
     }
 
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(
-        string? entity = null, string? entityId = null,
-        CancellationToken ct = default)
+        AuditFilter filter, CancellationToken ct = default)
     {
         await using var conn = db.Open();
         var rows = await conn.QueryAsync<Row>(
@@ -82,8 +81,20 @@ public sealed class ControlPlaneAuditLog(ControlPlaneDb db)
             FROM audit_events
             WHERE (@entity IS NULL OR entity = @entity)
               AND (@entityId IS NULL OR entity_id = @entityId)
+              AND (@actor IS NULL OR actor = @actor)
+              AND (@action IS NULL OR action = @action)
+              AND (@since IS NULL OR created_utc >= @since)
+              AND (@until IS NULL OR created_utc <= @until)
             ORDER BY seq
-            """, new { entity, entityId });
+            """, new
+            {
+                entity = filter.Entity,
+                entityId = filter.EntityId,
+                actor = filter.Actor,
+                action = filter.Action,
+                since = filter.Since,
+                until = filter.Until
+            });
         return rows.Select(r => new AuditEvent(r.Seq, r.EventId, r.Actor,
             r.Action, r.Entity, r.EntityId,
             JsonSerializer.Deserialize<IReadOnlyList<string>>(r.FieldClassesJson) ?? [],
