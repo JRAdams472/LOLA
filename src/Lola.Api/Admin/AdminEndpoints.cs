@@ -69,11 +69,15 @@ public static class AdminEndpoints
             .RequireAuthorization(LolaPolicies.Provision);
 
         // Crypto-shred erasure (MPE-96) — keys die before files
-        // (invariant 9); the handler guards retired/unknown tenants.
+        // (invariant 9); the handler guards retired/unknown tenants and
+        // gates on the Reg B 25-month window (MPE-118): ?force=true&reason=
+        // overrides with a control-plane retention_override audit event.
         admin.MapDelete("/tenants/{id}", async (
-                string id, IMessageBus bus, CancellationToken ct) =>
+                string id, bool? force, string? reason, HttpContext ctx,
+                IMessageBus bus, CancellationToken ct) =>
             Results.Ok(await bus.InvokeMaskedAsync<TenantErasureResult>(
-                new EraseTenantCommand(id), ct)))
+                new EraseTenantCommand(id, force == true, reason,
+                    ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct)))
             .RequireAuthorization(LolaPolicies.Provision);
 
         admin.MapGet("/tenants/{id}", async (

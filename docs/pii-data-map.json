@@ -1,0 +1,208 @@
+{
+  "schema": "lola/pii-data-map/v1",
+  "fields": [
+    {
+      "path": "asset[0].account_number",
+      "piiClass": "Account",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "liability[0].account_number",
+      "piiClass": "Account",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].address[0].city",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].address[0].state",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].address[0].street",
+      "piiClass": "Address",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].address[0].unit",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].address[0].zip",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].dob",
+      "piiClass": "Dob",
+      "index": "ciphertext",
+      "storage": [
+        "payload",
+        "index-column"
+      ]
+    },
+    {
+      "path": "party[0].email",
+      "piiClass": "Contact",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "index-column",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].employment[0].employer_name",
+      "piiClass": "Other",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].employment[0].monthly_income",
+      "piiClass": "Income",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "party[0].first_name",
+      "piiClass": "Name",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "index-column",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].last_name",
+      "piiClass": "Name",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "index-column",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].middle_name",
+      "piiClass": "Name",
+      "index": "ciphertext",
+      "storage": [
+        "payload",
+        "index-column"
+      ]
+    },
+    {
+      "path": "party[0].phone",
+      "piiClass": "Contact",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "index-column",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].ssn",
+      "piiClass": "Ssn",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "index-column",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "party[0].suffix",
+      "piiClass": "Name",
+      "index": "ciphertext",
+      "storage": [
+        "payload",
+        "index-column"
+      ]
+    },
+    {
+      "path": "subject_property.city",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "subject_property.state",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    },
+    {
+      "path": "subject_property.street",
+      "piiClass": "Address",
+      "index": "blind",
+      "storage": [
+        "payload",
+        "blind-index"
+      ]
+    },
+    {
+      "path": "subject_property.zip",
+      "piiClass": "Address",
+      "index": "ciphertext",
+      "storage": [
+        "payload"
+      ]
+    }
+  ],
+  "members": [
+    {
+      "type": "Lola.Application.Admin.Users.AdminUserDto",
+      "member": "DisplayName",
+      "piiClass": "Name",
+      "location": "control-plane"
+    },
+    {
+      "type": "Lola.Application.Admin.Users.AdminUserDto",
+      "member": "Email",
+      "piiClass": "Contact",
+      "location": "control-plane"
+    },
+    {
+      "type": "Lola.Application.Admin.Users.AdminUserDto",
+      "member": "MfaSecretRef",
+      "piiClass": "Account",
+      "location": "control-plane"
+    }
+  ]
+}

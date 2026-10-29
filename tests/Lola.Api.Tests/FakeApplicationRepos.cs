@@ -16,6 +16,7 @@ public sealed class FakeApplicationStore
         public int Version;
         public string? TridClockStart;
         public string? SubmittedUtc;
+        public string CreatedUtc = DateTimeOffset.UtcNow.ToString("O");
         public ApplicationDocument Doc = ApplicationDocument.Empty();
     }
 
@@ -96,6 +97,12 @@ public sealed class FakeApplicationRepository(FakeApplicationStore store)
             app.TridClockStart, app.SubmittedUtc,
             ApplicationDocument.FromObject(app.Doc.CloneRoot())));
     }
+
+    public Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
+        CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<ApplicationRetentionRow>>(store.Apps
+            .Select(kv => new ApplicationRetentionRow(kv.Key, kv.Value.CreatedUtc))
+            .ToList());
 
     public Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<ApplicationMeta>>(store.Apps
