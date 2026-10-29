@@ -204,6 +204,8 @@ builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartyReposi
 builder.Services.AddScoped<ApplicationRepository>();
 builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository>(
     sp => sp.GetRequiredService<ApplicationRepository>());
+builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
+    Lola.Application.Applications.WorkflowPipeline>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),

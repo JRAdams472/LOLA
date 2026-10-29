@@ -34,8 +34,8 @@ public class Query(IMessageBus bus)
             new GetApplicationQuery(tenantId, appId, actor, isBorrower), ct);
         return dto is null ? null : new ApplicationView(
             dto.Id, dto.Status, dto.PipelineStep, dto.BorrowerUserId,
-            dto.CurrentVersion, dto.TridClockStart, dto.SubmittedUtc,
-            dto.Doc.ToJsonString());
+            dto.CurrentVersion, dto.TridClockStart, dto.TridDeadlineUtc,
+            dto.SubmittedUtc, dto.Doc.ToJsonString());
     }
 
     public Task<IReadOnlyList<ApplicationMeta>> Applications(
@@ -58,5 +58,5 @@ public class Query(IMessageBus bus)
 /// document string (masked upstream by DocMasker).
 public sealed record ApplicationView(
     string Id, string Status, string PipelineStep, string? BorrowerUserId,
-    int CurrentVersion, string? TridClockStart, string? SubmittedUtc,
-    string DocJson);
+    int CurrentVersion, string? TridClockStart, string? TridDeadlineUtc,
+    string? SubmittedUtc, string DocJson);

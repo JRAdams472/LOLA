@@ -166,4 +166,50 @@ public sealed class ApplicationRepositoryTests(OpenBaoFixture fixture)
             await new TransitKeyManager(fixture.Transit).DestroyAsync(id);
         }
     }
+
+    /// MPE-112: the TRID stamp is once-only (second ensure is a no-op)
+    /// and pipeline step events are append-only on the real seam.
+    [Fact]
+    public async Task Trid_stamp_is_once_only_and_step_events_append_only()
+    {
+        var (apps, _, svc, registry, cipher, _) = Sut();
+        var id = fixture.NewTenant();
+        try
+        {
+            await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"));
+            var rec = (await registry.FindByIdAsync(id))!;
+            var keyHex = await UnwrapAsync(rec, cipher);
+            using (CipherContext.Use(id))
+            using (TenantContext.Use(TenantScope.From(rec)))
+            {
+                var appId = $"app-{Guid.NewGuid():N}"[..16];
+                await apps.InsertAsync(appId, SampleDoc(), "draft", null, "test");
+
+                await apps.EnsureTridClockStartAsync(appId);
+                var first = (await apps.GetAsync(appId))!.TridClockStart!;
+                first.ShouldNotBeNullOrEmpty();
+                await apps.EnsureTridClockStartAsync(appId);
+                (await apps.GetAsync(appId))!.TridClockStart.ShouldBe(first);
+
+                await apps.UpdatePipelineStepAsync(appId, "Validate");
+                await apps.RecordStepEventAsync(appId, "Validate", "entered",
+                    "officer-1", "submitted");
+                await apps.RecordStepEventAsync(appId, "PPE", "keyed",
+                    "officer-1", "attempt");
+                var steps = await apps.ListStepEventsAsync(appId);
+                steps.Count.ShouldBe(2);
+                steps.Select(s => s.Step).ShouldBe(["Validate", "PPE"]);
+
+                // RAW read — step rows persist in the keyed file.
+                using (var conn = KeyedSqliteConnectionManager.OpenKeyed(rec.DbPath, keyHex))
+                    (await conn.QuerySingleAsync<int>(
+                        "SELECT COUNT(*) FROM application_step_events WHERE application_id=@id",
+                        new { id = appId })).ShouldBe(2);
+            }
+        }
+        finally
+        {
+            await new TransitKeyManager(fixture.Transit).DestroyAsync(id);
+        }
+    }
 }

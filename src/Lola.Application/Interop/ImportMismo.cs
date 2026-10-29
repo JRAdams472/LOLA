@@ -22,6 +22,8 @@ public static class ImportMismoHandler
         var id = $"app-{Guid.NewGuid():N}"[..20];
         var borrowerId = c.ActorIsBorrower ? c.ActorId : null;
         await apps.InsertAsync(id, doc, "draft", borrowerId, c.ActorId, ct);
+        if (TridClock.Complete(doc))
+            await apps.EnsureTridClockStartAsync(id, ct);
         return new MismoImportResult(id, imported);
     }
 }

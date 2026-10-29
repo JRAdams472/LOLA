@@ -56,6 +56,8 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 FakeApplicationRepository>();
             services.AddSingleton<Lola.Application.Applications.IApplicationPartyRepository,
                 FakeApplicationPartyRepository>();
+            services.AddSingleton<Lola.Application.Applications.IWorkflowPipeline,
+                Lola.Application.Applications.WorkflowPipeline>();
         });
     }
 

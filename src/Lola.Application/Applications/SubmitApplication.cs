@@ -20,7 +20,8 @@ public sealed record SubmitResult(bool Ok, int? Version, IReadOnlyList<FieldErro
 public static class SubmitApplicationHandler
 {
     public static async Task<SubmitResult> Handle(
-        SubmitApplicationCommand c, IApplicationRepository apps, CancellationToken ct)
+        SubmitApplicationCommand c, IApplicationRepository apps,
+        IWorkflowPipeline pipeline, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
@@ -31,8 +32,12 @@ public static class SubmitApplicationHandler
         var errors = FieldValidator.Validate(app.Doc);
         if (errors.Count > 0) return SubmitResult.Failed(errors);
 
+        // All six TRID triggers are required fields — a passing submit
+        // always stamps the clock (no-op if a PATCH already did).
+        await apps.EnsureTridClockStartAsync(c.AppId, ct);
         var version = await apps.WriteVersionAsync(
             c.AppId, app.Doc, "submitted", c.ActorId, submitted: true, ct);
+        await pipeline.AdvanceAsync(app, "Validate", c.ActorId, "submitted", ct);
         return SubmitResult.Success(version);
     }
 }

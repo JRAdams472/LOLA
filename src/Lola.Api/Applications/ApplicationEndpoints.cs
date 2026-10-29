@@ -90,6 +90,13 @@ public static class ApplicationEndpoints
             Guarded(id, async () => await bus.InvokeAsync<XmlResult>(
                 new ExportUlddQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
+
+        // Pipeline step history (MPE-112) — append-only named-step log.
+        group.MapGet("/{appId}/steps", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
+                new GetApplicationStepsQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
     }
 
     /// Path tenant must equal the resolved scope — the middleware
