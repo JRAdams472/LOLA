@@ -25,12 +25,17 @@ public sealed class ProblemDetailsMiddleware(RequestDelegate next, ILogger<Probl
         catch (Application.Errors.DomainException dex)
         {
             context.Response.StatusCode = dex.Status;
-            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            var problem = new ProblemDetails
             {
                 Status = dex.Status,
                 Title = dex.Message,
                 Type = $"https://httpstatuses.com/{dex.Status}"
-            }, options: null, contentType: "application/problem+json");
+            };
+            if (dex.Extensions is not null)
+                foreach (var (k, v) in dex.Extensions)
+                    problem.Extensions[k] = v;
+            await context.Response.WriteAsJsonAsync(problem,
+                options: null, contentType: "application/problem+json");
         }
         catch (Exception ex)
         {

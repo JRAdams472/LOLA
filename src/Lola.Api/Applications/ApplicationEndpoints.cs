@@ -121,6 +121,30 @@ public static class ApplicationEndpoints
                 new GetPricingHistoryQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Rate lock (MPE-131) — lock freezes the eval-determining
+        // paths; unlock requires a reason and clears the freeze.
+        group.MapPost("/{appId}/lock", async (string id, string appId,
+                LockRequest body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<LockResult>(
+                new LockRateCommand(id, appId, Actor(user),
+                    IsBorrower(user), body?.EvalId, body?.ProductCode ?? "",
+                    body?.Rate ?? 0m, body?.LockTermDays), ct)));
+
+        group.MapPost("/{appId}/unlock", async (string id, string appId,
+                UnlockRequest body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<bool>(
+                new UnlockRateCommand(id, appId, Actor(user),
+                    IsBorrower(user), body?.Reason ?? ""), ct)));
+
+        group.MapGet("/{appId}/lock", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<RateLockDto?>(
+                new GetRateLockQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
@@ -210,4 +234,8 @@ public static class ApplicationEndpoints
     public sealed record PriceRequest(
         IReadOnlyList<string>? Products, decimal? Rate,
         int? LockTermDays, string? AsOf, bool? EligibilityOnly);
+    public sealed record LockRequest(
+        string? EvalId, string? ProductCode, decimal? Rate,
+        int? LockTermDays);
+    public sealed record UnlockRequest(string Reason);
 }

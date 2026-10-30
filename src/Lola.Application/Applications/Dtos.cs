@@ -12,7 +12,8 @@ public sealed record FieldError(string Path, string Code, string Message);
 public sealed record ApplicationDto(
     string Id, string Status, string PipelineStep, string? BorrowerUserId,
     int CurrentVersion, string? TridClockStart, string? TridDeadlineUtc,
-    string? SubmittedUtc, JsonObject Doc);
+    string? SubmittedUtc, JsonObject Doc,
+    Pricing.RateLockDto? Lock = null);
 
 /// Submit/correct result — `Ok=false` carries the FieldError list the
 /// endpoint surfaces as a 422 problem extension.
