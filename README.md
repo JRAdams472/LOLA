@@ -62,6 +62,21 @@ writes `retention_override` to the surviving control-plane log), and a
 post-erasure residual lifecycle that deletes invites/OIDC credentials/
 groups and anonymizes users while retaining the audit spine.
 
+Pricing live (M7) — `PRICING_ADAPTER=mpex` selects the MPEx adapter:
+Dex `client_credentials` with an expiry-cached token, eligibility →
+pricing calls normalized into a vendor-neutral `PricingEvaluation`,
+and a reflection-guarded PII firewall proving the egress DTOs carry
+no personal data. Evals run through a per-tenant `pricing_outbox`
+(same-tx enqueue, backoff → DLQ, request-hash idempotency) drained
+by a registry-scoped worker; `POST …/price` → 202 + eval id,
+`GET …/pricing[/history]` reads the append-only spine, `asOf`
+re-evals resolve historic publication snapshots. `POST …/lock`
+converts a completed eval into a rate lock that freezes the
+eval-determining catalog paths (patch → 409 with `frozenFields`)
+until an audited `POST …/unlock`; `ApplicationDto.Lock` carries
+status + expiry on REST and GraphQL. The `lola-ops` platform
+operator owns the global tenant registry surface.
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
