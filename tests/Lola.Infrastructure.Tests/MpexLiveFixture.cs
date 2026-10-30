@@ -42,25 +42,65 @@ public sealed class MpexLiveFixture : IAsyncLifetime
             baseUrl, tokenUrl,
             Require("MPEX_CLIENT_ID"), Require("MPEX_CLIENT_SECRET"),
             Environment.GetEnvironmentVariable("MPEX_AUDIENCE"));
+        _seedClient = seedClient;
+        _seedSecret = seedSecret;
 
+        await PutSheetAsync("""
+            {"spec":{"rates":[6.25,6.5,6.75],
+                      "lockTerms":[30,45],
+                      "prices":{"6.25:30":98.75,"6.5:30":99.25,
+                                "6.75:30":99.75,"6.25:45":98.5,
+                                "6.5:45":99.0,"6.75:45":99.5}}}
+            """);
+    }
+
+    private string _seedClient = "";
+    private string _seedSecret = "";
+
+    public async Task<string> MintSeedAsync()
+    {
         using var http = new HttpClient();
-        var token = await MintAsync(http, tokenUrl, seedClient,
-            seedSecret, Options.Audience);
+        return await MintAsync(http, Options.TokenUrl,
+            _seedClient, _seedSecret, Options.Audience);
+    }
+
+    /// PUT a fresh draft CONV30 rate sheet (seed/admin creds).
+    public async Task PutSheetAsync(string bodyJson)
+    {
+        using var http = new HttpClient();
+        var token = await MintSeedAsync();
         using var put = new HttpRequestMessage(HttpMethod.Put,
-            $"{baseUrl.TrimEnd('/')}/api/rate-sheets/CONV30")
+            $"{Options.BaseUrl.TrimEnd('/')}/api/rate-sheets/CONV30")
         {
-            Content = new StringContent("""
-                {"spec":{"rates":[6.25,6.5,6.75],
-                          "lockTerms":[30,45],
-                          "prices":{"6.25:30":98.75,"6.5:30":99.25,
-                                    "6.75:30":99.75,"6.25:45":98.5,
-                                    "6.5:45":99.0,"6.75:45":99.5}}}
-                """, Encoding.UTF8, "application/json")
+            Content = new StringContent(
+                bodyJson, Encoding.UTF8, "application/json")
         };
         put.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
         using var res = await http.SendAsync(put);
         res.EnsureSuccessStatusCode();
+    }
+
+    /// POST /api/publications — stamps changed drafts (incl. rate
+    /// sheets) under one publication; returns its published_at.
+    public async Task<DateTimeOffset> PublishAsync(string label)
+    {
+        using var http = new HttpClient();
+        var token = await MintSeedAsync();
+        using var req = new HttpRequestMessage(HttpMethod.Post,
+            $"{Options.BaseUrl.TrimEnd('/')}/api/publications")
+        {
+            Content = new StringContent(
+                $$"""{"label":"{{label}}"}""",
+                Encoding.UTF8, "application/json")
+        };
+        req.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+        using var res = await http.SendAsync(req);
+        res.EnsureSuccessStatusCode();
+        var body = await res.Content.ReadFromJsonAsync<JsonElement>();
+        return DateTimeOffset.Parse(
+            body.GetProperty("publishedAt").GetString()!);
     }
 
     private static async Task<string> MintAsync(HttpClient http,

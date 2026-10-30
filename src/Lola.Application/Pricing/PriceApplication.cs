@@ -30,6 +30,12 @@ public static class PriceApplicationHandler
             throw DomainException.Forbidden("pricing is a staff action");
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, c.AppId, c.ActorId, isBorrower: false, ct);
+        // `asOf` selects a publication snapshot (MPE-132): "draft" or
+        // an RFC3339 timestamp — anything else is a client error.
+        if (c.AsOf is not null && c.AsOf != "draft" &&
+            !DateTimeOffset.TryParse(c.AsOf, out _))
+            throw DomainException.BadRequest(
+                "asOf must be 'draft' or an RFC3339 timestamp");
 
         var scenario = ScenarioMapper.Map(app.Doc,
             lockTermDays: c.LockTermDays, asOf: c.AsOf);
@@ -42,8 +48,11 @@ public static class PriceApplicationHandler
             PricingWire.LoanJson(scenario).ToJsonString(),
             "pending", null, null, c.ActorId, null, null);
 
+        // `asOf` re-evals tag `reval` so the queue can distinguish a
+        // historic-snapshot request from a live eval (MPE-132).
         var result = await pricing.EnqueueAsync(
-            eval, $"ob-{Guid.NewGuid():N}", "eval", payload, ct);
+            eval, $"ob-{Guid.NewGuid():N}",
+            c.AsOf is null ? "eval" : "reval", payload, ct);
         // Audit once — a deduplicated re-request adds no event, the
         // original `price_eval` row already attributed the work.
         if (!result.Deduplicated)

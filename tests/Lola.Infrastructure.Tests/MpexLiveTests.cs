@@ -62,6 +62,49 @@ public sealed class MpexLiveTests(MpexLiveFixture fixture)
             p.IneligibilityReasons.Count > 0);
     }
 
+    /// asOf resolves the historic snapshot (MPE-132): publish v1,
+    /// capture the boundary, publish a distinct v2 — an asOf between
+    /// them must return v1's prices while `latest` returns v2's.
+    /// The assertion compares the two evals' price DELTA to the sheet
+    /// delta (adjustments are revision-independent for equal specs).
+    [Fact]
+    public async Task AsOf_returns_historic_snapshot_distinct_from_latest()
+    {
+        // v1 = fixture's draft (6.5:30 = 99.25). Publishing may 409 if
+        // an identical published row already exists — either way the
+        // snapshot state at the boundary holds v1's prices.
+        try { await fixture.PublishAsync("lola-asof-v1"); }
+        catch (HttpRequestException e) when
+            ((int?)e.StatusCode == 409)
+        { }
+        var asOf = DateTimeOffset.UtcNow
+            .ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+        await Task.Delay(150); // keep the boundary strictly < v2's stamp
+
+        // v2 prices differ from v1 by exactly -1.65 on 6.5:30.
+        await fixture.PutSheetAsync("""
+            {"spec":{"rates":[6.25,6.5,6.75],
+                      "lockTerms":[30,45],
+                      "prices":{"6.25:30":97.10,"6.5:30":97.60,
+                                "6.75:30":98.10,"6.25:45":96.85,
+                                "6.5:45":97.35,"6.75:45":97.85}}}
+            """);
+        await fixture.PublishAsync("lola-asof-v2");
+
+        using var http = new HttpClient();
+        var adapter = new MpexPricingAdapter(http, fixture.Options);
+        var latest = await adapter.EvaluateAsync(
+            Conv30, new PricingRequestOptions());
+        var historic = await adapter.EvaluateAsync(
+            Conv30, new PricingRequestOptions(AsOf: asOf));
+
+        decimal Price(PricingEvaluation e) => e.Products
+            .Single(p => p.ProductCode == "CONV30").Offers
+            .Single(o => o.Rate == 6.5m && o.LockTermDays == 30)
+            .Price!.Value;
+        (Price(historic) - Price(latest)).ShouldBe(1.65m);
+    }
+
     /// Same pricing call the adapter makes — for pass-through
     /// comparison of the normalized offers.
     private async Task<JsonNode> RawPricingAsync(HttpClient http)
