@@ -242,7 +242,10 @@ if (builder.Configuration["PRICING_ADAPTER"]?.Equals("mpex",
             Require("MPEX_CLIENT_ID"), Require("MPEX_CLIENT_SECRET"),
             builder.Configuration["MPEX_AUDIENCE"]));
     builder.Services.AddHttpClient<Lola.Application.Pricing.IPricingService,
-        Lola.Infrastructure.Pricing.MpexPricingAdapter>();
+        Lola.Infrastructure.Pricing.MpexPricingAdapter>()
+        // Eval calls must fail fast — the outbox retry/DLQ policy owns
+        // recovery; a 100s default could stall a tenant's drain loop.
+        .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
 }
 else
 {
