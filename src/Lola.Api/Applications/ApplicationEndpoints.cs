@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Lola.Api.Identity;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
+using Lola.Application.Fees;
 using Lola.Application.Interop;
 using Lola.Application.Pricing;
 using Lola.Application.Security;
@@ -121,6 +122,29 @@ public static class ApplicationEndpoints
                 new GetPricingHistoryQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Fees (MPE-183) — same shape as pricing: enqueue is 202,
+        // the fee outbox worker runs the Zara call asynchronously.
+        group.MapPost("/{appId}/fees", async (string id, string appId,
+                FeeRequest? body, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<FeeEvalAccepted>(
+                new EvaluateApplicationFeesCommand(id, appId,
+                    Actor(user), IsBorrower(user), body?.FeeCodes), ct)));
+
+        group.MapGet("/{appId}/fees", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<FeeEvalDto?>(
+                new GetApplicationFeesQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/fees/history", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<FeeEvalDto>>(
+                new GetFeeHistoryQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Rate lock (MPE-131) — lock freezes the eval-determining
         // paths; unlock requires a reason and clears the freeze.
         group.MapPost("/{appId}/lock", async (string id, string appId,
@@ -215,6 +239,7 @@ public static class ApplicationEndpoints
                 { ["errors"] = failed.Errors }),
             XmlResult xml => Results.Text(xml.Xml, "application/xml"),
             PriceResult price => Results.Accepted(null, price),
+            FeeEvalAccepted fee => Results.Accepted(null, fee),
             null => Results.NotFound(),
             _ => Results.Ok(result)
         };
@@ -234,6 +259,7 @@ public static class ApplicationEndpoints
     public sealed record PriceRequest(
         IReadOnlyList<string>? Products, decimal? Rate,
         int? LockTermDays, string? AsOf, bool? EligibilityOnly);
+    public sealed record FeeRequest(IReadOnlyList<string>? FeeCodes);
     public sealed record LockRequest(
         string? EvalId, string? ProductCode, decimal? Rate,
         int? LockTermDays);

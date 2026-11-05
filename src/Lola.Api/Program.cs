@@ -252,15 +252,30 @@ else
     builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
         Lola.Infrastructure.Pricing.StubPricingAdapter>();
 }
-// Fee adapter seam (MPE-75): stub by default; FEE_ADAPTER=zara wires
-// the real adapter in Phase 2 (MPE-183).
+// Fee adapter seam (MPE-75): FEE_ADAPTER=zara selects the live
+// engine client (bearer token from ZARA_TOKEN_FILE|ZARA_TOKEN);
+// anything else gets the deterministic stub.
+builder.Services.AddScoped<Lola.Application.Fees.IFeeRepository,
+    FeeRepository>();
+builder.Services.AddSingleton<Lola.Api.Fees.FeeOutboxProcessor>();
 if ("zara".Equals(builder.Configuration["FEE_ADAPTER"],
         StringComparison.OrdinalIgnoreCase))
 {
-    // ZaraFeeAdapter lands in MPE-183 — until then an explicit
-    // misconfiguration fails loudly at boot, not at eval time.
-    throw new InvalidOperationException(
-        "FEE_ADAPTER=zara is not wired yet — lands in MPE-183");
+    string RequireZara(string key) => builder.Configuration[key]
+        ?? throw new InvalidOperationException(
+            $"{key} is required when FEE_ADAPTER=zara");
+    builder.Services.AddSingleton(
+        new Lola.Infrastructure.Fees.ZaraFeeOptions(
+            RequireZara("ZARA_BASE_URL"),
+            builder.Configuration["ZARA_ENV"] ?? "dev",
+            RequireZara("ZARA_TENANT_ID"),
+            builder.Configuration["ZARA_TOKEN_FILE"],
+            builder.Configuration["ZARA_TOKEN"]));
+    builder.Services.AddHttpClient<Lola.Application.Fees.IFeeService,
+        Lola.Infrastructure.Fees.ZaraFeeAdapter>()
+        // Eval calls must fail fast — the outbox retry/DLQ policy owns
+        // recovery; a 100s default could stall a tenant's drain loop.
+        .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
 }
 else
 {
@@ -270,6 +285,9 @@ else
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();
+if (!"false".Equals(builder.Configuration["FEE_OUTBOX_ENABLED"],
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<Lola.Api.Fees.FeeOutboxWorker>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
