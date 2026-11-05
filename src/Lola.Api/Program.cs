@@ -252,6 +252,21 @@ else
     builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
         Lola.Infrastructure.Pricing.StubPricingAdapter>();
 }
+// Fee adapter seam (MPE-75): stub by default; FEE_ADAPTER=zara wires
+// the real adapter in Phase 2 (MPE-183).
+if ("zara".Equals(builder.Configuration["FEE_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+{
+    // ZaraFeeAdapter lands in MPE-183 — until then an explicit
+    // misconfiguration fails loudly at boot, not at eval time.
+    throw new InvalidOperationException(
+        "FEE_ADAPTER=zara is not wired yet — lands in MPE-183");
+}
+else
+{
+    builder.Services.AddSingleton<Lola.Application.Fees.IFeeService,
+        Lola.Infrastructure.Fees.StubFeeService>();
+}
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();

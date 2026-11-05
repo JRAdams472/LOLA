@@ -33,6 +33,7 @@ public sealed class ScenarioMapperTests
             ["subject_property.usage"] = "primary_residence",
             ["subject_property.state"] = "IL",
             ["subject_property.est_value"] = "560000",
+            ["subject_property.purchase_price"] = "540000",
             ["party[0].credit_score"] = "740",
             ["party[0].credit_model"] = "vantage",
             ["declaration.first_time_buyer"] = "false",
@@ -43,7 +44,7 @@ public sealed class ScenarioMapperTests
             "purchase", "conventional", 425000m, 360, "fixed",
             null, 75.9m, 75.9m, 1));
         s.Property.ShouldBe(new PropertySection(
-            "sfr", "primary", "IL", 560000m, null));
+            "sfr", "primary", "IL", 560000m, 540000m));
         s.Borrower.ShouldBe(new BorrowerSection(740, "VantageScore", false, false));
         s.Scenario.ShouldBe(new ScenarioSection(30, null));
     }

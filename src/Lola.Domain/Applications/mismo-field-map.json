@@ -489,6 +489,15 @@
       "trid": true
     },
     {
+      "path": "subject_property.purchase_price",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/SALES_CONTRACT/SALES_CONTRACT_DETAIL/SalesContractAmount",
+      "ulddField": "PROPERTY/PurchasePrice",
+      "type": "decimal",
+      "required": false,
+      "core": false,
+      "trid": true
+    },
+    {
       "path": "subject_property.property_type",
       "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyType",
       "ulddField": "PROPERTY/Type",
@@ -651,6 +660,22 @@
         "fico10t",
         "other"
       ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "declaration.va_eligible",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/VaEligibleIndicator",
+      "ulddField": "DECLARATION/VaEligibleIndicator",
+      "type": "bool",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "declaration.discount_points",
+      "mismoPath": "LOAN_APPLICATION/DECLARATION/DECLARATION_DETAIL/DiscountPointsIndicator",
+      "ulddField": "DECLARATION/DiscountPointsIndicator",
+      "type": "bool",
       "required": false,
       "core": false
     }
