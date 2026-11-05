@@ -494,8 +494,7 @@
       "ulddField": "PROPERTY/PurchasePrice",
       "type": "decimal",
       "required": false,
-      "core": false,
-      "trid": true
+      "core": false
     },
     {
       "path": "subject_property.property_type",
