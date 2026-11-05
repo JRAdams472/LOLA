@@ -156,7 +156,8 @@ jobs:
           ZARA_APP_PROD_PASSWORD="prod-$RUN_ID" \
           ZARA_PROMOTE_PASSWORD="pro-$RUN_ID" \
           ZARA_ENGINE_PASSWORD="eng-$RUN_ID" \
-          ./zara-srv/target/debug/zara-migrate --set-role-passwords
+          ./zara-srv/target/debug/zara-migrate --set-role-passwords \
+            --migrations-dir zara-srv/migrations
           psql "postgres://zara_migrate:mig-$RUN_ID@localhost:5433/zara" \
             -v ON_ERROR_STOP=1 \
             -f zara-srv/seed/001_demo_tenants.sql \
