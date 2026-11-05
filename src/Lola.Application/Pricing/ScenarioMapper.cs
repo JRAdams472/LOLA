@@ -21,6 +21,7 @@ public static class ScenarioMapper
         "loan.ltv", "loan.cltv", "subject_property.units",
         "subject_property.property_type", "subject_property.usage",
         "subject_property.state", "subject_property.est_value",
+        "subject_property.purchase_price",
         "declaration.first_time_buyer", "party[0].credit_score",
         "party[0].credit_model", "party[0].employment[0].self_employed",
     ];
@@ -50,7 +51,7 @@ public static class ScenarioMapper
             Occupancy: MapEnum(Str(doc, "subject_property.usage"), OccupMap),
             State: Str(doc, "subject_property.state"),
             AppraisedValue: Num(doc, "subject_property.est_value"),
-            PurchasePrice: null);
+            PurchasePrice: Num(doc, "subject_property.purchase_price"));
 
         var borrower = new BorrowerSection(
             CreditScore: Int(doc, $"{p}.credit_score"),

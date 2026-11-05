@@ -28,9 +28,20 @@ public sealed class PricingFirewallTests
         "socialsecurity", "creditcard", "taxpayer"
     ];
 
+    // Deliberate carve-outs, reviewed not evaded: the subject
+    // property's ZIP is a location attribute fee rules key on (taxes,
+    // recording) — it names a property, never a person. Same class
+    // as `State`, which already passes. Adding entries here means
+    // amending the denylist's intent — think twice.
+    private static readonly HashSet<string> Allowed =
+    [
+        "FeePropertySection.Zip",
+    ];
+
     private static IEnumerable<(Type T, PropertyInfo P)> EgressMembers()
         => typeof(IPricingService).Assembly.GetTypes()
-            .Where(t => t.Namespace == "Lola.Application.Pricing" &&
+            .Where(t => t.Namespace is "Lola.Application.Pricing" or
+                "Lola.Application.Fees" &&
                         t.FullName?.Contains("<") != true)
             .SelectMany(t => t.GetProperties(
                 BindingFlags.Public | BindingFlags.Instance)
@@ -47,10 +58,11 @@ public sealed class PricingFirewallTests
     public void No_egress_member_has_a_pii_shaped_name()
         => EgressMembers()
             .Where(m =>
-                ExactDeny.Any(d =>
+                !Allowed.Contains($"{m.T.Name}.{m.P.Name}") &&
+                (ExactDeny.Any(d =>
                     m.P.Name.Equals(d, StringComparison.OrdinalIgnoreCase)) ||
-                ContainsDeny.Any(d =>
-                    m.P.Name.Contains(d, StringComparison.OrdinalIgnoreCase)))
+                 ContainsDeny.Any(d =>
+                    m.P.Name.Contains(d, StringComparison.OrdinalIgnoreCase))))
             .Select(m => $"{m.T.Name}.{m.P.Name}")
             .ShouldBeEmpty();
 
