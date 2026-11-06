@@ -180,7 +180,7 @@ public sealed class ApplicationRepository(
             SELECT id AS Id, step AS Step, event AS Event, actor AS Actor,
                    reason AS Reason, created_utc AS CreatedUtc
             FROM application_step_events
-            WHERE application_id=@id ORDER BY created_utc, id
+            WHERE application_id=@id ORDER BY created_utc, rowid
             """, new { id }, ct);
 
     private async Task<MetaRow?> GetMetaAsync(string id, CancellationToken ct)

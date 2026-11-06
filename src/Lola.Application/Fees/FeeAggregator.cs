@@ -12,7 +12,10 @@ public static class FeeAggregator
         IReadOnlyList<FeeItemRecord> items,
         IReadOnlyList<FeeOverrideRecord> overrides)
     {
-        var live = overrides.Where(o => o.ClearedUtc is null).ToList();
+        // Overrides are variant-scoped (MPE-188) — an FHA override
+        // never leaks into the conventional side-by-side.
+        var live = overrides.Where(o => o.ClearedUtc is null &&
+            o.Variant == eval.Variant).ToList();
         var byKey = live.ToDictionary(
             o => (o.FeeCode, o.Section), StringTupleComparer.Ordinal);
 
@@ -38,11 +41,13 @@ public static class FeeAggregator
 
         var stale = live.Where(o => o.Stale != 0)
             .Select(o => new StaleOverrideDto(o.OverrideId, o.FeeCode,
-                o.Section, (decimal)o.Amount, o.Reason, o.Actor, o.CreatedUtc))
+                o.Section, (decimal)o.Amount, o.Reason, o.Actor,
+                o.CreatedUtc, o.Variant))
             .ToList();
 
-        return new FeeBreakdownDto(eval.EvalId, eval.ApplicationId,
-            eval.Adapter, eval.Status, eval.Error, sections,
+        return new FeeBreakdownDto(eval.EvalId, eval.Variant,
+            eval.ApplicationId, eval.Adapter, eval.Status,
+            eval.Error, sections,
             sections.Sum(s => s.ComputedTotal),
             sections.Sum(s => s.EffectiveTotal),
             stale, eval.CreatedUtc, eval.CompletedUtc);

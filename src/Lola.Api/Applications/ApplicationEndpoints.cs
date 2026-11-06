@@ -129,12 +129,13 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<FeeEvalAccepted>(
                 new EvaluateApplicationFeesCommand(id, appId,
-                    Actor(user), IsBorrower(user), body?.FeeCodes), ct)));
+                    Actor(user), IsBorrower(user), body?.FeeCodes,
+                    body?.Variants), ct)));
 
         group.MapGet("/{appId}/fees", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
-            Guarded(id, async () => await bus.InvokeAsync<FeeBreakdownDto?>(
+            Guarded(id, async () => await bus.InvokeAsync<FeeComparisonDto?>(
                 new GetApplicationFeesQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
 
@@ -270,7 +271,8 @@ public static class ApplicationEndpoints
     public sealed record PriceRequest(
         IReadOnlyList<string>? Products, decimal? Rate,
         int? LockTermDays, string? AsOf, bool? EligibilityOnly);
-    public sealed record FeeRequest(IReadOnlyList<string>? FeeCodes);
+    public sealed record FeeRequest(IReadOnlyList<string>? FeeCodes,
+        IReadOnlyList<FeeVariant>? Variants);
     public sealed record FeeOverrideRequest(
         decimal? Amount, string? Reason);
     public sealed record LockRequest(

@@ -37,9 +37,10 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                 """
                 INSERT INTO fee_evals
                     (eval_id, application_id, adapter, request_hash,
-                     scenario_json, status, actor)
+                     scenario_json, status, actor, batch_id, variant)
                 VALUES (@evalId, @appId, @adapter, @hash,
-                        @scenario, 'pending', @actor)
+                        @scenario, 'pending', @actor, @batchId,
+                        @variant)
                 """,
                 new
                 {
@@ -48,6 +49,8 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                     adapter = eval.Adapter,
                     hash = eval.RequestHash,
                     scenario = eval.ScenarioJson,
+                    batchId = eval.BatchId,
+                    variant = eval.Variant,
                     actor = eval.Actor
                 }, tx);
             await conn.ExecuteAsync(
@@ -79,7 +82,8 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
         adapter AS Adapter, request_hash AS RequestHash,
         scenario_json AS ScenarioJson, status AS Status,
         result_json AS ResultJson, error AS Error, actor AS Actor,
-        created_utc AS CreatedUtc, completed_utc AS CompletedUtc
+        created_utc AS CreatedUtc, completed_utc AS CompletedUtc,
+        batch_id AS BatchId, variant AS Variant
         """;
 
     public async Task<FeeEvalRecord?> GetEvalAsync(string evalId,
@@ -174,6 +178,8 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                         (SELECT fee_code, section FROM fee_items
                          WHERE eval_id=@evalId) THEN 0 ELSE 1 END
                 WHERE cleared_utc IS NULL
+                  AND variant = (SELECT variant
+                        FROM fee_evals WHERE eval_id=@evalId)
                   AND application_id = (SELECT application_id
                         FROM fee_evals WHERE eval_id=@evalId)
                 """, new { evalId }, tx);
@@ -190,7 +196,8 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
         override_id AS OverrideId, application_id AS ApplicationId,
         fee_code AS FeeCode, section AS Section, amount AS Amount,
         reason AS Reason, actor AS Actor, created_utc AS CreatedUtc,
-        stale AS Stale, cleared_utc AS ClearedUtc
+        stale AS Stale, cleared_utc AS ClearedUtc,
+        variant AS Variant
         """;
 
     public async Task<FeeItemLookup?> GetItemAsync(string itemId,
@@ -203,19 +210,22 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                    i.section AS Section, i.base AS Base,
                    i.adjustments_json AS AdjustmentsJson,
                    i.total AS Total, i.created_utc AS CreatedUtc,
-                   e.application_id AS ApplicationId
+                   e.application_id AS ApplicationId,
+                   e.variant AS Variant
             FROM fee_items i JOIN fee_evals e ON e.eval_id=i.eval_id
             WHERE i.item_id=@itemId
             """, new { itemId }, ct);
         return row is null ? null : new FeeItemLookup(
             new FeeItemRecord(row.ItemId, row.EvalId, row.FeeCode,
                 row.Label, row.Section, row.Base, row.AdjustmentsJson,
-                row.Total, row.CreatedUtc), row.ApplicationId);
+                row.Total, row.CreatedUtc), row.ApplicationId,
+            row.Variant);
     }
     private sealed record ItemJoin(
         string ItemId, string EvalId, string FeeCode, string? Label,
         string Section, double Base, string AdjustmentsJson,
-        double Total, string? CreatedUtc, string ApplicationId);
+        double Total, string? CreatedUtc, string ApplicationId,
+        string Variant);
 
     public async Task<IReadOnlyList<FeeItemRecord>> ListItemsAsync(
         string evalId, CancellationToken ct = default)
@@ -241,11 +251,11 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
         await ExecuteAsync(
             """
             INSERT INTO fee_overrides
-                (override_id, application_id, fee_code, section,
-                 amount, reason, actor, created_utc, stale)
-            VALUES (@overrideId, @appId, @feeCode, @section,
+                (override_id, application_id, variant, fee_code,
+                 section, amount, reason, actor, created_utc, stale)
+            VALUES (@overrideId, @appId, @variant, @feeCode, @section,
                     @amount, @reason, @actor, @utc, 0)
-            ON CONFLICT (application_id, fee_code, section)
+            ON CONFLICT (application_id, variant, fee_code, section)
             DO UPDATE SET amount=@amount, reason=@reason, actor=@actor,
                 created_utc=@utc, stale=0, cleared_utc=NULL
             """,
@@ -253,6 +263,7 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
             {
                 overrideId = o.OverrideId,
                 appId = o.ApplicationId,
+                variant = o.Variant,
                 feeCode = o.FeeCode,
                 section = o.Section,
                 amount = o.Amount,
@@ -264,11 +275,13 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
         // the winner rather than trusting ours.
         return (await QuerySingleOrDefaultAsync<FeeOverrideRecord>(
             $"SELECT {OverrideColumns} FROM fee_overrides " +
-            "WHERE application_id=@appId AND fee_code=@feeCode " +
+            "WHERE application_id=@appId AND variant=@variant " +
+            "AND fee_code=@feeCode " +
             "AND section=@section AND cleared_utc IS NULL",
             new
             {
                 appId = o.ApplicationId,
+                variant = o.Variant,
                 feeCode = o.FeeCode,
                 section = o.Section
             }, ct))!;
@@ -281,6 +294,20 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
             UPDATE fee_overrides SET cleared_utc=@clearedUtc
             WHERE override_id=@overrideId AND cleared_utc IS NULL
             """, new { overrideId, clearedUtc }, ct);
+
+    public async Task<IReadOnlyList<FeeEvalRecord>>
+        GetLatestBatchEvalsAsync(string appId,
+            CancellationToken ct = default)
+        => await QueryAsync<FeeEvalRecord>(
+            $"""
+            SELECT {EvalColumns} FROM fee_evals
+            WHERE application_id=@appId
+              AND COALESCE(batch_id, eval_id) = (
+                  SELECT COALESCE(batch_id, eval_id) FROM fee_evals
+                  WHERE application_id=@appId
+                  ORDER BY created_utc DESC LIMIT 1)
+            ORDER BY created_utc
+            """, new { appId }, ct);
 
     public async Task<IReadOnlyList<FeeOverrideRecord>>
         ListOverridesAsync(string appId, CancellationToken ct = default)

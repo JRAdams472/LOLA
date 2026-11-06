@@ -388,8 +388,10 @@ public sealed class FakeFeeRepository
         var appId2 = Evals[evalId].ApplicationId;
         var live = items.Select(i => (i.FeeCode, i.Section))
             .ToHashSet();
+        var variant = Evals[evalId].Variant;
         foreach (var o in Overrides.Values
             .Where(o => o.ApplicationId == appId2 &&
+                o.Variant == variant &&
                 o.ClearedUtc is null).ToList())
             Overrides[o.OverrideId] = o with
             { Stale = live.Contains((o.FeeCode, o.Section)) ? 0L : 1L };
@@ -430,10 +432,10 @@ public sealed class FakeFeeRepository
         if (item is null)
             return Task.FromResult<Lola.Application.Fees
                 .FeeItemLookup?>(null);
-        var appId = Evals.TryGetValue(item.EvalId, out var e)
-            ? e.ApplicationId : "";
+        var ev = Evals.TryGetValue(item.EvalId, out var e)
+            ? e : null;
         return Task.FromResult<Lola.Application.Fees.FeeItemLookup?>(
-            new(item, appId));
+            new(item, ev?.ApplicationId ?? "", ev?.Variant ?? ""));
     }
 
     public Task<IReadOnlyList<Lola.Application.Fees.FeeItemRecord>>
@@ -457,6 +459,7 @@ public sealed class FakeFeeRepository
     {
         var existing = Overrides.Values.FirstOrDefault(x =>
             x.ApplicationId == o.ApplicationId &&
+            x.Variant == o.Variant &&
             x.FeeCode == o.FeeCode && x.Section == o.Section &&
             x.ClearedUtc is null);
         var merged = existing is null ? o
@@ -479,4 +482,22 @@ public sealed class FakeFeeRepository
             Lola.Application.Fees.FeeOverrideRecord>>(
             Overrides.Values.Where(o => o.ApplicationId == appId &&
                 o.ClearedUtc is null).ToList());
+
+    public Task<IReadOnlyList<Lola.Application.Fees.FeeEvalRecord>>
+        GetLatestBatchEvalsAsync(string appId,
+            CancellationToken ct = default)
+    {
+        var latest = Evals.Values
+            .Where(e => e.ApplicationId == appId)
+            .OrderByDescending(e => e.CreatedUtc).FirstOrDefault();
+        if (latest is null)
+            return Task.FromResult<IReadOnlyList<
+                Lola.Application.Fees.FeeEvalRecord>>([]);
+        var key = latest.BatchId ?? latest.EvalId;
+        return Task.FromResult<IReadOnlyList<
+            Lola.Application.Fees.FeeEvalRecord>>(
+            Evals.Values.Where(e => e.ApplicationId == appId &&
+                (e.BatchId ?? e.EvalId) == key)
+                .OrderBy(e => e.CreatedUtc).ToList());
+    }
 }

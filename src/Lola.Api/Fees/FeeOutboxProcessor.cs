@@ -51,13 +51,15 @@ public sealed class FeeOutboxProcessor(
         var processed = 0;
         using (TenantContext.Use(TenantScope.From(tenant)))
         {
-            foreach (var row in await repo.ListDueOutboxAsync(
-                         Now(), BatchSize, ct))
-            {
-                ct.ThrowIfCancellationRequested();
-                await ProcessRowAsync(repo, adapter, row, ct);
-                processed++;
-            }
+            // Variants of one request drain in parallel (MPE-188) —
+            // the adapter calls fan out concurrently; each row's
+            // completion stays its own transaction.
+            var rows = await repo.ListDueOutboxAsync(
+                Now(), BatchSize, ct);
+            ct.ThrowIfCancellationRequested();
+            await Task.WhenAll(rows.Select(
+                row => ProcessRowAsync(repo, adapter, row, ct)));
+            processed += rows.Count;
         }
         return processed;
     }

@@ -125,8 +125,8 @@ public sealed class FeeMarqueeTests(LolaApiFactory factory)
         await feeProcessor.DrainTenantAsync(rec!);
         var fees = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        fees.GetProperty("status").GetString().ShouldBe("done");
-        var sections = fees.GetProperty("sections");
+        fees.GetProperty("evals")[0].GetProperty("status").GetString().ShouldBe("done");
+        var sections = fees.GetProperty("evals")[0].GetProperty("sections");
         sections.GetArrayLength().ShouldBeGreaterThan(0);
         var line = sections[0].GetProperty("items")[0];
         var itemId = line.GetProperty("itemId").GetString()!;
@@ -139,10 +139,10 @@ public sealed class FeeMarqueeTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.OK);
         var after = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        after.GetProperty("sections")[0].GetProperty("items")[0]
+        after.GetProperty("evals")[0].GetProperty("sections")[0].GetProperty("items")[0]
             .GetProperty("effective").GetDecimal().ShouldBe(500m);
-        after.GetProperty("effectiveTotal").GetDecimal()
-            .ShouldBeLessThan(after.GetProperty("computedTotal")
+        after.GetProperty("evals")[0].GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBeLessThan(after.GetProperty("evals")[0].GetProperty("computedTotal")
                 .GetDecimal() + (computed - 500m) + 500m);
 
         // 6. Re-eval → override survives by feeCode+section.
@@ -152,9 +152,9 @@ public sealed class FeeMarqueeTests(LolaApiFactory factory)
         await feeProcessor.DrainTenantAsync(rec!);
         var reeval = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        reeval.GetProperty("sections")[0].GetProperty("items")[0]
+        reeval.GetProperty("evals")[0].GetProperty("sections")[0].GetProperty("items")[0]
             .GetProperty("effective").GetDecimal().ShouldBe(500m);
-        reeval.GetProperty("staleOverrides").GetArrayLength()
+        reeval.GetProperty("evals")[0].GetProperty("staleOverrides").GetArrayLength()
             .ShouldBe(0);
         var history = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees/history");

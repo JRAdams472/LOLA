@@ -49,5 +49,5 @@ public static class FeeWire
     public static FeeEvalDto ToDto(FeeEvalRecord r) => new(
         r.EvalId, r.ApplicationId, r.Adapter, r.Status,
         ParseResult(r.ResultJson), r.Error, r.Actor,
-        r.CreatedUtc, r.CompletedUtc);
+        r.CreatedUtc, r.CompletedUtc, r.BatchId, r.Variant);
 }
