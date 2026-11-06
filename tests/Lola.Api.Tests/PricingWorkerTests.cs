@@ -115,5 +115,7 @@ public sealed class PricingWorkerTests
         public Task InsertProvisioningAsync(string id, string slug, string d, string p, CancellationToken ct) => throw new NotImplementedException();
         public Task SetDbKeyAsync(string tenantId, string k, CancellationToken ct) => throw new NotImplementedException();
         public Task SetStatusAsync(string tenantId, string s, CancellationToken ct) => throw new NotImplementedException();
+        public Task SetIspprIdsAsync(string t, string c, string cu, CancellationToken ct) => throw new NotImplementedException();
+        public Task SetIspprKeyAsync(string t, string k, string w, CancellationToken ct) => throw new NotImplementedException();
     }
 }

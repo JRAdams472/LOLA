@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Lola.Api.Identity;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
+using Lola.Application.Documents;
 using Lola.Application.Fees;
 using Lola.Application.Interop;
 using Lola.Application.Pricing;
@@ -157,6 +158,41 @@ public static class ApplicationEndpoints
                 new GetFeeHistoryQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Documents (MPE-190) — POST enqueues a package generation;
+        // the doc outbox worker submits + polls ISPPr. Registry list
+        // and detail are staff/borrower-own; download 302s to a fresh
+        // presigned URL minted per call (≤15-min TTL).
+        group.MapPost("/{appId}/packages", async (string id,
+                string appId, PackageRequest body,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<DocAccepted>(
+                new RequestDocumentPackageCommand(id, appId,
+                    Actor(user), IsBorrower(user), body.Kind,
+                    body.ReasonCodes), ct)));
+
+        group.MapGet("/{appId}/documents", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<DocDto>>(
+                new GetApplicationDocumentsQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/documents/{docId}", async (string id,
+                string appId, string docId, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<DocDto>(
+                new GetDocumentQuery(id, appId, docId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/documents/{docId}/download",
+            async (string id, string appId, string docId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<DocDownloadResult>(
+                new GetDocumentDownloadQuery(id, appId, docId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Rate lock (MPE-131) — lock freezes the eval-determining
         // paths; unlock requires a reason and clears the freeze.
         group.MapPost("/{appId}/lock", async (string id, string appId,
@@ -252,6 +288,8 @@ public static class ApplicationEndpoints
             XmlResult xml => Results.Text(xml.Xml, "application/xml"),
             PriceResult price => Results.Accepted(null, price),
             FeeEvalAccepted fee => Results.Accepted(null, fee),
+            DocAccepted doc => Results.Accepted(null, doc),
+            DocDownloadResult dl => Results.Redirect(dl.Url),
             null => Results.NotFound(),
             _ => Results.Ok(result)
         };
@@ -279,4 +317,6 @@ public static class ApplicationEndpoints
         string? EvalId, string? ProductCode, decimal? Rate,
         int? LockTermDays);
     public sealed record UnlockRequest(string Reason);
+    public sealed record PackageRequest(
+        string Kind, IReadOnlyList<string>? ReasonCodes = null);
 }

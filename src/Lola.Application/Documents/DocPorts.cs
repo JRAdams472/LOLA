@@ -59,11 +59,17 @@ public sealed record DocRecord(
     string? CreatedUtc, string? CompletedUtc, string RequestHash);
 
 /// One queued outbound generation (tenant-file `doc_outbox`) —
-/// same semantics as fee_outbox/pricing_outbox.
+/// same semantics as fee_outbox/pricing_outbox. `RequestId` joins
+/// the doc row's vendor request id — non-null once submitted, so the
+/// processor polls rather than re-generating. `PayloadJson` is the
+/// serialized `DocPackageRequest`; at rest it's `vault:` ciphertext
+/// (the disclosure payload carries template-required PII), decrypted
+/// by the repository on read.
 public sealed record DocOutboxRow(
     string OutboxId, string Kind, string DocId, string RequestHash,
     string PayloadJson, string Status, long Attempts,
-    string? NextRetryUtc, string? LastError);
+    string? NextRetryUtc, string? LastError,
+    string? RequestId = null);
 
 /// Enqueue outcome — a duplicated request returns the ORIGINAL doc id.
 public sealed record DocEnqueueResult(string DocId, bool Deduplicated);
@@ -85,14 +91,19 @@ public interface IDocumentRepository
     Task<IReadOnlyList<DocOutboxRow>> ListDueOutboxAsync(
         string nowUtc, int limit, CancellationToken ct = default);
 
-    /// Generation submitted — outbox stays pending, doc goes
-    /// `generating` with the vendor request id stamped for polling.
+    /// Generation submitted — outbox stays pending (rescheduled for
+    /// the next poll), doc goes `generating` with the vendor request
+    /// id stamped for polling.
     Task MarkGeneratingAsync(string outboxId, string docId,
-        string requestId, CancellationToken ct = default);
+        string requestId, string nextRetryUtc,
+        CancellationToken ct = default);
 
-    /// Terminal success — outbox done + doc completed/filename.
+    /// Terminal success — outbox done + doc completed/filename. The
+    /// vendor request id is stamped here too: an immediately-completed
+    /// generate never passes through `MarkGeneratingAsync`, and the
+    /// download path needs it to mint presigned URLs.
     Task CompleteAsync(string outboxId, string docId,
-        string? filename, string completedUtc,
+        string requestId, string? filename, string completedUtc,
         CancellationToken ct = default);
 
     Task RescheduleAsync(string outboxId, string docId, long attempts,
@@ -107,6 +118,56 @@ public sealed record DocDto(
     string DocId, string ApplicationId, string Kind,
     string PackageName, string Status, string? Filename,
     string? Error, string? CreatedUtc, string? CompletedUtc);
+
+/// Per-tenant vendor credential resolution (MPE-190). The adapter
+/// never sees the registry row — it asks for the API key under the
+/// ambient TenantContext, and the impl returns the plaintext for the
+/// single outbound call. NEVER log the returned value.
+public interface IDocumentCredentialSource
+{
+    /// The current tenant's plaintext vendor API key, or null when
+    /// the tenant isn't provisioned for documents.
+    Task<string?> ApiKeyAsync(CancellationToken ct = default);
+}
+
+/// Vendor-side admin surface (ISPPr management API) — session-auth,
+/// used ONLY by provisioning/erasure flows, never request paths.
+/// Per-tenant ensure methods are idempotent so provisioning retries
+/// converge instead of duplicating.
+public interface IDocVendorAdmin
+{
+    /// Client id for `name`, creating it when absent.
+    Task<string> EnsureClientAsync(string name,
+        CancellationToken ct = default);
+
+    /// Customer id under `clientId` keyed by `externalRef`.
+    Task<string> EnsureCustomerAsync(string clientId, string name,
+        string externalRef, CancellationToken ct = default);
+
+    /// Mint an API key — plaintext is returned exactly once; callers
+    /// wrap + persist immediately and drop the plaintext.
+    Task<(string KeyId, string PlaintextKey)> CreateApiKeyAsync(
+        string clientId, string label, IReadOnlyList<string> scopes,
+        CancellationToken ct = default);
+
+    /// Upload a template master — false when it already exists
+    /// (vendor 409 = already provisioned, not an error).
+    Task<bool> UploadTemplateAsync(string clientId, string name,
+        string html, CancellationToken ct = default);
+
+    /// Revoke a vendor key by id (tenant erasure, MPE-191).
+    Task RevokeApiKeyAsync(string keyId, CancellationToken ct = default);
+}
+
+/// Provisioning step seam (MPE-190): wires a tenant's ISPPr
+/// client/customer/api-key/templates into the registry row.
+/// Re-entrant like every other provisioning step — a partial run
+/// resumes where it stopped.
+public interface ITenantDocProvisioner
+{
+    Task EnsureAsync(Domain.Identity.TenantRecord tenant,
+        CancellationToken ct = default);
+}
 
 /// Typed adapter failure — Retryable drives outbox reschedule-vs-DLQ
 /// (mirrors FeeAdapterException semantics).

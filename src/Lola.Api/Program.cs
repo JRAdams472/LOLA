@@ -282,29 +282,68 @@ else
     builder.Services.AddSingleton<Lola.Application.Fees.IFeeService,
         Lola.Infrastructure.Fees.StubFeeService>();
 }
-// Document adapter seam (MPE-72, ADR-0007): DOC_ADAPTER=isppr selects
-// the live ISPPr adapter once MPE-190 lands; anything else gets the
-// deterministic stub. Selecting isppr now fails loudly at boot rather
-// than silently generating nothing.
+// Document adapter seam (MPE-190, ADR-0007 amended): DOC_ADAPTER=isppr
+// selects the live ISPPr tenant adapter (per-tenant X-API-Key from the
+// registry's wrapped key, resolved per call); anything else gets the
+// deterministic stub. Download redirects are surfaced, not followed —
+// the registered client carries AllowAutoRedirect=false.
+builder.Services.AddScoped<Lola.Application.Documents.IDocumentRepository,
+    DocRepository>();
+builder.Services.AddSingleton<Lola.Api.Documents.DocOutboxProcessor>();
+builder.Services.AddSingleton<Lola.Application.Documents.IDocumentCredentialSource,
+    Lola.Infrastructure.Documents.TenantDocCredentialSource>();
 if ("isppr".Equals(builder.Configuration["DOC_ADAPTER"],
         StringComparison.OrdinalIgnoreCase))
-    throw new InvalidOperationException(
-        "DOC_ADAPTER=isppr is not available until MPE-190 lands");
-builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
-    Lola.Infrastructure.Documents.StubDocumentService>();
+{
+    var ispprBase = builder.Configuration["ISPPR_BASE_URL"]
+        ?? throw new InvalidOperationException(
+            "ISPPR_BASE_URL is required when DOC_ADAPTER=isppr");
+    builder.Services.AddSingleton(
+        new Lola.Infrastructure.Documents.IspprDocOptions(ispprBase));
+    builder.Services.AddHttpClient<Lola.Application.Documents.IDocumentService,
+        Lola.Infrastructure.Documents.IspprDocumentAdapter>()
+        .ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler { AllowAutoRedirect = false })
+        .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
+    // Admin session client — present only with operator env creds;
+    // provisioning wires it into the tenant pipeline.
+    var adminEmail = builder.Configuration["ISPPR_ADMIN_EMAIL"];
+    var adminPassword = builder.Configuration["ISPPR_ADMIN_PASSWORD"];
+    if (!string.IsNullOrWhiteSpace(adminEmail)
+        && !string.IsNullOrWhiteSpace(adminPassword))
+    {
+        builder.Services.AddSingleton(
+            new Lola.Infrastructure.Documents.IspprAdminOptions(
+                ispprBase, adminEmail, adminPassword));
+        builder.Services.AddHttpClient<Lola.Application.Documents.IDocVendorAdmin,
+            Lola.Infrastructure.Documents.IspprSessionClient>()
+            .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
+        builder.Services.AddSingleton<Lola.Application.Documents.ITenantDocProvisioner,
+            Lola.Infrastructure.Documents.IspprTenantProvisioner>();
+    }
+}
+else
+{
+    builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
+        Lola.Infrastructure.Documents.StubDocumentService>();
+}
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();
 if (!"false".Equals(builder.Configuration["FEE_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Fees.FeeOutboxWorker>();
+if (!"false".Equals(builder.Configuration["DOC_OUTBOX_ENABLED"],
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<Lola.Api.Documents.DocOutboxWorker>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
     sp.GetRequiredService<ITenantDbProvisioner>(),
     sp.GetRequiredService<IServiceClientProvisioner>(),
     sp.GetRequiredService<ITenantMigrationRunner>(),
-    builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants"));
+    builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants",
+    sp.GetService<Lola.Application.Documents.ITenantDocProvisioner>()));
 
 var app = builder.Build();
 app.Services.GetRequiredService<ControlPlaneDb>().Migrate();

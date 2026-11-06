@@ -1,0 +1,12 @@
+# CI override for the ISPPr bring-up (MPE-190 never-skip live tests):
+# the zara-db service already owns host :5433 and we don't need the
+# seq/jaeger UIs at all — everything stays on the compose network
+# except the api (:8090) and minio (:9100, presigned URLs resolve for
+# the test runner).
+services:
+  db:
+    ports: !reset []
+  seq:
+    ports: !reset []
+  jaeger:
+    ports: !reset []

@@ -21,7 +21,9 @@ public sealed class TenantProvisioningService(
     ITenantDbProvisioner dataPlane,
     IServiceClientProvisioner svcClients,
     ITenantMigrationRunner migrations,
-    string tenantDataDir = "data/tenants") : ITenantProvisioner
+    string tenantDataDir = "data/tenants",
+    Documents.ITenantDocProvisioner? docProvisioner = null)
+    : ITenantProvisioner
 {
     public async Task<ProvisionResult> ProvisionAsync(
         ProvisionRequest request, CancellationToken ct = default)
@@ -73,6 +75,16 @@ public sealed class TenantProvisioningService(
         // plaintext exactly once, on first creation.
         var svc = await svcClients.EnsureAsync(tenantId, ct);
         steps.Add("svc-client");
+
+        // Document-vendor binding (MPE-190): ISPPr client/customer/
+        // api-key/templates — re-entrant like every step above.
+        // Registered only when the operator env carries ISPPR creds.
+        if (docProvisioner is not null)
+        {
+            tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
+            await docProvisioner.EnsureAsync(tenant, ct);
+            steps.Add("isppr-docs");
+        }
 
         tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
         return new ProvisionResult(tenant, steps, svc.ClientId, svc.PlaintextSecret);
