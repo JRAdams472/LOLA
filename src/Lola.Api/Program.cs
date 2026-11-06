@@ -282,6 +282,16 @@ else
     builder.Services.AddSingleton<Lola.Application.Fees.IFeeService,
         Lola.Infrastructure.Fees.StubFeeService>();
 }
+// Document adapter seam (MPE-72, ADR-0007): DOC_ADAPTER=isppr selects
+// the live ISPPr adapter once MPE-190 lands; anything else gets the
+// deterministic stub. Selecting isppr now fails loudly at boot rather
+// than silently generating nothing.
+if ("isppr".Equals(builder.Configuration["DOC_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException(
+        "DOC_ADAPTER=isppr is not available until MPE-190 lands");
+builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
+    Lola.Infrastructure.Documents.StubDocumentService>();
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();

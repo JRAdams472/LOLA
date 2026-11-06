@@ -13,10 +13,22 @@ All outbound integrations go through adapter interfaces so vendors swap via DTS-
 
 **Status:** Accepted (locked — MPE-63 megaplan)
 
-## Decision
+## Amendment (MPE-72 — document vendor auth)
 
+The "all service calls are OIDC client-credentials" line is amended:
 
+- **OIDC client-credentials remains preferred** wherever a vendor
+  supports it (MPEx/Dex already does).
+- Where a vendor has no OIDC surface, a **vendor-native credential**
+  is permitted behind the same adapter seam — ISPPr's tenant-scoped
+  `X-API-Key` is the first such case. The credential lives ONLY in
+  the adapter's HTTP layer; core logic sees `IDocumentService`
+  exactly as before.
+- Vendor-native credentials are issued per tenant at provisioning,
+  stored **OpenBao-wrapped** (never plaintext in the tenant file,
+  never in source), never logged or traced (invariant 3), and
+  revoked on tenant erasure.
 
-## Consequences
-
+Everything else stands: adapter seams, egress minimization,
+TLS on every hop.
 
