@@ -24,7 +24,7 @@ invariants in [`AGENTS.md`](AGENTS.md) and the megaplan in
 | Identity | OpenIddict (OIDC; custom Dapper-backed stores) |
 | Object store | MinIO (borrower document vault) + ClamAV (upload scanning) |
 | Web | Next.js (App Router) + TypeScript — officer console (MUI) + borrower portal |
-| Integrations | MPEx (PII-free eval egress), ISPPr (document packages) |
+| Integrations | MPEx (PII-free pricing egress), Zara (fee engine), ISPPr (document packages) |
 | Dev/deploy | Docker Compose; OTel → Seq + Jaeger |
 
 ## Status
@@ -76,6 +76,25 @@ eval-determining catalog paths (patch → 409 with `frozenFields`)
 until an audited `POST …/unlock`; `ApplicationDto.Lock` carries
 status + expiry on REST and GraphQL. The `lola-ops` platform
 operator owns the global tenant registry surface.
+
+Fees live (M8) — `FEE_ADAPTER=zara` selects the Zara engine
+(`stub` is the deterministic dev default): the PII-free
+`FeeScenario` (loan purpose/type/amount/term, property
+state/county/purchase-price/est-value, VA, discount points —
+the adapter strips ZIP for Zara's own guard) evals through a
+per-tenant `fee_outbox` with the pricing worker's semantics
+(backoff → DLQ, request-hash idempotency). `POST …/fees` →
+202 + eval id, `GET …/fees[/history]` reads the spine; line
+items normalize into LE cost blocks (A/B/C/E/F). `PATCH
+…/fees/{itemId} {amount, reason}` sets/clears an audited
+override that survives re-evaluation keyed by (feeCode,
+section) — orphans surface as `staleOverrides`, never
+silently dropped. `POST …/fees {variants:[{label?, loanType?,
+discountPoints?}]}` runs several scenario variants in one
+batch — FHA vs conventional side-by-side — draining in
+parallel; `GET …/fees` returns `FeeComparisonDto` with
+breakdowns keyed by `variant` and overrides scoped so one
+variant's adjustment can't leak into another's.
 
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
