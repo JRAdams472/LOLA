@@ -295,3 +295,120 @@ public sealed class FakeRateLockRepository
         return Task.CompletedTask;
     }
 }
+
+/// In-memory fee eval/outbox store with the same semantics as the
+/// real FeeRepository (hash dedup, due-row filter, completion/DLQ
+/// transitions, item capture) so the API e2e and the processor's
+/// retry logic run hermetically. Rows carry the enqueuing
+/// TenantContext — a drain sees only its own tenant's outbox.
+public sealed class FakeFeeRepository
+    : Lola.Application.Fees.IFeeRepository
+{
+    public Dictionary<string, Lola.Application.Fees.FeeEvalRecord>
+        Evals
+    { get; } = new();
+    public Dictionary<string, Lola.Application.Fees.FeeOutboxRow>
+        Outbox
+    { get; } = new();
+    public List<Lola.Application.Fees.FeeItemRecord> Items { get; } = [];
+    private readonly Dictionary<string, string> _byHash = new();
+    private readonly Dictionary<string, string?> _outboxTenant = new();
+
+    public Task<Lola.Application.Fees.FeeEnqueueResult> EnqueueAsync(
+        Lola.Application.Fees.FeeEvalRecord eval, string outboxId,
+        string kind, string payloadJson, CancellationToken ct = default)
+    {
+        if (_byHash.TryGetValue(eval.RequestHash, out var existing))
+            return Task.FromResult(
+                new Lola.Application.Fees.FeeEnqueueResult(
+                    existing, true));
+        eval = eval with
+        {
+            CreatedUtc = DateTimeOffset.UtcNow.ToString("O")
+        };
+        Evals[eval.EvalId] = eval;
+        Outbox[outboxId] = new Lola.Application.Fees.FeeOutboxRow(
+            outboxId, kind, eval.EvalId, eval.RequestHash, payloadJson,
+            "pending", 0, null, null);
+        _outboxTenant[outboxId] =
+            Lola.Application.Tenancy.TenantContext.Current?.TenantId;
+        _byHash[eval.RequestHash] = eval.EvalId;
+        return Task.FromResult(
+            new Lola.Application.Fees.FeeEnqueueResult(
+                eval.EvalId, false));
+    }
+
+    public Task<Lola.Application.Fees.FeeEvalRecord?> GetEvalAsync(
+        string evalId, CancellationToken ct = default)
+        => Task.FromResult(Evals.GetValueOrDefault(evalId));
+
+    public Task<Lola.Application.Fees.FeeEvalRecord?>
+        GetLatestEvalAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult(Evals.Values
+            .Where(e => e.ApplicationId == appId)
+            .OrderByDescending(e => e.CreatedUtc ?? e.EvalId)
+            .FirstOrDefault());
+
+    public Task<IReadOnlyList<Lola.Application.Fees.FeeEvalRecord>>
+        ListEvalsAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Fees.FeeEvalRecord>>(
+            Evals.Values.Where(e => e.ApplicationId == appId)
+                .OrderBy(e => e.CreatedUtc ?? e.EvalId).ToList());
+
+    public Task<IReadOnlyList<Lola.Application.Fees.FeeOutboxRow>>
+        ListDueOutboxAsync(string nowUtc, int limit,
+            CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Fees.FeeOutboxRow>>(
+            Outbox.Values.Where(r => r.Status == "pending" &&
+                _outboxTenant.GetValueOrDefault(r.OutboxId) ==
+                    Lola.Application.Tenancy.TenantContext.Current?.TenantId &&
+                (r.NextRetryUtc is null ||
+                 string.CompareOrdinal(r.NextRetryUtc, nowUtc) <= 0))
+                .Take(limit).ToList());
+
+    public Task CompleteAsync(string outboxId, string evalId,
+        string adapter, string resultJson,
+        IReadOnlyList<Lola.Application.Fees.FeeItemRecord> items,
+        string completedUtc, CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with { Status = "done" };
+        Evals[evalId] = Evals[evalId] with
+        {
+            Status = "done",
+            Adapter = adapter,
+            ResultJson = resultJson,
+            CompletedUtc = completedUtc
+        };
+        Items.AddRange(items);
+        return Task.CompletedTask;
+    }
+
+    public Task RescheduleAsync(string outboxId, string evalId,
+        long attempts, string nextRetryUtc, string error,
+        CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with
+        {
+            Attempts = attempts,
+            NextRetryUtc = nextRetryUtc,
+            LastError = error
+        };
+        return Task.CompletedTask;
+    }
+
+    public Task DeadLetterAsync(string outboxId, string evalId,
+        long attempts, string error, CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with
+        {
+            Status = "dlq",
+            Attempts = attempts,
+            LastError = error
+        };
+        Evals[evalId] = Evals[evalId] with
+        { Status = "failed", Error = error };
+        return Task.CompletedTask;
+    }
+}

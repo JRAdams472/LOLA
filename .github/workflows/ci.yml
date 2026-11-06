@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     # MPEx's store — the live eval backend for the never-skip
     # MpexLiveTests round-trip (mirrors MPEx's own CI e2e job).
+    # Zara's store is a second postgres on :5433 for the never-skip
+    # ZaraLiveTests round-trip (mirrors Zara's own CI engine job).
     services:
       postgres:
         image: postgres:18-alpine
@@ -43,6 +45,16 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U mpex -d mpex"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      zara-db:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: zara
+          POSTGRES_PASSWORD: zp-${{ github.run_id }}-${{ github.run_attempt }}
+          POSTGRES_DB: zara
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zara -d zara"
           --health-interval 5s --health-timeout 3s --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -75,12 +87,20 @@ jobs:
         with:
           repository: JRAdams472/MPEx
           path: mpex-srv
+      - name: Checkout Zara (live fee backend)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: JRAdams472/Zara
+          path: zara-srv
       - uses: dtolnay/rust-toolchain@stable
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
       - uses: Swatinem/rust-cache@v2
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         with:
-          workspaces: mpex-srv
+          workspaces: |
+            mpex-srv
+            zara-srv
       - name: Build MPEx + start Dex & api
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         # Same recipe as MPEx's own CI e2e job: generated Dex secrets,
@@ -110,6 +130,49 @@ jobs:
             curl -sf http://localhost:8080/healthz && exit 0 || sleep 1
           done
           echo "mpex did not come up"; exit 1
+      - name: Build Zara + migrate/seed + devtoken + start engine
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # Same recipe as Zara's own CI engine job: psql seeds, ephemeral
+        # devtoken JWKS, engine on :8400. ZaraLive* hard-requires this
+        # stack (never-skip).
+        run: |
+          cargo build --manifest-path zara-srv/Cargo.toml \
+            -p zara-migrate -p zara-engine --bins
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          RUN_ID="${{ github.run_id }}-${{ github.run_attempt }}"
+          mkdir -p .devkeys
+          ./zara-srv/target/debug/zara_devtoken \
+            --tenant-id aa5ce000-0000-4000-8000-0000000000ac \
+            --envs dev --jwks-out .devkeys/jwks.json \
+            --key-out .devkeys/dev.pem > .devkeys/zara-token.txt
+          echo "ZARA_TOKEN_FILE=$PWD/.devkeys/zara-token.txt" >> "$GITHUB_ENV"
+          export PGDATABASE=zara
+          DATABASE_URL="postgres://zara:zp-$RUN_ID@localhost:5433/zara" \
+          MIGRATE_DATABASE_URL="postgres://zara_migrate:mig-$RUN_ID@localhost:5433/zara" \
+          ZARA_MIGRATE_PASSWORD="mig-$RUN_ID" \
+          ZARA_APP_DEV_PASSWORD="dev-$RUN_ID" \
+          ZARA_APP_QA_PASSWORD="qa-$RUN_ID" \
+          ZARA_APP_UAT_PASSWORD="uat-$RUN_ID" \
+          ZARA_APP_PROD_PASSWORD="prod-$RUN_ID" \
+          ZARA_PROMOTE_PASSWORD="pro-$RUN_ID" \
+          ZARA_ENGINE_PASSWORD="eng-$RUN_ID" \
+          ./zara-srv/target/debug/zara-migrate --set-role-passwords \
+            --migrations-dir zara-srv/migrations
+          psql "postgres://zara_migrate:mig-$RUN_ID@localhost:5433/zara" \
+            -v ON_ERROR_STOP=1 \
+            -f zara-srv/seed/001_demo_tenants.sql \
+            -f zara-srv/seed/002_demo_fees.sql \
+            -f zara-srv/seed/003_demo_grants.sql \
+            -f zara-srv/seed/004_northstar_grants.sql \
+            -f zara-srv/seed/005_demo_trid_fees.sql
+          ENGINE_DATABASE_URL="postgres://zara_engine:eng-$RUN_ID@localhost:5433/zara" \
+          ZARA_JWKS_FILE="$PWD/.devkeys/jwks.json" \
+          OIDC_ISSUER=zara-devtoken OIDC_AUDIENCE=zara-engine \
+          ./zara-srv/target/debug/zara_engine &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8400/healthz && exit 0 || sleep 1
+          done
+          echo "zara did not come up"; exit 1
       - name: dotnet test (coverage)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         env:
@@ -119,6 +182,9 @@ jobs:
           MPEX_TOKEN_URL: http://localhost:5556/dex/token
           MPEX_CLIENT_ID: mpex-svc
           MPEX_SEED_CLIENT_ID: mpex-ci
+          ZARA_BASE_URL: http://localhost:8400
+          ZARA_ENV: dev
+          ZARA_TENANT_ID: aa5ce000-0000-4000-8000-0000000000ac
         run: >
           dotnet test -c Release --collect:"XPlat Code Coverage" --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov

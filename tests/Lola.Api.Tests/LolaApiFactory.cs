@@ -30,6 +30,9 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         // paths — must be a real env var, not an in-memory override.
         // Tests drain PricingOutboxProcessor explicitly.
         Environment.SetEnvironmentVariable("PRICING_OUTBOX_ENABLED", "false");
+        // Same eager-read reason — tests drain FeeOutboxProcessor
+        // explicitly, never the hosted worker.
+        Environment.SetEnvironmentVariable("FEE_OUTBOX_ENABLED", "false");
 
         builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -86,6 +89,13 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeRateLockRepository>());
             services.AddSingleton<Lola.Application.Pricing.IPricingService,
                 AltStubPricingAdapter>();
+            // Fees (MPE-183) — hermetic store + second adapter: the
+            // swap proof is that IFeeService is the whole contract.
+            services.AddSingleton(new FakeFeeRepository());
+            services.AddSingleton<Lola.Application.Fees.IFeeRepository>(
+                sp => sp.GetRequiredService<FakeFeeRepository>());
+            services.AddSingleton<Lola.Application.Fees.IFeeService,
+                AltStubFeeService>();
         });
     }
 
