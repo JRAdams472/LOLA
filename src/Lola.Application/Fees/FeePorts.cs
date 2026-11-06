@@ -38,8 +38,17 @@ public sealed record FeeBorrowerSection(
     bool? VaEligible, bool? DiscountPoints, bool? SelfEmployed);
 
 /// Eval-time knobs orthogonal to the scenario.
+/// One scenario variant in a compare batch (MPE-188) — typed
+/// overrides merged over the document's base scenario. `Label`
+/// tags the variant for display; the tag (label ?? loanType ?? "")
+/// is the override/merge key, so a batch can't hold two variants
+/// that resolve to the same tag.
+public sealed record FeeVariant(
+    string? Label, string? LoanType, bool? DiscountPoints);
+
 public sealed record FeeRequestOptions(
-    IReadOnlyList<string>? FeeCodes = null);
+    IReadOnlyList<string>? FeeCodes = null,
+    IReadOnlyList<FeeVariant>? Variants = null);
 
 /// Normalized inbound result — one line per fee, grouped into LE
 /// cost blocks by `Section` (A Origination, B Cannot Shop, C Can
@@ -62,7 +71,8 @@ public sealed record FeeEvalRecord(
     string EvalId, string ApplicationId, string Adapter,
     string RequestHash, string ScenarioJson, string Status,
     string? ResultJson, string? Error, string Actor,
-    string? CreatedUtc, string? CompletedUtc);
+    string? CreatedUtc, string? CompletedUtc,
+    string? BatchId = null, string Variant = "");
 
 /// One queued outbound eval (tenant-file `fee_outbox`). `Status`:
 /// pending → done | dlq.
@@ -87,7 +97,8 @@ public sealed record FeeEnqueueResult(string EvalId, bool Deduplicated);
 public sealed record FeeEvalDto(
     string EvalId, string ApplicationId, string Adapter, string Status,
     FeeEvaluation? Result, string? Error, string Actor,
-    string? CreatedUtc, string? CompletedUtc);
+    string? CreatedUtc, string? CompletedUtc,
+    string? BatchId = null, string Variant = "");
 
 /// Fee persistence seam (MPE-183). The DataPlane implementation owns
 /// the transaction discipline; handlers and the outbox worker only
@@ -134,11 +145,12 @@ public partial interface IFeeRepository
 public sealed record FeeOverrideRecord(
     string OverrideId, string ApplicationId, string FeeCode,
     string Section, double Amount, string Reason, string Actor,
-    string? CreatedUtc, long Stale, string? ClearedUtc);
+    string? CreatedUtc, long Stale, string? ClearedUtc,
+    string Variant = "");
 
 /// A fee_items row resolved with its owning application id.
 public sealed record FeeItemLookup(
-    FeeItemRecord Item, string ApplicationId);
+    FeeItemRecord Item, string ApplicationId, string Variant);
 
 /// Wire-facing line: computed from the eval, effective = override
 /// when one is set.
@@ -156,12 +168,20 @@ public sealed record FeeSectionDto(
 /// the override survives, marked stale (MPE-184).
 public sealed record StaleOverrideDto(
     string OverrideId, string FeeCode, string Section,
-    decimal Amount, string Reason, string Actor, string? CreatedUtc);
+    decimal Amount, string Reason, string Actor, string? CreatedUtc,
+    string Variant = "");
+
+/// GET …/fees response (MPE-188): the latest batch's breakdowns —
+/// one per requested variant, so FHA and conventional sit
+/// side-by-side.
+public sealed record FeeComparisonDto(
+    string BatchId, IReadOnlyList<FeeBreakdownDto> Evals);
 
 /// GET …/fees response (MPE-184): section-grouped lines with
 /// effective totals, plus the stale-override surface.
 public sealed record FeeBreakdownDto(
-    string EvalId, string ApplicationId, string Adapter, string Status,
+    string EvalId, string? Variant, string ApplicationId,
+    string Adapter, string Status,
     string? Error, IReadOnlyList<FeeSectionDto> Sections,
     decimal ComputedTotal, decimal EffectiveTotal,
     IReadOnlyList<StaleOverrideDto> StaleOverrides,
@@ -193,5 +213,11 @@ public partial interface IFeeRepository
 
     /// All uncleared overrides for an application.
     Task<IReadOnlyList<FeeOverrideRecord>> ListOverridesAsync(
+        string appId, CancellationToken ct = default);
+
+    /// The most recent batch's evals — every row sharing the newest
+    /// eval's batch_id (a single-eval request batches to itself via
+    /// COALESCE(batch_id, eval_id)).
+    Task<IReadOnlyList<FeeEvalRecord>> GetLatestBatchEvalsAsync(
         string appId, CancellationToken ct = default);
 }

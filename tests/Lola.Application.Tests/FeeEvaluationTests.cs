@@ -52,8 +52,8 @@ public sealed class FeeEvaluationTests
         var result = await EvaluateApplicationFeesHandler.Handle(
             Cmd(), apps, fees, adapter, audit, default);
 
-        result.Deduplicated.ShouldBeFalse();
-        var eval = fees.Evals[result.EvalId];
+
+        var eval = fees.Evals[result.EvalIds[0]];
         eval.Status.ShouldBe("pending");
         eval.Adapter.ShouldBe("fake");
         eval.ApplicationId.ShouldBe("app-1");
@@ -62,7 +62,7 @@ public sealed class FeeEvaluationTests
         eval.ScenarioJson.ShouldNotContain("000-00-0000");
         var outbox = fees.Outbox.Values.Single();
         outbox.Kind.ShouldBe("eval");
-        outbox.EvalId.ShouldBe(result.EvalId);
+        outbox.EvalId.ShouldBe(result.EvalIds[0]);
 
         var evt = audit.Events.Single();
         evt.Action.ShouldBe("fee_eval");
@@ -81,8 +81,8 @@ public sealed class FeeEvaluationTests
         var second = await EvaluateApplicationFeesHandler.Handle(
             Cmd(), apps, fees, adapter, audit, default);
 
-        second.EvalId.ShouldBe(first.EvalId);
-        second.Deduplicated.ShouldBeTrue();
+        second.EvalIds[0].ShouldBe(first.EvalIds[0]);
+
         fees.Evals.Count.ShouldBe(1);
         fees.Outbox.Count.ShouldBe(1);
         audit.Events.Count.ShouldBe(1); // enqueued once, audited once
@@ -110,22 +110,22 @@ public sealed class FeeEvaluationTests
         var second = await EvaluateApplicationFeesHandler.Handle(
             Cmd() with { FeeCodes = ["origination"] }, apps, fees,
             adapter, audit, default);
-        second.EvalId.ShouldNotBe(first.EvalId);
+        second.EvalIds[0].ShouldNotBe(first.EvalIds[0]);
 
         var latest = await GetApplicationFeesHandler.Handle(
             new GetApplicationFeesQuery("t1", "app-1", "officer-1", false),
             apps, fees, default);
         latest.ShouldNotBeNull();
-        latest!.EvalId.ShouldBe(second.EvalId);
-        latest.Status.ShouldBe("pending");
-        latest.Adapter.ShouldBe("fake");
+        latest!.Evals[0].EvalId.ShouldBe(second.EvalIds[0]);
+        latest.Evals[0].Status.ShouldBe("pending");
+        latest.Evals[0].Adapter.ShouldBe("fake");
 
         var history = await GetFeeHistoryHandler.Handle(
             new GetFeeHistoryQuery("t1", "app-1", "officer-1", false),
             apps, fees, default);
         history.Count.ShouldBe(2);
-        history[0].EvalId.ShouldBe(first.EvalId);
-        history[1].EvalId.ShouldBe(second.EvalId);
+        history[0].EvalId.ShouldBe(first.EvalIds[0]);
+        history[1].EvalId.ShouldBe(second.EvalIds[0]);
     }
 
     [Fact]
@@ -381,9 +381,10 @@ public sealed class FeeEvaluationTests
             var item = Items.FirstOrDefault(i => i.ItemId == itemId);
             if (item is null)
                 return Task.FromResult<FeeItemLookup?>(null);
-            var appId = Evals.TryGetValue(item.EvalId, out var e)
-                ? e.ApplicationId : "";
-            return Task.FromResult<FeeItemLookup?>(new(item, appId));
+            var ev = Evals.TryGetValue(item.EvalId, out var e)
+                ? e : null;
+            return Task.FromResult<FeeItemLookup?>(new(item,
+                ev?.ApplicationId ?? "", ev?.Variant ?? ""));
         }
 
         public Task<IReadOnlyList<FeeItemRecord>> ListItemsAsync(
@@ -400,6 +401,7 @@ public sealed class FeeEvaluationTests
         {
             var existing = Overrides.Values.FirstOrDefault(x =>
                 x.ApplicationId == o.ApplicationId &&
+                x.Variant == o.Variant &&
                 x.FeeCode == o.FeeCode && x.Section == o.Section &&
                 x.ClearedUtc is null);
             var merged = existing is null ? o
@@ -421,6 +423,22 @@ public sealed class FeeEvaluationTests
             => Task.FromResult<IReadOnlyList<FeeOverrideRecord>>(
                 Overrides.Values.Where(o => o.ApplicationId == appId &&
                     o.ClearedUtc is null).ToList());
+
+        public Task<IReadOnlyList<FeeEvalRecord>>
+            GetLatestBatchEvalsAsync(string appId,
+                CancellationToken ct = default)
+        {
+            var latest = Evals.Values
+                .Where(e => e.ApplicationId == appId)
+                .OrderByDescending(e => e.CreatedUtc).FirstOrDefault();
+            if (latest is null)
+                return Task.FromResult<IReadOnlyList<FeeEvalRecord>>([]);
+            var key = latest.BatchId ?? latest.EvalId;
+            return Task.FromResult<IReadOnlyList<FeeEvalRecord>>(
+                Evals.Values.Where(e => e.ApplicationId == appId &&
+                    (e.BatchId ?? e.EvalId) == key)
+                    .OrderBy(e => e.CreatedUtc).ToList());
+        }
     }
 
     private sealed class FakeAudit : ITenantAuditLog

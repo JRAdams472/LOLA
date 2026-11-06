@@ -18,6 +18,11 @@ namespace Lola.Api.Tests;
 public sealed class FeeEndpointTests(LolaApiFactory factory)
     : IClassFixture<LolaApiFactory>
 {
+    // lola-svc tokens are tenant-agnostic — mint one per class run.
+    // auth-tight caps /connect/token at 10/min per IP; six tests ×
+    // svc+officer grants would exceed it (MPE-188).
+    private static string? _serviceToken;
+
     private async Task<(string tenant, HttpClient officer)> SetupAsync()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
@@ -36,6 +41,7 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
 
     private static async Task<string> ServiceTokenAsync(HttpClient client)
     {
+        if (_serviceToken is not null) return _serviceToken;
         var resp = await client.PostAsync("/connect/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
@@ -43,7 +49,8 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
                 ["client_id"] = "lola-svc",
                 ["client_secret"] = "svc-secret-value"
             }));
-        return (await resp.Content.ReadFromJsonAsync<JsonElement>())
+        return _serviceToken =
+            (await resp.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("access_token").GetString()!;
     }
 
@@ -87,12 +94,12 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
             $"{base_}/{appId}/fees", new { });
         eval.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var evalId = (await eval.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("evalId").GetString()!;
+            .GetProperty("evalIds")[0].GetString()!;
 
         var pending = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        pending.GetProperty("status").GetString().ShouldBe("pending");
-        pending.GetProperty("adapter").GetString().ShouldBe("alt-fee");
+        pending.GetProperty("evals")[0].GetProperty("status").GetString().ShouldBe("pending");
+        pending.GetProperty("evals")[0].GetProperty("adapter").GetString().ShouldBe("alt-fee");
 
         // Drain the tenant's outbox — the fake repo + alt adapter run.
         var registry = factory.Services
@@ -105,16 +112,16 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
 
         var done = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        done.GetProperty("status").GetString().ShouldBe("done");
-        done.GetProperty("adapter").GetString().ShouldBe("alt-fee");
+        done.GetProperty("evals")[0].GetProperty("status").GetString().ShouldBe("done");
+        done.GetProperty("evals")[0].GetProperty("adapter").GetString().ShouldBe("alt-fee");
         // Breakdown shape: sections[] with items + effective totals.
-        var sections = done.GetProperty("sections");
+        var sections = done.GetProperty("evals")[0].GetProperty("sections");
         sections.GetArrayLength().ShouldBeGreaterThan(0);
         sections[0].GetProperty("section").GetString().ShouldBe("A");
         sections[0].GetProperty("items")[0]
             .GetProperty("feeCode").GetString().ShouldBe("origination");
-        done.GetProperty("effectiveTotal").GetDecimal()
-            .ShouldBe(done.GetProperty("computedTotal").GetDecimal());
+        done.GetProperty("evals")[0].GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBe(done.GetProperty("evals")[0].GetProperty("computedTotal").GetDecimal());
 
         var history = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees/history");
@@ -141,8 +148,8 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
         second.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var a = await first.Content.ReadFromJsonAsync<JsonElement>();
         var b = await second.Content.ReadFromJsonAsync<JsonElement>();
-        b.GetProperty("evalId").GetString()
-            .ShouldBe(a.GetProperty("evalId").GetString());
+        b.GetProperty("evalIds")[0].GetString()
+            .ShouldBe(a.GetProperty("evalIds")[0].GetString());
         b.GetProperty("deduplicated").GetBoolean().ShouldBeTrue();
     }
 
@@ -165,7 +172,7 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
 
         var b1 = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        var item = b1.GetProperty("sections")[0]
+        var item = b1.GetProperty("evals")[0].GetProperty("sections")[0]
             .GetProperty("items")[0];
         var itemId = item.GetProperty("itemId").GetString()!;
         item.GetProperty("feeCode").GetString()
@@ -182,11 +189,11 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
 
         var b2 = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        var line = b2.GetProperty("sections")[0]
+        var line = b2.GetProperty("evals")[0].GetProperty("sections")[0]
             .GetProperty("items")[0];
         line.GetProperty("overrideAmount").GetDecimal().ShouldBe(600m);
         line.GetProperty("effective").GetDecimal().ShouldBe(600m);
-        b2.GetProperty("effectiveTotal").GetDecimal()
+        b2.GetProperty("evals")[0].GetProperty("effectiveTotal").GetDecimal()
             .ShouldBe(680m);   // 600 + 80 recording
 
         // Re-eval with a different request → new eval; override
@@ -197,9 +204,9 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
         await processor.DrainTenantAsync(rec!);
         var b3 = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        b3.GetProperty("sections")[0].GetProperty("items")[0]
+        b3.GetProperty("evals")[0].GetProperty("sections")[0].GetProperty("items")[0]
             .GetProperty("effective").GetDecimal().ShouldBe(600m);
-        b3.GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
+        b3.GetProperty("evals")[0].GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
 
         // Re-eval without origination → override orphans, not drops.
         (await officer.PostAsJsonAsync($"{base_}/{appId}/fees",
@@ -208,7 +215,7 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
         await processor.DrainTenantAsync(rec!);
         var b4 = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        var stale = b4.GetProperty("staleOverrides");
+        var stale = b4.GetProperty("evals")[0].GetProperty("staleOverrides");
         stale.GetArrayLength().ShouldBe(1);
         stale[0].GetProperty("feeCode").GetString()
             .ShouldBe("origination");
@@ -222,9 +229,106 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
         clear.StatusCode.ShouldBe(HttpStatusCode.OK);
         var b5 = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
-        b5.GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
-        b5.GetProperty("effectiveTotal").GetDecimal()
-            .ShouldBe(b5.GetProperty("computedTotal").GetDecimal());
+        b5.GetProperty("evals")[0].GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
+        b5.GetProperty("evals")[0].GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBe(b5.GetProperty("evals")[0].GetProperty("computedTotal").GetDecimal());
+    }
+
+    [Fact]
+    public async Task Variants_run_in_one_batch_and_compare()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+        var appId = await DraftWithScenarioAsync(officer, base_);
+        var rec = await factory.Services
+            .GetRequiredService<ITenantRegistry>().FindByIdAsync(tenant);
+        var processor = factory.Services
+            .GetRequiredService<Lola.Api.Fees.FeeOutboxProcessor>();
+
+        // FHA + conventional in ONE request → one batch, two evals.
+        var accepted = await (await officer.PostAsJsonAsync(
+            $"{base_}/{appId}/fees", new
+            {
+                variants = new[]
+                {
+                    new { loanType = "conventional" },
+                    new { loanType = "fha" }
+                }
+            })).Content.ReadFromJsonAsync<JsonElement>();
+        var evalIds = accepted.GetProperty("evalIds");
+        evalIds.GetArrayLength().ShouldBe(2);
+        accepted.GetProperty("batchId").GetString()
+            .ShouldNotBeNullOrEmpty();
+
+        await processor.DrainTenantAsync(rec!);
+        var cmp = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        var evals = cmp.GetProperty("evals");
+        evals.GetArrayLength().ShouldBe(2);
+        var conv = evals.EnumerateArray().Single(e =>
+            e.GetProperty("variant").GetString() == "conventional");
+        var fha = evals.EnumerateArray().Single(e =>
+            e.GetProperty("variant").GetString() == "fha");
+
+        // FHA carries ufmip; conventional doesn't — the variants
+        // produced genuinely different fee sets.
+        var fhaCodes = fha.GetProperty("sections").EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray()
+                .Select(i => i.GetProperty("feeCode").GetString()!))
+            .ToList();
+        var convCodes = conv.GetProperty("sections").EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray()
+                .Select(i => i.GetProperty("feeCode").GetString()!))
+            .ToList();
+        fhaCodes.ShouldContain("ufmip");
+        convCodes.ShouldNotContain("ufmip");
+
+        // Override on the FHA origination item affects FHA only.
+        var fhaItem = fha.GetProperty("sections").EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray())
+            .Single(i => i.GetProperty("feeCode").GetString()
+                == "origination");
+        var itemId = fhaItem.GetProperty("itemId").GetString()!;
+        (await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}/fees/{itemId}",
+            new { amount = 600m, reason = "fha correction" }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        var cmp2 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        var evals2 = cmp2.GetProperty("evals").EnumerateArray()
+            .ToList();
+        evals2.Single(e => e.GetProperty("variant").GetString()
+                == "fha").GetProperty("sections").EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray())
+            .Single(i => i.GetProperty("feeCode").GetString()
+                == "origination")
+            .GetProperty("effective").GetDecimal().ShouldBe(600m);
+        evals2.Single(e => e.GetProperty("variant").GetString()
+                == "conventional").GetProperty("sections")
+            .EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray())
+            .Single(i => i.GetProperty("feeCode").GetString()
+                == "origination")
+            .GetProperty("overrideAmount").ValueKind
+            .ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Duplicate_variant_tags_400()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+        var appId = await DraftWithScenarioAsync(officer, base_);
+        var r = await officer.PostAsJsonAsync($"{base_}/{appId}/fees",
+            new
+            {
+                variants = new[]
+                {
+                    new { loanType = "fha" },
+                    new { loanType = "fha" }
+                }
+            });
+        r.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -263,6 +367,10 @@ public sealed class AltStubFeeService : IFeeService
             new FeeLine("recording", "Alt Recording", "E", 80m,
                 [], 80m)
         ];
+        // FHA carries upfront MIP — proves per-variant output.
+        if (s.Loan.Type == "fha")
+            items = items.Prepend(new FeeLine("ufmip",
+                "Upfront MIP", "A", 7437.5m, [], 7437.5m)).ToList();
         if (options.FeeCodes is { } codes)
             items = items.Where(i => codes.Contains(i.FeeCode)).ToList();
         return Task.FromResult(new FeeEvaluation(

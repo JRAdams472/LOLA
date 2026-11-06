@@ -11,17 +11,23 @@ public sealed record GetApplicationFeesQuery(
 
 public static class GetApplicationFeesHandler
 {
-    public static async Task<FeeBreakdownDto?> Handle(
+    public static async Task<FeeComparisonDto?> Handle(
         GetApplicationFeesQuery q, IApplicationRepository apps,
         IFeeRepository fees, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
-        var latest = await fees.GetLatestEvalAsync(q.AppId, ct);
-        if (latest is null) return null;
-        var items = await fees.ListItemsAsync(latest.EvalId, ct);
+        var batch = await fees.GetLatestBatchEvalsAsync(q.AppId, ct);
+        if (batch.Count == 0) return null;
         var overrides = await fees.ListOverridesAsync(q.AppId, ct);
-        return FeeAggregator.ToBreakdown(latest, items, overrides);
+        var evals = new List<FeeBreakdownDto>(batch.Count);
+        foreach (var e in batch)
+        {
+            var items = await fees.ListItemsAsync(e.EvalId, ct);
+            evals.Add(FeeAggregator.ToBreakdown(e, items, overrides));
+        }
+        return new FeeComparisonDto(
+            batch[0].BatchId ?? batch[0].EvalId, evals);
     }
 }

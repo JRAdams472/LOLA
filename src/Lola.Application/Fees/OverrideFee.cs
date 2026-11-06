@@ -42,15 +42,17 @@ public static class OverrideFeeHandler
         // stale override's line id stays addressable for clear.
         var item = await fees.GetItemAsync(c.ItemId, ct);
         FeeOverrideRecord? existing = null;
-        string feeCode, section;
+        string feeCode, section, variant;
         if (item is not null)
         {
             if (item.ApplicationId != c.AppId)
                 throw DomainException.NotFound("fee line not found");
-            (feeCode, section) = (item.Item.FeeCode, item.Item.Section);
+            (feeCode, section, variant) =
+                (item.Item.FeeCode, item.Item.Section, item.Variant);
             existing = (await fees.ListOverridesAsync(c.AppId, ct))
                 .FirstOrDefault(o => o.FeeCode == feeCode &&
-                    o.Section == section && o.ClearedUtc is null);
+                    o.Section == section && o.Variant == variant &&
+                    o.ClearedUtc is null);
         }
         else
         {
@@ -58,7 +60,8 @@ public static class OverrideFeeHandler
             if (existing is null || existing.ApplicationId != c.AppId ||
                 existing.ClearedUtc is not null)
                 throw DomainException.NotFound("fee line not found");
-            (feeCode, section) = (existing.FeeCode, existing.Section);
+            (feeCode, section, variant) =
+                (existing.FeeCode, existing.Section, existing.Variant);
         }
 
         var utc = DateTimeOffset.UtcNow
@@ -80,7 +83,7 @@ public static class OverrideFeeHandler
             new FeeOverrideRecord(
                 existing?.OverrideId ?? $"ovr-{Guid.NewGuid():N}",
                 c.AppId, feeCode, section, (double)c.Amount.Value, c.Reason!,
-                c.ActorId, utc, 0, null), ct);
+                c.ActorId, utc, 0, null, variant), ct);
         await audit.WriteAsync(c.ActorId, "fee_override",
             "application", c.AppId, AuditFields.InDoc(app.Doc),
             $"overrode {feeCode} → {c.Amount}: {c.Reason}", ct);
