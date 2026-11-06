@@ -134,9 +134,20 @@ public static class ApplicationEndpoints
         group.MapGet("/{appId}/fees", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
-            Guarded(id, async () => await bus.InvokeAsync<FeeEvalDto?>(
+            Guarded(id, async () => await bus.InvokeAsync<FeeBreakdownDto?>(
                 new GetApplicationFeesQuery(id, appId,
                     Actor(user), IsBorrower(user)), ct)));
+
+        // Override toggle (MPE-184) — {amount, reason} sets, a null
+        // amount clears; reason is always required. itemId may name
+        // a fee_items row or a stale fee_overrides row.
+        group.MapPatch("/{appId}/fees/{itemId}", async (string id,
+                string appId, string itemId, FeeOverrideRequest body,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<FeeOverrideResult>(
+                new OverrideFeeCommand(id, appId, itemId, Actor(user),
+                    IsBorrower(user), body.Amount, body.Reason), ct)));
 
         group.MapGet("/{appId}/fees/history", async (string id,
                 string appId, ClaimsPrincipal user, IMessageBus bus,
@@ -260,6 +271,8 @@ public static class ApplicationEndpoints
         IReadOnlyList<string>? Products, decimal? Rate,
         int? LockTermDays, string? AsOf, bool? EligibilityOnly);
     public sealed record FeeRequest(IReadOnlyList<string>? FeeCodes);
+    public sealed record FeeOverrideRequest(
+        decimal? Amount, string? Reason);
     public sealed record LockRequest(
         string? EvalId, string? ProductCode, decimal? Rate,
         int? LockTermDays);

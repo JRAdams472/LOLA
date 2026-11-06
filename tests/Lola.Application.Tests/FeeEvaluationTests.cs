@@ -139,6 +139,119 @@ public sealed class FeeEvaluationTests
                 audit, default));
     }
 
+    // ---- MPE-184 override tests ------------------------------------
+
+    private static void SeedItem(FakeFeeRepo fees, string evalId,
+        string itemId, string feeCode, string section)
+    {
+        fees.Evals[evalId] = new FeeEvalRecord(evalId, "app-1",
+            "fake", "h", "{}", "done", null, null, "o", null, null);
+        fees.Items.Add(new FeeItemRecord(itemId, evalId, feeCode,
+            null, section, 100.0, "[]", 100.0, null));
+    }
+
+    private static OverrideFeeCommand OverrideCmd(
+        string itemId = "item-1", decimal? amount = 500m,
+        string? reason = "LO corrections") =>
+        new("t1", "app-1", itemId, "officer-1", false, amount, reason);
+
+    [Fact]
+    public async Task Set_override_persists_and_audits()
+    {
+        var (apps, fees, audit, adapter) = Sut();
+        SeedItem(fees, "eval-1", "item-1", "origination", "A");
+        using var _ = Scope();
+        var r = await OverrideFeeHandler.Handle(
+            OverrideCmd(), apps, fees, audit, default);
+
+        r.Cleared.ShouldBeFalse();
+        var o = fees.Overrides.Values.Single();
+        o.FeeCode.ShouldBe("origination");
+        o.Section.ShouldBe("A");
+        o.Amount.ShouldBe(500.0);
+        o.Reason.ShouldBe("LO corrections");
+        audit.Events.Single().Action.ShouldBe("fee_override");
+    }
+
+    [Fact]
+    public async Task Override_requires_reason()
+    {
+        var (apps, fees, audit, adapter) = Sut();
+        SeedItem(fees, "eval-1", "item-1", "origination", "A");
+        using var _ = Scope();
+        await Should.ThrowAsync<DomainException>(() =>
+            OverrideFeeHandler.Handle(
+                OverrideCmd(reason: null), apps, fees, audit, default));
+        fees.Overrides.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Clear_restores_computed_and_audits()
+    {
+        var (apps, fees, audit, adapter) = Sut();
+        SeedItem(fees, "eval-1", "item-1", "origination", "A");
+        using var _ = Scope();
+        var set = await OverrideFeeHandler.Handle(
+            OverrideCmd(), apps, fees, audit, default);
+        var cleared = await OverrideFeeHandler.Handle(
+            OverrideCmd(amount: null, reason: "client declined"),
+            apps, fees, audit, default);
+
+        cleared.Cleared.ShouldBeTrue();
+        cleared.OverrideId.ShouldBe(set.OverrideId);
+        (await fees.ListOverridesAsync("app-1", default))
+            .ShouldBeEmpty(); // cleared rows stop affecting totals
+        audit.Events.Select(e => e.Action).ShouldBe(
+            ["fee_override", "fee_override_clear"]);
+    }
+
+    [Fact]
+    public async Task Borrower_cannot_override()
+    {
+        var (apps, fees, audit, adapter) = Sut();
+        using var _ = Scope();
+        await Should.ThrowAsync<DomainException>(() =>
+            OverrideFeeHandler.Handle(
+                OverrideCmd() with { ActorIsBorrower = true },
+                apps, fees, audit, default));
+    }
+
+    [Fact]
+    public async Task Aggregator_sections_override_stale_and_effective()
+    {
+        var eval = new FeeEvalRecord("e1", "app-1", "z", "h", "{}",
+            "done", null, null, "o", null, null);
+        var items = new List<FeeItemRecord>
+        {
+            new("i1", "e1", "origination", "Orig", "A", 900.0, "[]",
+                900.0, null),
+            new("i2", "e1", "appraisal", "Apr", "C", 650.0, "[]",
+                650.0, null),
+        };
+        var overrides = new List<FeeOverrideRecord>
+        {
+            // live override wins on origination
+            new("o1", "app-1", "origination", "A", 700.0, "neg", "off",
+                null, 0, null),
+            // stale — fee vanished from the eval
+            new("o2", "app-1", "pest-inspection", "C", 75.0, "req",
+                "off", null, 1, null),
+            // cleared — affects nothing
+            new("o3", "app-1", "appraisal", "C", 1.0, "old", "off",
+                null, 0, "2026-01-01T00:00:00Z"),
+        };
+        var b = FeeAggregator.ToBreakdown(eval, items, overrides);
+
+        b.Sections.Count.ShouldBe(2);
+        var a = b.Sections.Single(s => s.Section == "A");
+        a.Items[0].OverrideAmount.ShouldBe(700m);
+        a.Items[0].Effective.ShouldBe(700m);
+        a.EffectiveTotal.ShouldBe(700m);
+        b.EffectiveTotal.ShouldBe(1350m);
+        b.ComputedTotal.ShouldBe(1550m);
+        b.StaleOverrides.Single().FeeCode.ShouldBe("pest-inspection");
+    }
+
     // ---- fakes -----------------------------------------------------
 
     private sealed class FakeApps(ApplicationDocument doc)
@@ -258,6 +371,56 @@ public sealed class FeeEvaluationTests
             Evals[evalId] = e with { Status = "failed", Error = error };
             return Task.CompletedTask;
         }
+
+        public List<FeeItemRecord> Items { get; } = [];
+        public Dictionary<string, FeeOverrideRecord> Overrides { get; } = new();
+
+        public Task<FeeItemLookup?> GetItemAsync(string itemId,
+            CancellationToken ct = default)
+        {
+            var item = Items.FirstOrDefault(i => i.ItemId == itemId);
+            if (item is null)
+                return Task.FromResult<FeeItemLookup?>(null);
+            var appId = Evals.TryGetValue(item.EvalId, out var e)
+                ? e.ApplicationId : "";
+            return Task.FromResult<FeeItemLookup?>(new(item, appId));
+        }
+
+        public Task<IReadOnlyList<FeeItemRecord>> ListItemsAsync(
+            string evalId, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<FeeItemRecord>>(
+                Items.Where(i => i.EvalId == evalId).ToList());
+
+        public Task<FeeOverrideRecord?> GetOverrideAsync(
+            string overrideId, CancellationToken ct = default)
+            => Task.FromResult(Overrides.GetValueOrDefault(overrideId));
+
+        public Task<FeeOverrideRecord> UpsertOverrideAsync(
+            FeeOverrideRecord o, CancellationToken ct = default)
+        {
+            var existing = Overrides.Values.FirstOrDefault(x =>
+                x.ApplicationId == o.ApplicationId &&
+                x.FeeCode == o.FeeCode && x.Section == o.Section &&
+                x.ClearedUtc is null);
+            var merged = existing is null ? o
+                : o with { OverrideId = existing.OverrideId };
+            Overrides[merged.OverrideId] = merged;
+            return Task.FromResult(merged);
+        }
+
+        public Task ClearOverrideAsync(string overrideId,
+            string clearedUtc, CancellationToken ct = default)
+        {
+            Overrides[overrideId] = Overrides[overrideId] with
+            { ClearedUtc = clearedUtc };
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<FeeOverrideRecord>> ListOverridesAsync(
+            string appId, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<FeeOverrideRecord>>(
+                Overrides.Values.Where(o => o.ApplicationId == appId &&
+                    o.ClearedUtc is null).ToList());
     }
 
     private sealed class FakeAudit : ITenantAuditLog

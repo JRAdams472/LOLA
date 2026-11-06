@@ -106,11 +106,15 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
         var done = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees");
         done.GetProperty("status").GetString().ShouldBe("done");
-        done.GetProperty("result")
-            .GetProperty("adapter").GetString().ShouldBe("alt-fee");
-        var items = done.GetProperty("result").GetProperty("items");
-        items.GetArrayLength().ShouldBeGreaterThan(0);
-        items[0].GetProperty("section").GetString().ShouldBe("A");
+        done.GetProperty("adapter").GetString().ShouldBe("alt-fee");
+        // Breakdown shape: sections[] with items + effective totals.
+        var sections = done.GetProperty("sections");
+        sections.GetArrayLength().ShouldBeGreaterThan(0);
+        sections[0].GetProperty("section").GetString().ShouldBe("A");
+        sections[0].GetProperty("items")[0]
+            .GetProperty("feeCode").GetString().ShouldBe("origination");
+        done.GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBe(done.GetProperty("computedTotal").GetDecimal());
 
         var history = await officer.GetFromJsonAsync<JsonElement>(
             $"{base_}/{appId}/fees/history");
@@ -143,6 +147,87 @@ public sealed class FeeEndpointTests(LolaApiFactory factory)
     }
 
     [Fact]
+    public async Task Override_persists_survives_reeval_and_clears()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+        var appId = await DraftWithScenarioAsync(officer, base_);
+        var registry = factory.Services
+            .GetRequiredService<ITenantRegistry>();
+        var rec = await registry.FindByIdAsync(tenant);
+        var processor = factory.Services
+            .GetRequiredService<Lola.Api.Fees.FeeOutboxProcessor>();
+
+        // eval 1 → done, two items.
+        (await officer.PostAsJsonAsync($"{base_}/{appId}/fees",
+            new { })).StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await processor.DrainTenantAsync(rec!);
+
+        var b1 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        var item = b1.GetProperty("sections")[0]
+            .GetProperty("items")[0];
+        var itemId = item.GetProperty("itemId").GetString()!;
+        item.GetProperty("feeCode").GetString()
+            .ShouldBe("origination");
+
+        // PATCH override — reason required.
+        var noReason = await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}/fees/{itemId}", new { amount = 600m });
+        noReason.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var set = await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}/fees/{itemId}",
+            new { amount = 600m, reason = "LO correction" });
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var b2 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        var line = b2.GetProperty("sections")[0]
+            .GetProperty("items")[0];
+        line.GetProperty("overrideAmount").GetDecimal().ShouldBe(600m);
+        line.GetProperty("effective").GetDecimal().ShouldBe(600m);
+        b2.GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBe(680m);   // 600 + 80 recording
+
+        // Re-eval with a different request → new eval; override
+        // survives by feeCode+section.
+        (await officer.PostAsJsonAsync($"{base_}/{appId}/fees",
+            new { feeCodes = new[] { "origination", "recording" } }))
+            .StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await processor.DrainTenantAsync(rec!);
+        var b3 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        b3.GetProperty("sections")[0].GetProperty("items")[0]
+            .GetProperty("effective").GetDecimal().ShouldBe(600m);
+        b3.GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
+
+        // Re-eval without origination → override orphans, not drops.
+        (await officer.PostAsJsonAsync($"{base_}/{appId}/fees",
+            new { feeCodes = new[] { "recording" } }))
+            .StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await processor.DrainTenantAsync(rec!);
+        var b4 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        var stale = b4.GetProperty("staleOverrides");
+        stale.GetArrayLength().ShouldBe(1);
+        stale[0].GetProperty("feeCode").GetString()
+            .ShouldBe("origination");
+        var overrideId = stale[0].GetProperty("overrideId")
+            .GetString()!;
+
+        // Clear via the stale override id — restores, stops affecting.
+        var clear = await officer.PatchAsJsonAsync(
+            $"{base_}/{appId}/fees/{overrideId}",
+            new { amount = (decimal?)null, reason = "rescinded" });
+        clear.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var b5 = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/fees");
+        b5.GetProperty("staleOverrides").GetArrayLength().ShouldBe(0);
+        b5.GetProperty("effectiveTotal").GetDecimal()
+            .ShouldBe(b5.GetProperty("computedTotal").GetDecimal());
+    }
+
+    [Fact]
     public async Task Borrower_gets_403()
     {
         var (tenant, officer) = await SetupAsync();
@@ -169,14 +254,19 @@ public sealed class AltStubFeeService : IFeeService
     public Task<FeeEvaluation> EvaluateAsync(
         FeeScenario s, FeeRequestOptions options,
         CancellationToken ct = default)
-        => Task.FromResult(new FeeEvaluation(
+    {
+        IReadOnlyList<FeeLine> items =
+        [
+            new FeeLine("origination", "Alt Origination", "A", 750m,
+                [new FeeAdjustment("base", "set", 750m, 750m)],
+                750m),
+            new FeeLine("recording", "Alt Recording", "E", 80m,
+                [], 80m)
+        ];
+        if (options.FeeCodes is { } codes)
+            items = items.Where(i => codes.Contains(i.FeeCode)).ToList();
+        return Task.FromResult(new FeeEvaluation(
             $"eval-{Guid.NewGuid():N}", Adapter,
-            "2026-10-29T00:00:00.000Z", "alt:v1",
-            [
-                new FeeLine("origination", "Alt Origination", "A", 750m,
-                    [new FeeAdjustment("base", "set", 750m, 750m)],
-                    750m),
-                new FeeLine("recording", "Alt Recording", "E", 80m,
-                    [], 80m)
-            ]));
+            "2026-10-29T00:00:00.000Z", "alt:v1", items));
+    }
 }

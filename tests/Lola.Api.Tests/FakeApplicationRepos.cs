@@ -242,6 +242,7 @@ public sealed class FakePricingRepository
         { Status = "failed", Error = error };
         return Task.CompletedTask;
     }
+
 }
 
 /// In-memory rate-lock store — tenant-scoped like the pricing fake
@@ -382,6 +383,16 @@ public sealed class FakeFeeRepository
             CompletedUtc = completedUtc
         };
         Items.AddRange(items);
+        // Same merge as the real repo: overrides whose (feeCode,
+        // section) isn't in this eval's items go stale.
+        var appId2 = Evals[evalId].ApplicationId;
+        var live = items.Select(i => (i.FeeCode, i.Section))
+            .ToHashSet();
+        foreach (var o in Overrides.Values
+            .Where(o => o.ApplicationId == appId2 &&
+                o.ClearedUtc is null).ToList())
+            Overrides[o.OverrideId] = o with
+            { Stale = live.Contains((o.FeeCode, o.Section)) ? 0L : 1L };
         return Task.CompletedTask;
     }
 
@@ -411,4 +422,61 @@ public sealed class FakeFeeRepository
         { Status = "failed", Error = error };
         return Task.CompletedTask;
     }
+
+    public Task<Lola.Application.Fees.FeeItemLookup?> GetItemAsync(
+        string itemId, CancellationToken ct = default)
+    {
+        var item = Items.FirstOrDefault(i => i.ItemId == itemId);
+        if (item is null)
+            return Task.FromResult<Lola.Application.Fees
+                .FeeItemLookup?>(null);
+        var appId = Evals.TryGetValue(item.EvalId, out var e)
+            ? e.ApplicationId : "";
+        return Task.FromResult<Lola.Application.Fees.FeeItemLookup?>(
+            new(item, appId));
+    }
+
+    public Task<IReadOnlyList<Lola.Application.Fees.FeeItemRecord>>
+        ListItemsAsync(string evalId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Fees.FeeItemRecord>>(
+            Items.Where(i => i.EvalId == evalId).ToList());
+
+    public Dictionary<string, Lola.Application.Fees.FeeOverrideRecord>
+        Overrides
+    { get; } = new();
+
+    public Task<Lola.Application.Fees.FeeOverrideRecord?>
+        GetOverrideAsync(string overrideId,
+            CancellationToken ct = default)
+        => Task.FromResult(Overrides.GetValueOrDefault(overrideId));
+
+    public Task<Lola.Application.Fees.FeeOverrideRecord>
+        UpsertOverrideAsync(Lola.Application.Fees.FeeOverrideRecord o,
+            CancellationToken ct = default)
+    {
+        var existing = Overrides.Values.FirstOrDefault(x =>
+            x.ApplicationId == o.ApplicationId &&
+            x.FeeCode == o.FeeCode && x.Section == o.Section &&
+            x.ClearedUtc is null);
+        var merged = existing is null ? o
+            : o with { OverrideId = existing.OverrideId };
+        Overrides[merged.OverrideId] = merged;
+        return Task.FromResult(merged);
+    }
+
+    public Task ClearOverrideAsync(string overrideId, string clearedUtc,
+        CancellationToken ct = default)
+    {
+        Overrides[overrideId] = Overrides[overrideId] with
+        { ClearedUtc = clearedUtc };
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Lola.Application.Fees.FeeOverrideRecord>>
+        ListOverridesAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Fees.FeeOverrideRecord>>(
+            Overrides.Values.Where(o => o.ApplicationId == appId &&
+                o.ClearedUtc is null).ToList());
 }

@@ -75,8 +75,8 @@ public sealed record FeeOutboxRow(
 /// MPE-183) — the stable identity Phase 3 overrides key off.
 public sealed record FeeItemRecord(
     string ItemId, string EvalId, string FeeCode, string? Label,
-    string Section, decimal Base, string AdjustmentsJson,
-    decimal Total, string? CreatedUtc);
+    string Section, double Base, string AdjustmentsJson,
+    double Total, string? CreatedUtc);
 
 /// Enqueue outcome — a duplicated request returns the ORIGINAL eval
 /// id with `Deduplicated = true` instead of inserting (idempotency).
@@ -92,7 +92,7 @@ public sealed record FeeEvalDto(
 /// Fee persistence seam (MPE-183). The DataPlane implementation owns
 /// the transaction discipline; handlers and the outbox worker only
 /// see this surface.
-public interface IFeeRepository
+public partial interface IFeeRepository
 {
     /// Insert eval + outbox row in ONE transaction. `request_hash`
     /// UNIQUE is the idempotency gate: a duplicate returns the
@@ -125,4 +125,73 @@ public interface IFeeRepository
     /// Terminal failure — outbox dlq + eval failed.
     Task DeadLetterAsync(string outboxId, string evalId, long attempts,
         string error, CancellationToken ct = default);
+}
+
+/// One fee override (tenant-file `fee_overrides`, MPE-184) — an
+/// application-level fact keyed by (app, feeCode, section), so it
+/// survives re-evaluation. `Stale` marks orphans whose fee vanished
+/// from the latest eval — surfaced, never deleted.
+public sealed record FeeOverrideRecord(
+    string OverrideId, string ApplicationId, string FeeCode,
+    string Section, double Amount, string Reason, string Actor,
+    string? CreatedUtc, long Stale, string? ClearedUtc);
+
+/// A fee_items row resolved with its owning application id.
+public sealed record FeeItemLookup(
+    FeeItemRecord Item, string ApplicationId);
+
+/// Wire-facing line: computed from the eval, effective = override
+/// when one is set.
+public sealed record FeeLineDto(
+    string ItemId, string FeeCode, string? Label, decimal Base,
+    decimal Computed, decimal? OverrideAmount, string? OverrideReason,
+    decimal Effective);
+
+/// LE cost-block section with its lines and totals.
+public sealed record FeeSectionDto(
+    string Section, IReadOnlyList<FeeLineDto> Items,
+    decimal ComputedTotal, decimal EffectiveTotal);
+
+/// An orphaned override — the fee vanished from the latest eval but
+/// the override survives, marked stale (MPE-184).
+public sealed record StaleOverrideDto(
+    string OverrideId, string FeeCode, string Section,
+    decimal Amount, string Reason, string Actor, string? CreatedUtc);
+
+/// GET …/fees response (MPE-184): section-grouped lines with
+/// effective totals, plus the stale-override surface.
+public sealed record FeeBreakdownDto(
+    string EvalId, string ApplicationId, string Adapter, string Status,
+    string? Error, IReadOnlyList<FeeSectionDto> Sections,
+    decimal ComputedTotal, decimal EffectiveTotal,
+    IReadOnlyList<StaleOverrideDto> StaleOverrides,
+    string? CreatedUtc, string? CompletedUtc);
+
+public partial interface IFeeRepository
+{
+    /// A fee_items row by id, joined to its owning application.
+    Task<FeeItemLookup?> GetItemAsync(string itemId,
+        CancellationToken ct = default);
+
+    /// All line items for one eval.
+    Task<IReadOnlyList<FeeItemRecord>> ListItemsAsync(string evalId,
+        CancellationToken ct = default);
+
+    /// An override row by id.
+    Task<FeeOverrideRecord?> GetOverrideAsync(string overrideId,
+        CancellationToken ct = default);
+
+    /// Insert or replace the override for (app, feeCode, section) —
+    /// re-setting clears Stale and ClearedUtc.
+    Task<FeeOverrideRecord> UpsertOverrideAsync(
+        FeeOverrideRecord o, CancellationToken ct = default);
+
+    /// Mark an override cleared (row stays — cleared_utc stamps it;
+    /// it stops affecting effective totals).
+    Task ClearOverrideAsync(string overrideId, string clearedUtc,
+        CancellationToken ct = default);
+
+    /// All uncleared overrides for an application.
+    Task<IReadOnlyList<FeeOverrideRecord>> ListOverridesAsync(
+        string appId, CancellationToken ct = default);
 }
