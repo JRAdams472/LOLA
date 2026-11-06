@@ -1,0 +1,37 @@
+{
+  "kinds": {
+    "le-package": ["loan-estimate", "initial-disclosures", "1003-summary"],
+    "adverse-action": ["adverse-action"]
+  },
+  "templates": {
+    "loan-estimate": {
+      "fields": [
+        "borrowerNames", "propertyAddress", "salesPrice",
+        "estimatedValue", "loanAmount", "loanType", "loanPurpose",
+        "productCode", "termMonths", "interestRate",
+        "monthlyPrincipalInterest", "rateLockExpiresUtc",
+        "closingCosts", "estimatedCashToClose"
+      ]
+    },
+    "initial-disclosures": {
+      "fields": [
+        "borrowerNames", "propertyAddress", "loanAmount", "loanType",
+        "termMonths", "interestRate", "intentToOccupy",
+        "disclosureDate", "lenderName"
+      ]
+    },
+    "1003-summary": {
+      "fields": [
+        "applicant", "loanAmount", "loanType", "loanPurpose",
+        "termMonths", "propertyAddress", "estimatedValue",
+        "salesPrice", "employment"
+      ]
+    },
+    "adverse-action": {
+      "fields": [
+        "applicantName", "applicationId", "noticeDate",
+        "reasons", "lenderName"
+      ]
+    }
+  }
+}

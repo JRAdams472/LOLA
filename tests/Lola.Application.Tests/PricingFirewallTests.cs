@@ -7,8 +7,16 @@ namespace Lola.Application.Tests;
 
 /// MPE-129 PII firewall (invariant 2): reflection guard over the egress
 /// surface — any `[PiiClass]`-tagged member or PII-named/shaped field on
-/// a `Lola.Application.Pricing` type fails CI. Mirrors MPEx's own
-/// denylist as defense-in-depth.
+/// an egress-namespace type fails CI. Mirrors MPEx's own denylist as
+/// defense-in-depth.
+///
+/// MPE-189 note: `Lola.Application.Documents` is scanned too, but its
+/// contract differs — the payload JsonObjects legitimately carry
+/// template-required PII (a Loan Estimate prints names). The denylist
+/// still guards the TYPED egress records (request/result/registry rows
+/// must stay PII-free metadata); the actual payload boundary is proven
+/// by the manifest tests in `DisclosurePayloadBuilderTests` — emitted
+/// keys must equal each template's declared field set exactly.
 public sealed class PricingFirewallTests
 {
     // Exact-match tokens: short names where substring matching would
@@ -41,7 +49,8 @@ public sealed class PricingFirewallTests
     private static IEnumerable<(Type T, PropertyInfo P)> EgressMembers()
         => typeof(IPricingService).Assembly.GetTypes()
             .Where(t => t.Namespace is "Lola.Application.Pricing" or
-                "Lola.Application.Fees" &&
+                "Lola.Application.Fees" or
+                "Lola.Application.Documents" &&
                         t.FullName?.Contains("<") != true)
             .SelectMany(t => t.GetProperties(
                 BindingFlags.Public | BindingFlags.Instance)
