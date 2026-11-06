@@ -59,14 +59,14 @@ public sealed class FeeRepositoryTests(OpenBaoFixture fixture)
 
     private static IReadOnlyList<FeeItemRecord> Items(string evalId) =>
     [
-        new FeeItemRecord("item-1", evalId, "origination",
-            "Origination Fee", "A", 900m,
+        new FeeItemRecord($"item-{evalId}-orig", evalId, "origination",
+            "Origination Fee", "A", 900.0,
             """[{"rule":"base","op":"set","value":900,"runningTotal":900}]""",
-            900m, null),
-        new FeeItemRecord("item-2", evalId, "transfer-tax",
-            "Transfer Tax", "E", 400m,
+            900.0, null),
+        new FeeItemRecord($"item-{evalId}-tax", evalId, "transfer-tax",
+            "Transfer Tax", "E", 400.0,
             """[{"rule":"rate","op":"mul","value":0.001,"runningTotal":400}]""",
-            400m, null),
+            400.0, null),
     ];
 
     [Fact]
@@ -172,6 +172,67 @@ public sealed class FeeRepositoryTests(OpenBaoFixture fixture)
 
                 var history = await repo.ListEvalsAsync("app-1");
                 history.Select(e => e.EvalId).ShouldBe(["eval-1"]);
+            }
+        }
+        finally
+        {
+            await new TransitKeyManager(fixture.Transit)
+                .DestroyAsync(rec.Id);
+        }
+    }
+
+    [Fact]
+    public async Task Overrides_upsert_clear_and_resync_on_complete()
+    {
+        var (repo, rec) = await ProvisionAsync();
+        try
+        {
+            using (TenantContext.Use(TenantScope.From(rec)))
+            {
+                // Seed eval-1 with two items, then override one.
+                await repo.EnqueueAsync(Eval(), "ob-1", "eval", "{}");
+                await repo.CompleteAsync("ob-1", "eval-1", "zara",
+                    "{}", Items("eval-1"), "2026-10-29T00:00:00.000Z");
+
+                var o = await repo.UpsertOverrideAsync(
+                    new FeeOverrideRecord("ovr-1", "app-1",
+                        "origination", "A", 700.0, "LO corrections",
+                        "officer-1", "2026-10-29T01:00:00.000Z",
+                        0, null));
+                o.OverrideId.ShouldBe("ovr-1");
+
+                // Upsert same key → one row, new amount.
+                var again = await repo.UpsertOverrideAsync(
+                    new FeeOverrideRecord("ovr-2", "app-1",
+                        "origination", "A", 650.0, "revised",
+                        "officer-1", "2026-10-29T02:00:00.000Z",
+                        0, null));
+                again.Amount.ShouldBe(650.0);
+                (await repo.ListOverridesAsync("app-1")).Count
+                    .ShouldBe(1);
+
+                // Re-eval: items still contain origination → live.
+                await repo.EnqueueAsync(Eval("eval-2", "hash-2"),
+                    "ob-2", "eval", "{}");
+                await repo.CompleteAsync("ob-2", "eval-2", "zara",
+                    "{}", Items("eval-2"), "2026-10-29T03:00:00.000Z");
+                (await repo.ListOverridesAsync("app-1")).Single()
+                    .Stale.ShouldBe(0);
+
+                // Re-eval dropping origination → override orphans.
+                await repo.EnqueueAsync(Eval("eval-3", "hash-3"),
+                    "ob-3", "eval", "{}");
+                await repo.CompleteAsync("ob-3", "eval-3", "zara",
+                    "{}", [Items("eval-3")[1]],
+                    "2026-10-29T04:00:00.000Z");
+                (await repo.ListOverridesAsync("app-1")).Single()
+                    .Stale.ShouldBe(1);
+
+                // Clear restores — row stays but stops affecting.
+                await repo.ClearOverrideAsync(
+                    again.OverrideId, "2026-10-29T05:00:00.000Z");
+                (await repo.ListOverridesAsync("app-1"))
+                    .ShouldBeEmpty();
             }
         }
         finally

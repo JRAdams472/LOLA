@@ -107,10 +107,10 @@ public sealed class FeeOutboxProcessor(
         string evalId, FeeEvaluation result)
         => result.Items.Select(i => new FeeItemRecord(
             $"item-{Guid.NewGuid():N}", evalId, i.FeeCode, i.Label,
-            i.Section, i.Base,
+            i.Section, (double)i.Base,
             System.Text.Json.JsonSerializer.Serialize(
                 i.Adjustments, FeeWire.Json),
-            i.Total, null)).ToList();
+            (double)i.Total, null)).ToList();
 
     private static TimeSpan Backoff(long attempts)
     {

@@ -11,7 +11,7 @@ public sealed record GetApplicationFeesQuery(
 
 public static class GetApplicationFeesHandler
 {
-    public static async Task<FeeEvalDto?> Handle(
+    public static async Task<FeeBreakdownDto?> Handle(
         GetApplicationFeesQuery q, IApplicationRepository apps,
         IFeeRepository fees, CancellationToken ct)
     {
@@ -19,6 +19,9 @@ public static class GetApplicationFeesHandler
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var latest = await fees.GetLatestEvalAsync(q.AppId, ct);
-        return latest is null ? null : FeeWire.ToDto(latest);
+        if (latest is null) return null;
+        var items = await fees.ListItemsAsync(latest.EvalId, ct);
+        var overrides = await fees.ListOverridesAsync(q.AppId, ct);
+        return FeeAggregator.ToBreakdown(latest, items, overrides);
     }
 }
