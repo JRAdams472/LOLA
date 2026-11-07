@@ -96,6 +96,24 @@ parallel; `GET …/fees` returns `FeeComparisonDto` with
 breakdowns keyed by `variant` and overrides scoped so one
 variant's adjustment can't leak into another's.
 
+Documents live (M9) — `DOC_ADAPTER=isppr` selects the ISPPr document
+engine (`stub` is the deterministic dev default): per-tenant
+provisioning binds an ISPPr client/customer plus a generate-scoped
+`X-API-Key` wrapped under the tenant's transit key, and uploads the
+four manifest-declared template masters. `POST …/packages` enqueues
+a manifest-bounded payload — `le-package` gates on an active rate
+lock + completed fee eval; `adverse-action` needs neither but takes
+enum-validated reason codes — and a per-tenant `doc_outbox`
+(submit → poll, backoff → DLQ, request-hash dedupe) drives the
+vendor call off-request. The tenant-file `documents` registry
+stores references only (vendor request id + filename — never
+bytes); list/detail reads sit inside borrower-own scoping, and
+`GET …/documents/{docId}/download` mints a fresh ≤15-min presigned
+URL per call as a 302 with `doc_download` audited on the
+application spine. `POST /api/admin/tenants/{id}/isppr/republish-templates`
+(PlatformOps) bumps template versions without re-provisioning, and
+tenant erasure revokes the vendor key before crypto-shredding.
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
