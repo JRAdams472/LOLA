@@ -321,11 +321,20 @@ if ("isppr".Equals(builder.Configuration["DOC_ADAPTER"],
         builder.Services.AddSingleton<Lola.Application.Documents.ITenantDocProvisioner,
             Lola.Infrastructure.Documents.IspprTenantProvisioner>();
     }
+    else
+    {
+        // Fail-closed stand-in: erasure/republish must not silently
+        // skip the vendor side when admin creds are absent.
+        builder.Services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin,
+            Lola.Infrastructure.Documents.MissingDocVendorAdmin>();
+    }
 }
 else
 {
     builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
         Lola.Infrastructure.Documents.StubDocumentService>();
+    builder.Services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin,
+        Lola.Infrastructure.Documents.MissingDocVendorAdmin>();
 }
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))

@@ -146,7 +146,7 @@ public sealed class IspprDocumentAdapter(HttpClient http,
             return await response.Content
                 .ReadFromJsonAsync<JsonNode>(cancellationToken: ct);
         }
-        catch (System.Text.Json.JsonException ex)
+        catch (System.Text.Json.JsonException)
         {
             throw DocAdapterException.Contract(
                 $"ISPPr {path} returned unparseable JSON");

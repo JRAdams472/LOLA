@@ -97,7 +97,7 @@ public sealed class DocRepository(TenantConnectionFactory factory,
         => await QueryAsync<DocRecord>(
             $"""
             SELECT {DocColumns} FROM documents
-            WHERE application_id=@appId ORDER BY created_utc, rowid
+            WHERE application_id=@appId ORDER BY created_utc DESC, rowid DESC
             """, new { appId }, ct);
 
     /// Due rows join the doc row for the vendor request id — null

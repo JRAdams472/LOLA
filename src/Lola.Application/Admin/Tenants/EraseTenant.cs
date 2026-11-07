@@ -26,7 +26,7 @@ public static class EraseTenantHandler
         EraseTenantCommand c, ITenantRegistry registry,
         IApplicationRepository apps, ITenantEraser eraser,
         IControlPlaneAuditLog audit, TimeProvider clock,
-        CancellationToken ct)
+        Documents.IDocVendorAdmin docAdmin, CancellationToken ct)
     {
         var tenant = await registry.FindByIdAsync(c.TenantId, ct)
             ?? throw DomainException.NotFound("tenant not found");
@@ -55,6 +55,20 @@ public static class EraseTenantHandler
                     "a reason is required for a retention override");
             await audit.WriteAsync(c.ActorId, "retention_override",
                 "tenant", c.TenantId, [], c.Reason, ct);
+        }
+
+        // Vendor credential dies BEFORE the tenant keys (MPE-191):
+        // the wrapped material crypto-shreds either way, but the
+        // vendor still holds a working copy of the key. Revoking
+        // first keeps the destructive order fail-closed — a failed
+        // revoke aborts the whole erasure with nothing yet destroyed,
+        // so the operation stays retryable. Revoke is idempotent
+        // vendor-side, so a retried erasure converges.
+        if (tenant.IspprKeyId is not null)
+        {
+            await docAdmin.RevokeApiKeyAsync(tenant.IspprKeyId, ct);
+            await audit.WriteAsync(c.ActorId, "isppr_key_revoked",
+                "tenant", c.TenantId, [], null, ct);
         }
 
         var result = await eraser.EraseAsync(tenant, ct);

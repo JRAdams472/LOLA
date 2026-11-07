@@ -155,6 +155,14 @@ public interface IDocVendorAdmin
     Task<bool> UploadTemplateAsync(string clientId, string name,
         string html, CancellationToken ct = default);
 
+    /// Republish templates (MPE-191): names already at the vendor
+    /// publish the next version; missing names are created as v1 —
+    /// an un-provisioned master self-heals instead of erroring.
+    /// Returns the resulting version per template name.
+    Task<IReadOnlyDictionary<string, long>> RepublishTemplatesAsync(
+        string clientId, IReadOnlyDictionary<string, string> templates,
+        CancellationToken ct = default);
+
     /// Revoke a vendor key by id (tenant erasure, MPE-191).
     Task RevokeApiKeyAsync(string keyId, CancellationToken ct = default);
 }

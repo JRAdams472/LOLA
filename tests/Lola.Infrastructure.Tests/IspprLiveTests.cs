@@ -140,4 +140,67 @@ public sealed class IspprLiveTests(IspprLiveFixture fixture)
             : await AwaitTerminalAsync(adapter, gen.RequestId);
         done.Status.ShouldBe("completed");
     }
+
+    /// Republish (MPE-191), live-verified: a missing master
+    /// self-heals as v1, an existing name bumps the next version,
+    /// and a repeat call just publishes again — never errors.
+    [Fact]
+    public async Task Republish_bumps_versions_and_repeats_safely()
+    {
+        var admin = fixture.AdminClient();
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var clientId = await admin.EnsureClientAsync(
+            $"lola-repub-{suffix}");
+        var name = $"tmpl_repub_{suffix}";
+        IReadOnlyDictionary<string, string> templates =
+            new Dictionary<string, string>
+            {
+                [name] = "<html><body><h1>{{heading}}</h1></body></html>"
+            };
+
+        var v1 = await admin.RepublishTemplatesAsync(clientId, templates);
+        v1[name].ShouldBe(1);
+        var v2 = await admin.RepublishTemplatesAsync(clientId, templates);
+        v2[name].ShouldBe(2);
+        var v3 = await admin.RepublishTemplatesAsync(clientId, templates);
+        v3[name].ShouldBe(3);
+    }
+
+    /// The erasure hook's mechanism, live-verified: a minted key
+    /// generates fine, admin revoke lands, and the same key then
+    /// fails generate with a typed nonretryable Auth (vendor 401).
+    [Fact]
+    public async Task Revoked_key_fails_auth_on_subsequent_use()
+    {
+        var admin = fixture.AdminClient();
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var clientId = await admin.EnsureClientAsync(
+            $"lola-revoke-{suffix}");
+        var customerId = await admin.EnsureCustomerAsync(clientId,
+            "LOLA Revoke Probe", $"lola-revoke-{suffix}");
+        var (keyId, plaintext) = await admin.CreateApiKeyAsync(
+            clientId, "lola revoke probe", ["generate"]);
+        // The key is client-scoped — generation needs a master under
+        // THIS client (the seeded tmpl_invoice belongs to cli_demo).
+        (await admin.UploadTemplateAsync(clientId, $"tmpl_revk_{suffix}",
+            "<html><body><h1>{{heading}}</h1></body></html>"))
+            .ShouldBeTrue();
+
+        var adapter = fixture.Adapter(apiKey: plaintext);
+        var ok = await adapter.GenerateAsync(new DocPackageRequest(
+            customerId, "lola-revoke-probe", $"rev-{suffix}",
+            [new DocPackageDocument($"tmpl_revk_{suffix}",
+                new JsonObject { ["heading"] = "pre-revoke" })]));
+        ok.RequestId.ShouldNotBeNullOrEmpty();
+
+        await admin.RevokeApiKeyAsync(keyId);
+
+        var ex = await Should.ThrowAsync<DocAdapterException>(
+            () => adapter.GenerateAsync(new DocPackageRequest(
+                customerId, "lola-revoke-probe", $"rev2-{suffix}",
+                [new DocPackageDocument($"tmpl_revk_{suffix}",
+                    new JsonObject { ["heading"] = "post-revoke" })])));
+        ex.Kind.ShouldBe(DocErrorKind.Auth);
+        ex.Retryable.ShouldBeFalse();
+    }
 }

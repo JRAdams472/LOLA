@@ -516,6 +516,11 @@ public sealed class FakeDocumentRepository
     // captures TenantContext at enqueue and filters due rows by it so
     // one test's rows can't drain inside another test's tenant.
     private readonly Dictionary<string, string> _rowTenants = [];
+    // Insertion sequence — the real store's newest-first read
+    // tiebreaks on rowid; fake records carry no created_utc, so the
+    // sequence number mirrors rowid ordering.
+    private long _seq;
+    private readonly Dictionary<string, long> _docSeq = [];
 
     public Task<Lola.Application.Documents.DocEnqueueResult> EnqueueAsync(
         Lola.Application.Documents.DocRecord doc, string outboxId,
@@ -529,6 +534,7 @@ public sealed class FakeDocumentRepository
                 new Lola.Application.Documents.DocEnqueueResult(
                     dup.DocId, true));
         Docs[doc.DocId] = doc;
+        _docSeq[doc.DocId] = ++_seq;
         _rowTenants[outboxId] =
             Lola.Application.Tenancy.TenantContext.Current?.TenantId
             ?? "";
@@ -549,7 +555,8 @@ public sealed class FakeDocumentRepository
         ListDocsAsync(string appId, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<
             Lola.Application.Documents.DocRecord>>(
-            Docs.Values.Where(d => d.ApplicationId == appId).ToList());
+            Docs.Values.Where(d => d.ApplicationId == appId)
+                .OrderByDescending(d => _docSeq[d.DocId]).ToList());
 
     public Task<IReadOnlyList<Lola.Application.Documents.DocOutboxRow>>
         ListDueOutboxAsync(string nowUtc, int limit,
