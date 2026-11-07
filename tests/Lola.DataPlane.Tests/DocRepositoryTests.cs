@@ -141,4 +141,20 @@ public sealed class DocRepositoryTests(OpenBaoFixture fixture)
             list.Count.ShouldBe(2);
         }
     }
+
+    [Fact]
+    public async Task List_docs_is_newest_first()
+    {
+        var (repo, rec, _) = await ProvisionAsync();
+        using (TenantContext.Use(TenantScope.From(rec)))
+        using (Lola.Application.Security.CipherContext.Use(rec.Id))
+        {
+            await repo.EnqueueAsync(Doc(), "ob-1", "generate", Payload);
+            await repo.EnqueueAsync(Doc("doc-2", "hash-2"), "ob-2",
+                "generate", Payload);
+            var list = await repo.ListDocsAsync("app-1");
+            // created_utc can tie at ms precision — rowid breaks it.
+            list.Select(d => d.DocId).ShouldBe(["doc-2", "doc-1"]);
+        }
+    }
 }

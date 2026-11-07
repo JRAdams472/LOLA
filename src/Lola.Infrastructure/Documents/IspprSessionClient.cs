@@ -99,6 +99,54 @@ public sealed class IspprSessionClient(HttpClient http,
         }
     }
 
+    /// Republish (MPE-191): the master's name list decides publish-
+    /// version vs create — ISPPr 500s on a version POST for a name
+    /// that doesn't exist, so the list comes first rather than
+    /// probing. A create that loses a race 409s → publish instead.
+    public async Task<IReadOnlyDictionary<string, long>>
+        RepublishTemplatesAsync(string clientId,
+            IReadOnlyDictionary<string, string> templates,
+            CancellationToken ct = default)
+    {
+        var rows = await GetAsync(
+            $"/api/v1/admin/clients/{clientId}/template-masters", ct);
+        var existing = rows?.AsArray()
+            .Select(r => r?["name"]?.GetValue<string>())
+            .Where(n => n is not null)
+            .ToHashSet() ?? new HashSet<string?>();
+        var versions = new Dictionary<string, long>();
+        foreach (var (name, html) in templates)
+        {
+            JsonNode? result;
+            try
+            {
+                result = existing.Contains(name)
+                    ? await PostAsync(
+                        $"/api/v1/admin/clients/{clientId}" +
+                        $"/template-masters/{name}/versions",
+                        new JsonObject { ["html"] = html }, ct)
+                    : await PostAsync(
+                        $"/api/v1/admin/clients/{clientId}" +
+                        "/template-masters",
+                        new JsonObject
+                        { ["name"] = name, ["html"] = html }, ct);
+            }
+            catch (DocAdapterException ex) when (ex.Kind ==
+                DocErrorKind.Rejected)
+            {
+                // Create raced a master insert — publish instead.
+                result = await PostAsync(
+                    $"/api/v1/admin/clients/{clientId}" +
+                    $"/template-masters/{name}/versions",
+                    new JsonObject { ["html"] = html }, ct);
+            }
+            versions[name] = result?["version"]?.GetValue<long>()
+                ?? throw DocAdapterException.Contract(
+                    $"ISPPr republish of '{name}' returned no version");
+        }
+        return versions;
+    }
+
     public async Task RevokeApiKeyAsync(string keyId,
         CancellationToken ct = default)
         => await PostAsync($"/api/v1/admin/api-keys/{keyId}/revoke",
@@ -216,7 +264,7 @@ public sealed class IspprSessionClient(HttpClient http,
             return await response.Content
                 .ReadFromJsonAsync<JsonNode>(cancellationToken: ct);
         }
-        catch (System.Text.Json.JsonException ex)
+        catch (System.Text.Json.JsonException)
         {
             throw DocAdapterException.Contract(
                 $"ISPPr admin {path} returned unparseable JSON");

@@ -18,7 +18,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Inside_window_delete_is_refused_with_clear_date()
     {
-        var (handler, _, _, audit) = Fixture(
+        var (handler, _, _, audit, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var ex = await Should.ThrowAsync<DomainException>(handler(
             new EraseTenantCommand("t1", Force: false, null, "ops")));
@@ -30,7 +30,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Force_without_reason_is_400_and_erases_nothing()
     {
-        var (handler, _, erased, audit) = Fixture(
+        var (handler, _, erased, audit, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var ex = await Should.ThrowAsync<DomainException>(handler(
             new EraseTenantCommand("t1", Force: true, null, "ops")));
@@ -42,7 +42,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Force_with_reason_erases_and_audits_override()
     {
-        var (handler, _, erased, audit) = Fixture(
+        var (handler, _, erased, audit, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var result = await handler(
             new EraseTenantCommand("t1", Force: true, "court order", "ops"));
@@ -64,13 +64,13 @@ public sealed class RetentionGateTests
     public async Task Past_window_and_empty_tenants_erase_without_override()
     {
         // App created 26 months ago — window closed before `Now`.
-        var (handler, _, erased, audit) = Fixture(
+        var (handler, _, erased, audit, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2024-04-01T00:00:00.000Z")]);
         (await handler(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         erased.ShouldBe(["t1"]);
 
-        var (empty, _, emptyErased, emptyAudit) = Fixture([]);
+        var (empty, _, emptyErased, emptyAudit, _) = Fixture([]);
         (await empty(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         emptyErased.ShouldBe(["t1"]);
@@ -78,29 +78,79 @@ public sealed class RetentionGateTests
         emptyAudit.Events.Select(e => e.Action).ShouldBe(["tenant_erased"]);
     }
 
-    private static (Func<EraseTenantCommand, Task<TenantErasureResult>> Run,
-        FakeRegistry Registry, List<string> Erased, FakeAudit Audit) Fixture(
-            IReadOnlyList<ApplicationRetentionRow> windows)
+    [Fact]
+    public async Task Tenant_with_vendor_key_revokes_it_before_shredding()
     {
-        var registry = new FakeRegistry();
+        var (handler, _, erased, audit, docAdmin) = Fixture(
+            [], tenant: TenantWithKey);
+        var result = await handler(
+            new EraseTenantCommand("t1", false, null, "ops"));
+        result.TenantId.ShouldBe("t1");
+        // Vendor copy closes first — the wrapped material then
+        // crypto-shreds inside EraseAsync.
+        docAdmin.Revoked.ShouldBe(["key-9"]);
+        erased.ShouldBe(["t1"]);
+        audit.Events.Select(e => e.Action)
+            .ShouldBe(["isppr_key_revoked", "tenant_erased"]);
+    }
+
+    [Fact]
+    public async Task Failed_vendor_revoke_aborts_before_any_shredding()
+    {
+        var (handler, _, erased, audit, docAdmin) = Fixture(
+            [], tenant: TenantWithKey);
+        docAdmin.Fail = true;
+        await Should.ThrowAsync<Documents.DocAdapterException>(handler(
+            new EraseTenantCommand("t1", false, null, "ops")));
+        erased.ShouldBeEmpty();
+        audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Tenant_without_vendor_binding_skips_revocation()
+    {
+        var (handler, _, _, audit, docAdmin) = Fixture([]);
+        (await handler(new EraseTenantCommand("t1", false, null, "ops")))
+            .TenantId.ShouldBe("t1");
+        docAdmin.Revoked.ShouldBeEmpty();
+        audit.Events.Select(e => e.Action).ShouldBe(["tenant_erased"]);
+    }
+
+    private static (Func<EraseTenantCommand, Task<TenantErasureResult>> Run,
+        FakeRegistry Registry, List<string> Erased, FakeAudit Audit,
+        FakeDocAdmin DocAdmin) Fixture(
+            IReadOnlyList<ApplicationRetentionRow> windows,
+            TenantRecord? tenant = null)
+    {
+        var registry = new FakeRegistry(tenant ?? Tenant);
         var apps = new FakeApps(windows);
         var eraser = new FakeEraser();
         var audit = new FakeAudit();
         var clock = new FakeClock(Now);
+        var docAdmin = new FakeDocAdmin();
         return (c => EraseTenantHandler.Handle(
-                    c, registry, apps, eraser, audit, clock,
+                    c, registry, apps, eraser, audit, clock, docAdmin,
                     CancellationToken.None),
-                registry, eraser.Erased, audit);
+                registry, eraser.Erased, audit, docAdmin);
     }
 
     private static TenantRecord Tenant =>
         new("t1", "t1", "Tenant", "active", "data/t1.db",
             "vault:v1:wrapped", "2020-01-01T00:00:00Z");
 
-    private sealed class FakeRegistry : ITenantRegistry
+    private static TenantRecord TenantWithKey =>
+        Tenant with
+        {
+            IspprClientId = "cli-1",
+            IspprCustomerId = "cust-1",
+            IspprKeyId = "key-9",
+            IspprKeyWrapped = "vault:wrapped"
+        };
+
+    private sealed class FakeRegistry(TenantRecord tenant) : ITenantRegistry
     {
         public Task<TenantRecord?> FindByIdAsync(string id, CancellationToken ct) =>
-            Task.FromResult<TenantRecord?>(id == Tenant.Id ? Tenant : null);
+            Task.FromResult<TenantRecord?>(id == tenant.Id ? tenant : null);
         public Task<TenantRecord?> FindBySlugAsync(string slug, CancellationToken ct) =>
             throw new NotImplementedException();
         public Task<IReadOnlyList<TenantRecord>> ListAsync(CancellationToken ct) =>
@@ -131,6 +181,41 @@ public sealed class RetentionGateTests
         public Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeDocAdmin : Documents.IDocVendorAdmin
+    {
+        public List<string> Revoked { get; } = [];
+        public bool Fail;
+
+        public Task<string> EnsureClientAsync(string name,
+            CancellationToken ct = default)
+            => Task.FromResult("cli-1");
+        public Task<string> EnsureCustomerAsync(string clientId,
+            string name, string externalRef, CancellationToken ct = default)
+            => Task.FromResult("cust-1");
+        public Task<(string KeyId, string PlaintextKey)> CreateApiKeyAsync(
+            string clientId, string label, IReadOnlyList<string> scopes,
+            CancellationToken ct = default)
+            => Task.FromResult(("key-1", "isppr_x"));
+        public Task<bool> UploadTemplateAsync(string clientId,
+            string name, string html, CancellationToken ct = default)
+            => Task.FromResult(true);
+        public Task<IReadOnlyDictionary<string, long>>
+            RepublishTemplatesAsync(string clientId,
+                IReadOnlyDictionary<string, string> templates,
+                CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyDictionary<string, long>>(
+                templates.Keys.ToDictionary(n => n, _ => 2L));
+        public Task RevokeApiKeyAsync(string keyId,
+            CancellationToken ct = default)
+        {
+            if (Fail)
+                throw Documents.DocAdapterException.Unavailable(
+                    "vendor down");
+            Revoked.Add(keyId);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeEraser : ITenantEraser

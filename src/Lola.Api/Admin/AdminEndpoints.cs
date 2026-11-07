@@ -80,6 +80,17 @@ public static class AdminEndpoints
                     ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct)))
             .RequireAuthorization(LolaPolicies.PlatformOps);
 
+        // ISPPr template republish (MPE-191) — re-uploads the four
+        // manifest masters to the tenant's vendor client as new
+        // versions without re-provisioning. Safe to retry: each call
+        // just publishes the next version.
+        admin.MapPost("/tenants/{id}/isppr/republish-templates", async (
+                string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
+            Results.Ok(await bus.InvokeMaskedAsync<RepublishResult>(
+                new RepublishIspprTemplatesCommand(id,
+                    ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct)))
+            .RequireAuthorization(LolaPolicies.PlatformOps);
+
         admin.MapGet("/tenants/{id}", async (
                 string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await GuardedStatus(id, ctx.User, async () => Results.Ok(

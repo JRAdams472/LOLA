@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,28 +41,49 @@ public static class PkceLogin
             $"&code_challenge={challenge}&code_challenge_method=S256";
 
         await client.GetAsync(authorize);
-        await client.PostAsync("/account/login", new FormUrlEncodedContent(
+        await PostWithRetryAsync(client, "/account/login",
             new Dictionary<string, string>
             {
                 ["email"] = email,
                 ["password"] = Password,
                 ["returnUrl"] = authorize
-            }));
+            });
         var second = await client.GetAsync(authorize);
         var location = second.Headers.Location!.ToString();
         var code = Uri.UnescapeDataString(location.Split("code=")[1].Split('&')[0]);
 
-        var tokens = await client.PostAsync("/connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
+        var tokens = await PostWithRetryAsync(client, "/connect/token",
+            new Dictionary<string, string>
             {
                 ["grant_type"] = "authorization_code",
                 ["client_id"] = clientId,
                 ["redirect_uri"] = redirectUri,
                 ["code"] = code,
                 ["code_verifier"] = verifier
-            }));
+            });
         return (await tokens.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("access_token").GetString()!;
+    }
+
+    /// POST honoring the auth-tight 429 — the per-IP+path fixed
+    /// window resets every minute and a rejected request consumes no
+    /// permit, so polling until one frees is the correct client
+    /// behavior (same contract real callers get). Parallel test
+    /// classes share the in-memory host's budget, so bursts collide;
+    /// 2s polls ride out a full window. Safe to retry: the wrapped
+    /// calls (/connect/token, /account/login) are idempotent.
+    public static async Task<HttpResponseMessage> PostWithRetryAsync(
+        HttpClient client, string path, Dictionary<string, string> body)
+    {
+        for (var i = 0; ; i++)
+        {
+            var resp = await client.PostAsync(path,
+                new FormUrlEncodedContent(body));
+            if (resp.StatusCode != HttpStatusCode.TooManyRequests
+                || i >= 40)
+                return resp;
+            await Task.Delay(TimeSpan.FromSeconds(2));
+        }
     }
 
     private static string B64Url(byte[] bytes) =>
