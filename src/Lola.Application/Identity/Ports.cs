@@ -20,6 +20,16 @@ public interface ITenantRegistry
     Task SetDbKeyAsync(string tenantId, string dbKeyWrapped, CancellationToken ct = default);
 
     Task SetStatusAsync(string tenantId, string status, CancellationToken ct = default);
+
+    /// Store the ISPPr client/customer ids once provisioning ensures
+    /// them (MPE-190).
+    Task SetIspprIdsAsync(string tenantId, string clientId,
+        string customerId, CancellationToken ct = default);
+
+    /// Store the wrapped ISPPr API key + its vendor key id (the id
+    /// enables erasure-side revocation without plaintext).
+    Task SetIspprKeyAsync(string tenantId, string keyId,
+        string keyWrapped, CancellationToken ct = default);
 }
 
 /// Control-plane user directory — auth identifiers only (MPE-67).

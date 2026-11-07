@@ -96,6 +96,17 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeFeeRepository>());
             services.AddSingleton<Lola.Application.Fees.IFeeService,
                 AltStubFeeService>();
+            // Documents (MPE-190) — hermetic registry + the
+            // swap-proof second adapter.
+            services.AddSingleton(new FakeDocumentRepository());
+            services.AddSingleton<Lola.Application.Documents.IDocumentRepository>(
+                sp => sp.GetRequiredService<FakeDocumentRepository>());
+            services.AddSingleton<Lola.Application.Documents.IDocumentService,
+                AltStubDocumentService>();
+            // The request handler resolves the tenant's vendor
+            // customer id off the registry row — the fake control
+            // plane leaves it null, so provision a binding inline:
+            // the real provisioning step is proven in DataPlane tests.
         });
     }
 

@@ -93,6 +93,12 @@ jobs:
         with:
           repository: JRAdams472/Zara
           path: zara-srv
+      - name: Checkout ISPPr (live doc backend)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: JRAdams472/ISPPr
+          path: isppr-srv
       - uses: dtolnay/rust-toolchain@stable
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
       - uses: Swatinem/rust-cache@v2
@@ -173,6 +179,32 @@ jobs:
             curl -sf http://localhost:8400/healthz && exit 0 || sleep 1
           done
           echo "zara did not come up"; exit 1
+      - name: Start ISPPr stack (db + minio + gotenberg + api)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # Compose bring-up straight from the checked-out vendor repo;
+        # the CI override drops host ports that clash with the job's
+        # postgres services. RUN_SEED=1 seeds cli_demo/cust_demo,
+        # the generate-scoped demo key, and the admin login that the
+        # provisioning tests exercise. IspprLive* hard-requires this
+        # stack (never-skip).
+        run: |
+          cp isppr-srv/.env.example isppr-srv/.env
+          docker compose \
+            -f isppr-srv/docker-compose.yml \
+            -f tests/isppr-compose.ci.yml \
+            -p isppr up -d --build db minio gotenberg api
+          for i in $(seq 1 120); do
+            curl -sf http://localhost:8090/healthz && break || sleep 1
+          done
+          # Boot ≠ seeded — gate on a real admin login so the
+          # provisioning tests never race the seed.
+          for i in $(seq 1 30); do
+            curl -sf -X POST http://localhost:8090/api/v1/admin/login \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"admin@isppr.local","password":"isppr-admin"}' \
+              | grep -q '"token"' && exit 0 || sleep 1
+          done
+          echo "isppr did not come up"; exit 1
       - name: dotnet test (coverage)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         env:
@@ -185,6 +217,10 @@ jobs:
           ZARA_BASE_URL: http://localhost:8400
           ZARA_ENV: dev
           ZARA_TENANT_ID: aa5ce000-0000-4000-8000-0000000000ac
+          ISPPR_BASE_URL: http://localhost:8090
+          ISPPR_API_KEY: isppr_dev_demo
+          ISPPR_ADMIN_EMAIL: admin@isppr.local
+          ISPPR_ADMIN_PASSWORD: isppr-admin
         run: >
           dotnet test -c Release --collect:"XPlat Code Coverage" --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov

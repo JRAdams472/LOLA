@@ -111,6 +111,10 @@ public sealed class RetentionGateTests
             throw new NotImplementedException();
         public Task SetStatusAsync(string tenantId, string status, CancellationToken ct) =>
             Task.CompletedTask;
+        public Task SetIspprIdsAsync(string tenantId, string clientId, string customerId, CancellationToken ct) =>
+            throw new NotImplementedException();
+        public Task SetIspprKeyAsync(string tenantId, string keyId, string keyWrapped, CancellationToken ct) =>
+            throw new NotImplementedException();
     }
 
     private sealed class FakeApps(IReadOnlyList<ApplicationRetentionRow> rows)

@@ -501,3 +501,120 @@ public sealed class FakeFeeRepository
                 .OrderBy(e => e.CreatedUtc).ToList());
     }
 }
+
+/// Hermetic document store for the API e2e (MPE-190) � mirrors
+/// DocRepository semantics: enqueue dedupes on request_hash, due
+/// rows join the doc's request id for the poll phase, and the
+/// outbox payload is stored "ciphertext-at-rest" via a FakeCipher
+/// tag so nothing plaintext-sensitive sits in the fake either.
+public sealed class FakeDocumentRepository
+    : Lola.Application.Documents.IDocumentRepository
+{
+    public Dictionary<string, Lola.Application.Documents.DocRecord> Docs { get; } = [];
+    public Dictionary<string, Lola.Application.Documents.DocOutboxRow> Outbox { get; } = [];
+    // Tenant scoping � the real store is a per-tenant file; the fake
+    // captures TenantContext at enqueue and filters due rows by it so
+    // one test's rows can't drain inside another test's tenant.
+    private readonly Dictionary<string, string> _rowTenants = [];
+
+    public Task<Lola.Application.Documents.DocEnqueueResult> EnqueueAsync(
+        Lola.Application.Documents.DocRecord doc, string outboxId,
+        string kind, string payloadJson,
+        CancellationToken ct = default)
+    {
+        var dup = Outbox.Values.FirstOrDefault(
+            r => r.RequestHash == doc.RequestHash);
+        if (dup is not null)
+            return Task.FromResult(
+                new Lola.Application.Documents.DocEnqueueResult(
+                    dup.DocId, true));
+        Docs[doc.DocId] = doc;
+        _rowTenants[outboxId] =
+            Lola.Application.Tenancy.TenantContext.Current?.TenantId
+            ?? "";
+        Outbox[outboxId] = new Lola.Application.Documents.DocOutboxRow(
+            outboxId, kind, doc.DocId, doc.RequestHash, payloadJson,
+            "pending", 0, null, null);
+        return Task.FromResult(
+            new Lola.Application.Documents.DocEnqueueResult(
+                doc.DocId, false));
+    }
+
+    public Task<Lola.Application.Documents.DocRecord?> GetDocAsync(
+        string docId, CancellationToken ct = default)
+        => Task.FromResult(
+            Docs.TryGetValue(docId, out var d) ? d : null);
+
+    public Task<IReadOnlyList<Lola.Application.Documents.DocRecord>>
+        ListDocsAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Documents.DocRecord>>(
+            Docs.Values.Where(d => d.ApplicationId == appId).ToList());
+
+    public Task<IReadOnlyList<Lola.Application.Documents.DocOutboxRow>>
+        ListDueOutboxAsync(string nowUtc, int limit,
+            CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Documents.DocOutboxRow>>(
+            Outbox.Values.Where(r => r.Status == "pending" &&
+                _rowTenants[r.OutboxId] ==
+                    (Lola.Application.Tenancy.TenantContext.Current
+                        ?.TenantId ?? "") &&
+                (r.NextRetryUtc is null ||
+                 string.CompareOrdinal(r.NextRetryUtc, nowUtc) <= 0))
+                .Take(limit)
+                .Select(r => r with
+                {
+                    RequestId = Docs[r.DocId].RequestId
+                }).ToList());
+
+    public Task MarkGeneratingAsync(string outboxId, string docId,
+        string requestId, string nextRetryUtc,
+        CancellationToken ct = default)
+    {
+        Docs[docId] = Docs[docId] with
+        { Status = "generating", RequestId = requestId };
+        Outbox[outboxId] = Outbox[outboxId] with
+        { NextRetryUtc = nextRetryUtc };
+        return Task.CompletedTask;
+    }
+
+    public Task CompleteAsync(string outboxId, string docId,
+        string requestId, string? filename, string completedUtc,
+        CancellationToken ct = default)
+    {
+        Docs[docId] = Docs[docId] with
+        {
+            Status = "completed",
+            Filename = filename,
+            RequestId = requestId,
+            CompletedUtc = completedUtc
+        };
+        Outbox[outboxId] = Outbox[outboxId] with { Status = "done" };
+        return Task.CompletedTask;
+    }
+
+    public Task RescheduleAsync(string outboxId, string docId,
+        long attempts, string nextRetryUtc, string error,
+        CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with
+        {
+            Attempts = attempts,
+            NextRetryUtc = nextRetryUtc,
+            LastError = error
+        };
+        return Task.CompletedTask;
+    }
+
+    public Task DeadLetterAsync(string outboxId, string docId,
+        long attempts, string error,
+        CancellationToken ct = default)
+    {
+        Docs[docId] = Docs[docId] with
+        { Status = "failed", Error = error };
+        Outbox[outboxId] = Outbox[outboxId] with
+        { Status = "dlq", Attempts = attempts, LastError = error };
+        return Task.CompletedTask;
+    }
+}

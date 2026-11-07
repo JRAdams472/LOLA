@@ -34,7 +34,11 @@ public sealed record TenantRecord(
     string Status,
     string DbPath,
     string? DbKeyWrapped,
-    string CreatedUtc);
+    string CreatedUtc,
+    string? IspprClientId = null,
+    string? IspprCustomerId = null,
+    string? IspprKeyId = null,
+    string? IspprKeyWrapped = null);
 
 public sealed record LolaUser(
     string Id,

@@ -11,7 +11,11 @@ public sealed class TenantRegistry(ControlPlaneDb db) : ITenantRegistry
 {
     private const string Columns =
         "id, slug, display_name AS DisplayName, status, db_path AS DbPath, " +
-        "db_key_wrapped AS DbKeyWrapped, created_utc AS CreatedUtc";
+        "db_key_wrapped AS DbKeyWrapped, created_utc AS CreatedUtc, " +
+        "isppr_client_id AS IspprClientId, " +
+        "isppr_customer_id AS IspprCustomerId, " +
+        "isppr_key_id AS IspprKeyId, " +
+        "isppr_key_wrapped AS IspprKeyWrapped";
 
     public async Task<TenantRecord?> FindByIdAsync(string id, CancellationToken ct = default)
     {
@@ -68,5 +72,37 @@ public sealed class TenantRegistry(ControlPlaneDb db) : ITenantRegistry
                 updated_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = @tenantId
             """, new { tenantId, status }, cancellationToken: ct));
+    }
+
+    /// ISPPr vendor binding (MPE-190): the client/customer ids land as
+    /// soon as provisioning ensures them — re-entrant, so each id is
+    /// written once and never overwritten.
+    public async Task SetIspprIdsAsync(string tenantId, string clientId,
+        string customerId, CancellationToken ct = default)
+    {
+        using var conn = db.Open();
+        await conn.ExecuteAsync(new CommandDefinition("""
+            UPDATE tenants SET isppr_client_id = @clientId,
+                isppr_customer_id = @customerId,
+                updated_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = @tenantId
+            """, new { tenantId, clientId, customerId },
+            cancellationToken: ct));
+    }
+
+    /// The transit-wrapped tenant API key — plaintext crosses exactly
+    /// once at creation, then only this ciphertext + the key id (for
+    /// erasure revocation, MPE-191) persist.
+    public async Task SetIspprKeyAsync(string tenantId, string keyId,
+        string keyWrapped, CancellationToken ct = default)
+    {
+        using var conn = db.Open();
+        await conn.ExecuteAsync(new CommandDefinition("""
+            UPDATE tenants SET isppr_key_id = @keyId,
+                isppr_key_wrapped = @keyWrapped,
+                updated_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = @tenantId
+            """, new { tenantId, keyId, keyWrapped },
+            cancellationToken: ct));
     }
 }
