@@ -345,6 +345,29 @@ if (!"false".Equals(builder.Configuration["FEE_OUTBOX_ENABLED"],
 if (!"false".Equals(builder.Configuration["DOC_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Documents.DocOutboxWorker>();
+
+// Document vault seam (MPE-200, ADR-0007): VAULT_ADAPTER=minio lands
+// the real S3 adapter + ClamAV scanner in Phase 2 (MPE-201); anything
+// else gets the deterministic in-memory stubs. Asking for minio now
+// fails fast — a misconfigured deploy must never silently keep
+// borrower uploads in process memory. The cipher wraps per-object
+// DEKs under the ambient tenant transit key — the vault only ever
+// holds ciphertext.
+if ("minio".Equals(builder.Configuration["VAULT_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException(
+        "VAULT_ADAPTER=minio requires the MinIO adapter — it lands in MPE-201");
+builder.Services.AddScoped<Lola.Application.Vault.IVaultDocRepository,
+    VaultRepository>();
+builder.Services.AddSingleton(
+    new Lola.Application.Vault.VaultUploadOptions(
+        long.TryParse(builder.Configuration["VAULT_MAX_BYTES"],
+            out var vaultMax) ? vaultMax : 25L << 20));
+builder.Services.AddSingleton<Lola.Application.Vault.VaultCipher>();
+builder.Services.AddSingleton<Lola.Application.Vault.IVirusScanner,
+    Lola.Infrastructure.Vault.StubScanner>();
+builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault,
+    Lola.Infrastructure.Vault.StubObjectVault>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),

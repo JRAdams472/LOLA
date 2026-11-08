@@ -108,6 +108,21 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton(new FakeDocVendorAdmin());
             services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin>(
                 sp => sp.GetRequiredService<FakeDocVendorAdmin>());
+            // Document vault (MPE-200) — hermetic registry + loopback
+            // field cipher: the real TransitFieldCipher would hit
+            // OpenBao on every DEK wrap / filename encrypt. Object
+            // vault + scanner stay the production stubs — the e2e
+            // asserts quarantined bytes are ciphertext.
+            services.AddSingleton(new FakeVaultDocRepository());
+            services.AddSingleton<Lola.Application.Vault.IVaultDocRepository>(
+                sp => sp.GetRequiredService<FakeVaultDocRepository>());
+            services.AddSingleton<Lola.Application.Security.IFieldCipher,
+                LoopbackFieldCipher>();
+            // Small cap so the 413 path is exercisable without a
+            // 25 MiB multipart body.
+            services.AddSingleton(
+                new Lola.Application.Vault.VaultUploadOptions(
+                    128L << 10));
             // The request handler resolves the tenant's vendor
             // customer id off the registry row � the fake control
             // plane leaves it null, so provision a binding inline:

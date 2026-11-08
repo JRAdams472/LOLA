@@ -625,3 +625,121 @@ public sealed class FakeDocumentRepository
         return Task.CompletedTask;
     }
 }
+
+/// Hermetic vault store for the API e2e (MPE-200) — mirrors
+/// VaultRepository semantics: enqueue dedupes on request_hash,
+/// outbox rows carry the ambient tenant like the doc fake so one
+/// test's scans can't drain inside another's tenant, and the
+/// insertion sequence mirrors rowid ordering for newest-first lists.
+public sealed class FakeVaultDocRepository
+    : Lola.Application.Vault.IVaultDocRepository
+{
+    public Dictionary<string, Lola.Application.Vault.VaultDocRecord> Docs { get; } = [];
+    public Dictionary<string, Lola.Application.Vault.VaultScanOutboxRow> Outbox { get; } = [];
+    private readonly Dictionary<string, string> _rowTenants = [];
+    private long _seq;
+    private readonly Dictionary<string, long> _docSeq = [];
+
+    public Task<Lola.Application.Vault.VaultEnqueueResult> EnqueueAsync(
+        Lola.Application.Vault.VaultDocRecord doc, string outboxId,
+        CancellationToken ct = default)
+    {
+        var dup = Docs.Values.FirstOrDefault(
+            r => r.RequestHash == doc.RequestHash);
+        if (dup is not null)
+            return Task.FromResult(
+                new Lola.Application.Vault.VaultEnqueueResult(
+                    dup.VaultDocId, true));
+        Docs[doc.VaultDocId] = doc;
+        _docSeq[doc.VaultDocId] = ++_seq;
+        _rowTenants[outboxId] =
+            Lola.Application.Tenancy.TenantContext.Current?.TenantId
+            ?? "";
+        Outbox[outboxId] = new Lola.Application.Vault.VaultScanOutboxRow(
+            outboxId, doc.VaultDocId, doc.RequestHash, "pending",
+            0, null, null);
+        return Task.FromResult(
+            new Lola.Application.Vault.VaultEnqueueResult(
+                doc.VaultDocId, false));
+    }
+
+    public Task<Lola.Application.Vault.VaultDocRecord?> GetAsync(
+        string vaultDocId, CancellationToken ct = default)
+        => Task.FromResult(
+            Docs.TryGetValue(vaultDocId, out var d) ? d : null);
+
+    public Task<IReadOnlyList<Lola.Application.Vault.VaultDocRecord>>
+        ListAsync(string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Vault.VaultDocRecord>>(
+            Docs.Values.Where(d => d.ApplicationId == appId)
+                .OrderByDescending(d => _docSeq[d.VaultDocId]).ToList());
+
+    public Task<IReadOnlyList<Lola.Application.Vault.VaultScanOutboxRow>>
+        ListDueScansAsync(string nowUtc, int limit,
+            CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Vault.VaultScanOutboxRow>>(
+            Outbox.Values.Where(r => r.Status == "pending" &&
+                _rowTenants[r.OutboxId] ==
+                    (Lola.Application.Tenancy.TenantContext.Current
+                        ?.TenantId ?? "") &&
+                (r.NextRetryUtc is null ||
+                 string.CompareOrdinal(r.NextRetryUtc, nowUtc) <= 0))
+                .Take(limit).ToList());
+
+    public Task MarkScanningAsync(string outboxId, string nextRetryUtc,
+        CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with
+        { NextRetryUtc = nextRetryUtc };
+        return Task.CompletedTask;
+    }
+
+    public Task CompleteScanAsync(string outboxId, string vaultDocId,
+        string cleanKey, string scannedUtc,
+        CancellationToken ct = default)
+    {
+        Docs[vaultDocId] = Docs[vaultDocId] with
+        { Status = "clean", S3Key = cleanKey, ScannedUtc = scannedUtc };
+        Outbox[outboxId] = Outbox[outboxId] with { Status = "done" };
+        return Task.CompletedTask;
+    }
+
+    public Task MarkInfectedAsync(string outboxId, string vaultDocId,
+        string signature, string scannedUtc,
+        CancellationToken ct = default)
+    {
+        Docs[vaultDocId] = Docs[vaultDocId] with
+        {
+            Status = "infected",
+            Error = signature,
+            ScannedUtc = scannedUtc
+        };
+        Outbox[outboxId] = Outbox[outboxId] with { Status = "done" };
+        return Task.CompletedTask;
+    }
+
+    public Task MarkUnavailableAsync(string outboxId, string vaultDocId,
+        string error, CancellationToken ct = default)
+    {
+        Docs[vaultDocId] = Docs[vaultDocId] with
+        { Status = "unavailable", Error = error };
+        Outbox[outboxId] = Outbox[outboxId] with
+        { Status = "dlq", LastError = error };
+        return Task.CompletedTask;
+    }
+
+    public Task RescheduleScanAsync(string outboxId, long attempts,
+        string nextRetryUtc, string error,
+        CancellationToken ct = default)
+    {
+        Outbox[outboxId] = Outbox[outboxId] with
+        {
+            Attempts = attempts,
+            NextRetryUtc = nextRetryUtc,
+            LastError = error
+        };
+        return Task.CompletedTask;
+    }
+}
