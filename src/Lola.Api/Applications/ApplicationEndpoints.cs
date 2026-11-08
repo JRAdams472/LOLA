@@ -7,8 +7,11 @@ using Lola.Application.Fees;
 using Lola.Application.Interop;
 using Lola.Application.Pricing;
 using Lola.Application.Security;
+using Lola.Application.Vault;
 using Lola.Domain.Identity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Net.Http.Headers;
 using Wolverine;
 
 namespace Lola.Api.Applications;
@@ -193,6 +196,72 @@ public static class ApplicationEndpoints
                 new GetDocumentDownloadQuery(id, appId, docId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Document vault (MPE-200) — POST is a streamed multipart
+        // upload (never model-bound — buffering would put plaintext
+        // on disk); the handler encrypts to quarantine and enqueues
+        // the AV scan, so the 202 contract mirrors packages/fees.
+        // `classification` rides the query string so section order
+        // can't matter.
+        group.MapPost("/{appId}/uploads", async (string id,
+                string appId, HttpRequest request,
+                string? classification, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) =>
+        {
+            // Same tenant guard as Guarded — run it BEFORE consuming
+            // the body so a doomed request never reads megabytes.
+            if (Lola.Application.Tenancy.TenantContext.Current?.TenantId
+                != id)
+                return Results.Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "request tenant does not match the resolved tenant");
+            if (!MediaTypeHeaderValue.TryParse(request.ContentType,
+                    out var media)
+                || !media.MediaType.Equals("multipart/form-data",
+                    StringComparison.OrdinalIgnoreCase)
+                || media.Boundary.Value is null)
+                return Results.Problem(
+                    statusCode: StatusCodes.Status415UnsupportedMediaType,
+                    title: "multipart/form-data upload required");
+
+            var reader = new MultipartReader(
+                media.Boundary.Value, request.Body);
+            MultipartSection? section;
+            ContentDispositionHeaderValue? cd;
+            // Skip any non-file parts — the document rides as the
+            // `file` part (or first part carrying a filename).
+            while ((section = await reader.ReadNextSectionAsync(ct))
+                   is not null)
+            {
+                if (ContentDispositionHeaderValue.TryParse(
+                        section.ContentDisposition, out cd)
+                    && cd!.FileName.HasValue)
+                    return await Guarded(id, async () =>
+                        await bus.InvokeAsync<VaultUploadAccepted>(
+                            new UploadVaultDocCommand(id, appId,
+                                Actor(user), IsBorrower(user),
+                                classification ?? "",
+                                cd.FileNameStar.Value ?? cd.FileName.Value,
+                                section.ContentType, section.Body), ct));
+            }
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "multipart upload requires a file part");
+        });
+
+        group.MapGet("/{appId}/uploads", async (string id, string appId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<VaultDocDto>>(
+                new GetApplicationUploadsQuery(id, appId,
+                    Actor(user), IsBorrower(user)), ct)));
+
+        group.MapGet("/{appId}/uploads/{docId}", async (string id,
+                string appId, string docId, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<VaultDocDto>(
+                new GetVaultDocQuery(id, appId, docId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Rate lock (MPE-131) — lock freezes the eval-determining
         // paths; unlock requires a reason and clears the freeze.
         group.MapPost("/{appId}/lock", async (string id, string appId,
@@ -289,6 +358,7 @@ public static class ApplicationEndpoints
             PriceResult price => Results.Accepted(null, price),
             FeeEvalAccepted fee => Results.Accepted(null, fee),
             DocAccepted doc => Results.Accepted(null, doc),
+            VaultUploadAccepted up => Results.Accepted(null, up),
             DocDownloadResult dl => Results.Redirect(dl.Url),
             null => Results.NotFound(),
             _ => Results.Ok(result)
