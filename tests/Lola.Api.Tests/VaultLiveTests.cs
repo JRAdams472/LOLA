@@ -344,6 +344,45 @@ public sealed class VaultLiveTests
     }
 
     [Fact]
+    public async Task Signed_url_verifies_under_real_transit()
+    {
+        var s = await StackAsync();
+        var rec = await ProvisionAsync(s);
+        var signer = new TransitVaultUrlSigner(s.Transit,
+            TimeProvider.System);
+        var exp = DateTimeOffset.UtcNow.AddMinutes(15);
+        string sig;
+
+        // Tenant-scoped sign+verify — the scope lives only inside
+        // these blocks so it can never leak into provisioning.
+        using (TenantContext.Use(TenantScope.From(rec)))
+        {
+            sig = await signer.SignAsync("doc-1", exp);
+            sig.ShouldStartWith("vault:v");
+            (await signer.VerifyAsync("doc-1", exp, sig)).ShouldBeTrue();
+            (await signer.VerifyAsync("doc-1", exp,
+                sig[..^2] + "AA")).ShouldBeFalse();      // tampered
+            (await signer.VerifyAsync("doc-2", exp, sig))
+                .ShouldBeFalse();                        // rebound doc
+            (await signer.VerifyAsync("doc-1",
+                exp.AddMinutes(1), sig)).ShouldBeFalse();// rebound exp
+            (await signer.VerifyAsync("doc-1",
+                DateTimeOffset.UtcNow.AddMinutes(-1), sig))
+                .ShouldBeFalse();                        // expired
+        }
+
+        // Cross-tenant replay — a different tenant's index key HMACs
+        // the identical payload differently. Only the transit key is
+        // needed: the signature lives or dies with it either way.
+        var otherId = $"vl{Guid.NewGuid():N}"[..12];
+        await new TransitKeyManager(s.Transit)
+            .EnsureKeysAsync(otherId);
+        using (TenantContext.Use(new TenantScope(otherId, "", null)))
+            (await signer.VerifyAsync("doc-1", exp, sig))
+                .ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Purge_destroys_objects_and_bucket()
     {
         var s = await StackAsync();

@@ -12,7 +12,7 @@ public sealed class TransitKeyManager(OpenBaoTransitClient transit) : ITenantKey
     // TenantId.Validate runs at the key-name choke point — an unsafe
     // tenant id can never reach a transit key path (M2 hardening F1).
     private static string DataKey(string tenantId) => $"tenant-{TenantId.Validate(tenantId)}";
-    private static string IndexKey(string tenantId) => $"tenant-{tenantId}-idx";
+    internal static string IndexKey(string tenantId) => $"tenant-{tenantId}-idx";
 
     public async Task EnsureKeysAsync(string tenantId, CancellationToken ct = default)
     {

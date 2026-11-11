@@ -18,7 +18,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Inside_window_delete_is_refused_with_clear_date()
     {
-        var (handler, _, _, audit, _) = Fixture(
+        var (handler, _, _, audit, _, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var ex = await Should.ThrowAsync<DomainException>(handler(
             new EraseTenantCommand("t1", Force: false, null, "ops")));
@@ -30,7 +30,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Force_without_reason_is_400_and_erases_nothing()
     {
-        var (handler, _, erased, audit, _) = Fixture(
+        var (handler, _, erased, audit, _, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var ex = await Should.ThrowAsync<DomainException>(handler(
             new EraseTenantCommand("t1", Force: true, null, "ops")));
@@ -42,7 +42,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Force_with_reason_erases_and_audits_override()
     {
-        var (handler, _, erased, audit, _) = Fixture(
+        var (handler, _, erased, audit, _, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var result = await handler(
             new EraseTenantCommand("t1", Force: true, "court order", "ops"));
@@ -64,13 +64,13 @@ public sealed class RetentionGateTests
     public async Task Past_window_and_empty_tenants_erase_without_override()
     {
         // App created 26 months ago — window closed before `Now`.
-        var (handler, _, erased, audit, _) = Fixture(
+        var (handler, _, erased, audit, _, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2024-04-01T00:00:00.000Z")]);
         (await handler(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         erased.ShouldBe(["t1"]);
 
-        var (empty, _, emptyErased, emptyAudit, _) = Fixture([]);
+        var (empty, _, emptyErased, emptyAudit, _, _) = Fixture([]);
         (await empty(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         emptyErased.ShouldBe(["t1"]);
@@ -81,7 +81,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Tenant_with_vendor_key_revokes_it_before_shredding()
     {
-        var (handler, _, erased, audit, docAdmin) = Fixture(
+        var (handler, _, erased, audit, docAdmin, _) = Fixture(
             [], tenant: TenantWithKey);
         var result = await handler(
             new EraseTenantCommand("t1", false, null, "ops"));
@@ -97,7 +97,7 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Failed_vendor_revoke_aborts_before_any_shredding()
     {
-        var (handler, _, erased, audit, docAdmin) = Fixture(
+        var (handler, _, erased, audit, docAdmin, _) = Fixture(
             [], tenant: TenantWithKey);
         docAdmin.Fail = true;
         await Should.ThrowAsync<Documents.DocAdapterException>(handler(
@@ -109,18 +109,43 @@ public sealed class RetentionGateTests
     [Fact]
     public async Task Tenant_without_vendor_binding_skips_revocation()
     {
-        var (handler, _, _, audit, docAdmin) = Fixture([]);
+        var (handler, _, _, audit, docAdmin, _) = Fixture([]);
         (await handler(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
         docAdmin.Revoked.ShouldBeEmpty();
         audit.Events.Select(e => e.Action).ShouldBe(["tenant_erased"]);
     }
 
+    [Fact]
+    public async Task Vault_purge_runs_and_is_audited_before_shred()
+    {
+        var (handler, _, _, audit, _, vault) = Fixture([], vault: new());
+        (await handler(new EraseTenantCommand("t1", false, null, "ops")))
+            .TenantId.ShouldBe("t1");
+        vault.Purged.ShouldBe(["t1"]);
+        audit.Events.Select(e => e.Action)
+            .ShouldBe(["vault_purged", "tenant_erased"]);
+    }
+
+    [Fact]
+    public async Task Failed_vault_purge_aborts_before_any_shredding()
+    {
+        var (handler, _, erased, audit, _, vault) =
+            Fixture([], vault: new() { Fail = true });
+        await Should.ThrowAsync<InvalidOperationException>(handler(
+            new EraseTenantCommand("t1", false, null, "ops")));
+        vault.Purged.ShouldBeEmpty();
+        erased.ShouldBeEmpty();
+        audit.Events.ShouldBeEmpty();
+    }
+
     private static (Func<EraseTenantCommand, Task<TenantErasureResult>> Run,
         FakeRegistry Registry, List<string> Erased, FakeAudit Audit,
-        FakeDocAdmin DocAdmin) Fixture(
+        FakeDocAdmin DocAdmin,
+        FakeVaultProvisioner? Vault) Fixture(
             IReadOnlyList<ApplicationRetentionRow> windows,
-            TenantRecord? tenant = null)
+            TenantRecord? tenant = null,
+            FakeVaultProvisioner? vault = null)
     {
         var registry = new FakeRegistry(tenant ?? Tenant);
         var apps = new FakeApps(windows);
@@ -130,8 +155,8 @@ public sealed class RetentionGateTests
         var docAdmin = new FakeDocAdmin();
         return (c => EraseTenantHandler.Handle(
                     c, registry, apps, eraser, audit, clock, docAdmin,
-                    CancellationToken.None),
-                registry, eraser.Erased, audit, docAdmin);
+                    vault is null ? [] : [vault], CancellationToken.None),
+                registry, eraser.Erased, audit, docAdmin, vault);
     }
 
     private static TenantRecord Tenant =>
@@ -245,6 +270,23 @@ public sealed class RetentionGateTests
             throw new NotImplementedException();
         public Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditFilter filter, CancellationToken ct = default) =>
             throw new NotImplementedException();
+    }
+
+    private sealed class FakeVaultProvisioner
+        : Vault.ITenantVaultProvisioner
+    {
+        public List<string> Purged { get; } = [];
+        public bool Fail;
+        public Task EnsureAsync(Domain.Identity.TenantRecord tenant,
+            CancellationToken ct = default) => Task.CompletedTask;
+        public Task PurgeAsync(Domain.Identity.TenantRecord tenant,
+            CancellationToken ct = default)
+        {
+            if (Fail) throw new InvalidOperationException(
+                "vault purge failed");
+            Purged.Add(tenant.Id);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeClock(DateTimeOffset now) : TimeProvider
