@@ -35,7 +35,7 @@ services:
         condition: service_started
 
   minio:
-    # Borrower document vault (M9). Community source-build continuation —
+    # Borrower document vault (M10). Community source-build continuation —
     # dev-only S3 stand-in.
     image: ghcr.io/coollabsio/minio:latest
     command: server /data --console-address ":9001"
@@ -51,7 +51,7 @@ services:
       retries: 6
 
   clamav:
-    # Upload scanning for the document vault (M9): quarantine → scan → clean.
+    # Upload scanning for the document vault (M10): quarantine → scan → clean.
     image: clamav/clamav:stable
     ports: ["3310:3310"]
     healthcheck:
@@ -88,7 +88,10 @@ services:
       OPENBAO_ADDR: http://openbao:8200
       OPENBAO_TOKEN_FILE: /run/openbao/api-token
       S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
       CLAMAV_ADDR: clamav:3310
+      VAULT_ADAPTER: minio
       CONTROL_DB_PATH: /app/data/control.db
       SEQ_URL: http://seq
       OTEL_SERVICE_NAME: lola

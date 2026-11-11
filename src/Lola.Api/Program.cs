@@ -345,18 +345,64 @@ if (!"false".Equals(builder.Configuration["FEE_OUTBOX_ENABLED"],
 if (!"false".Equals(builder.Configuration["DOC_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Documents.DocOutboxWorker>();
+if (!"false".Equals(builder.Configuration["VAULT_SCAN_ENABLED"],
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<Lola.Api.Vault.VaultScanWorker>();
 
-// Document vault seam (MPE-200, ADR-0007): VAULT_ADAPTER=minio lands
-// the real S3 adapter + ClamAV scanner in Phase 2 (MPE-201); anything
-// else gets the deterministic in-memory stubs. Asking for minio now
-// fails fast — a misconfigured deploy must never silently keep
-// borrower uploads in process memory. The cipher wraps per-object
-// DEKs under the ambient tenant transit key — the vault only ever
-// holds ciphertext.
+// Document vault seam (MPE-200/201, ADR-0007): VAULT_ADAPTER=minio
+// selects the real MinIO object vault + ClamAV zINSTREAM scanner +
+// the per-tenant bucket provisioning step; anything else gets the
+// deterministic in-memory stubs. minio requires S3_ENDPOINT +
+// S3_ACCESS_KEY + S3_SECRET_KEY + CLAMAV_ADDR — missing config fails
+// fast at boot rather than silently keeping uploads in memory. The
+// cipher wraps per-object DEKs under the ambient tenant transit key —
+// the vault only ever holds ciphertext.
 if ("minio".Equals(builder.Configuration["VAULT_ADAPTER"],
         StringComparison.OrdinalIgnoreCase))
+{
+    string Required(string key) => builder.Configuration[key]
+        ?? throw new InvalidOperationException(
+            $"{key} is required when VAULT_ADAPTER=minio");
+    var s3 = new Amazon.S3.AmazonS3Client(
+        new Amazon.Runtime.BasicAWSCredentials(
+            Required("S3_ACCESS_KEY"), Required("S3_SECRET_KEY")),
+        new Amazon.S3.AmazonS3Config
+        {
+            ServiceURL = Required("S3_ENDPOINT"),
+            ForcePathStyle = true,
+            // MinIO predates the SDK's default CRC32 trailer —
+            // checksums only when the wire requires them.
+            RequestChecksumCalculation =
+                Amazon.Runtime.RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation =
+                Amazon.Runtime.ResponseChecksumValidation.WHEN_REQUIRED
+        });
+    builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(s3);
+    builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault>(
+        new Lola.Infrastructure.Vault.MinioObjectVault(s3));
+    builder.Services.AddSingleton<Lola.Application.Vault.IVirusScanner>(
+        Lola.Infrastructure.Vault.ClamAvScanner.Parse(
+            Required("CLAMAV_ADDR")));
+    builder.Services.AddSingleton<
+        Lola.Application.Vault.ITenantVaultProvisioner>(
+        new Lola.Infrastructure.Vault.TenantVaultProvisioner(s3));
+}
+else if ("stub".Equals(
+        builder.Configuration["VAULT_ADAPTER"] ?? "stub",
+        StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<Lola.Application.Vault.IVirusScanner,
+        Lola.Infrastructure.Vault.StubScanner>();
+    builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault,
+        Lola.Infrastructure.Vault.StubObjectVault>();
+}
+else
+{
+    // Unknown adapters fail fast — a mistyped value must never
+    // silently keep borrower uploads in process memory.
     throw new InvalidOperationException(
-        "VAULT_ADAPTER=minio requires the MinIO adapter — it lands in MPE-201");
+        $"Unsupported VAULT_ADAPTER '{builder.Configuration["VAULT_ADAPTER"]}'");
+}
 builder.Services.AddScoped<Lola.Application.Vault.IVaultDocRepository,
     VaultRepository>();
 builder.Services.AddSingleton(
@@ -364,10 +410,7 @@ builder.Services.AddSingleton(
         long.TryParse(builder.Configuration["VAULT_MAX_BYTES"],
             out var vaultMax) ? vaultMax : 25L << 20));
 builder.Services.AddSingleton<Lola.Application.Vault.VaultCipher>();
-builder.Services.AddSingleton<Lola.Application.Vault.IVirusScanner,
-    Lola.Infrastructure.Vault.StubScanner>();
-builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault,
-    Lola.Infrastructure.Vault.StubObjectVault>();
+builder.Services.AddSingleton<Lola.Api.Vault.VaultScanProcessor>();
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
@@ -375,7 +418,8 @@ builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningSe
     sp.GetRequiredService<IServiceClientProvisioner>(),
     sp.GetRequiredService<ITenantMigrationRunner>(),
     builder.Configuration["TENANT_DATA_DIR"] ?? "data/tenants",
-    sp.GetService<Lola.Application.Documents.ITenantDocProvisioner>()));
+    sp.GetService<Lola.Application.Documents.ITenantDocProvisioner>(),
+    sp.GetService<Lola.Application.Vault.ITenantVaultProvisioner>()));
 
 var app = builder.Build();
 app.Services.GetRequiredService<ControlPlaneDb>().Migrate();

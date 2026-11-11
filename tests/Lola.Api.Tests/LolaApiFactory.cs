@@ -33,6 +33,9 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         // Same eager-read reason — tests drain FeeOutboxProcessor
         // explicitly, never the hosted worker.
         Environment.SetEnvironmentVariable("FEE_OUTBOX_ENABLED", "false");
+        // Vault scans drain explicitly too — the always-clean stub
+        // scanner would otherwise race the `quarantined` assertions.
+        Environment.SetEnvironmentVariable("VAULT_SCAN_ENABLED", "false");
 
         builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
