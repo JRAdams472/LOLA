@@ -411,6 +411,14 @@ builder.Services.AddSingleton(
             out var vaultMax) ? vaultMax : 25L << 20));
 builder.Services.AddSingleton<Lola.Application.Vault.VaultCipher>();
 builder.Services.AddSingleton<Lola.Api.Vault.VaultScanProcessor>();
+// Download-URL signer (MPE-202): transit hmac under the tenant's
+// index key — a minted capability dies with the tenant's keys.
+builder.Services.AddSingleton<Lola.Application.Vault.IVaultUrlSigner,
+    Lola.Infrastructure.Vault.TransitVaultUrlSigner>();
+builder.Services.AddSingleton(
+    new Lola.Application.Vault.VaultUrlOptions(
+        int.TryParse(builder.Configuration["VAULT_URL_TTL_SECONDS"],
+            out var vaultTtl) ? vaultTtl : 900));
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),
@@ -454,6 +462,7 @@ app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
 app.MapAdminEndpoints();
 app.MapApplicationEndpoints();
+Lola.Api.Vault.VaultEndpoints.MapVaultEndpoints(app);
 app.MapInviteEndpoints();
 
 app.Run();

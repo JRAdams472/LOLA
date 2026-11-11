@@ -262,6 +262,17 @@ public static class ApplicationEndpoints
                 new GetVaultDocQuery(id, appId, docId,
                     Actor(user), IsBorrower(user)), ct)));
 
+        // Download mint (MPE-202): the authorized, audited step —
+        // 302s to a ≤15-min capability URL whose signature is itself
+        // the credential on the auth-free content route.
+        group.MapGet("/{appId}/uploads/{docId}/download",
+            async (string id, string appId, string docId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<VaultDownloadResult>(
+                new GetVaultDownloadQuery(id, appId, docId,
+                    Actor(user), IsBorrower(user)), ct)));
+
         // Rate lock (MPE-131) — lock freezes the eval-determining
         // paths; unlock requires a reason and clears the freeze.
         group.MapPost("/{appId}/lock", async (string id, string appId,
@@ -360,6 +371,7 @@ public static class ApplicationEndpoints
             DocAccepted doc => Results.Accepted(null, doc),
             VaultUploadAccepted up => Results.Accepted(null, up),
             DocDownloadResult dl => Results.Redirect(dl.Url),
+            VaultDownloadResult vdl => Results.Redirect(vdl.Url),
             null => Results.NotFound(),
             _ => Results.Ok(result)
         };

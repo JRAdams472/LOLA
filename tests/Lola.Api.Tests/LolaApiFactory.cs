@@ -121,6 +121,13 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeVaultDocRepository>());
             services.AddSingleton<Lola.Application.Security.IFieldCipher,
                 LoopbackFieldCipher>();
+            // Download-URL signer (MPE-202): hermetic HMAC instead of
+            // transit — same verify contract, on a clock the test can
+            // age for the expired-signature case.
+            services.AddSingleton(new SettableTimeProvider());
+            services.AddSingleton<Lola.Application.Vault.IVaultUrlSigner>(
+                sp => new Lola.Infrastructure.Vault.StubVaultUrlSigner(
+                    sp.GetRequiredService<SettableTimeProvider>()));
             // Small cap so the 413 path is exercisable without a
             // 25 MiB multipart body.
             services.AddSingleton(

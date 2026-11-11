@@ -26,7 +26,9 @@ public static class EraseTenantHandler
         EraseTenantCommand c, ITenantRegistry registry,
         IApplicationRepository apps, ITenantEraser eraser,
         IControlPlaneAuditLog audit, TimeProvider clock,
-        Documents.IDocVendorAdmin docAdmin, CancellationToken ct)
+        Documents.IDocVendorAdmin docAdmin,
+        IEnumerable<Vault.ITenantVaultProvisioner> vaultProvisioners,
+        CancellationToken ct)
     {
         var tenant = await registry.FindByIdAsync(c.TenantId, ct)
             ?? throw DomainException.NotFound("tenant not found");
@@ -68,6 +70,21 @@ public static class EraseTenantHandler
         {
             await docAdmin.RevokeApiKeyAsync(tenant.IspprKeyId, ct);
             await audit.WriteAsync(c.ActorId, "isppr_key_revoked",
+                "tenant", c.TenantId, [], null, ct);
+        }
+
+        // Vault bucket purge BEFORE the shred (MPE-202): the tenant's
+        // ciphertext objects must not outlive the registry's authority
+        // over them. Same fail-closed discipline as the key revoke —
+        // a failed purge aborts the whole erasure with nothing yet
+        // destroyed (the revoke above is idempotent, so retry
+        // converges). Empty under VAULT_ADAPTER=stub: the stub vault
+        // is process memory, nothing durable to purge.
+        var vaultProvisioner = vaultProvisioners.FirstOrDefault();
+        if (vaultProvisioner is not null)
+        {
+            await vaultProvisioner.PurgeAsync(tenant, ct);
+            await audit.WriteAsync(c.ActorId, "vault_purged",
                 "tenant", c.TenantId, [], null, ct);
         }
 
