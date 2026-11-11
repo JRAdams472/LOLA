@@ -22,7 +22,8 @@ public sealed class TenantProvisioningService(
     IServiceClientProvisioner svcClients,
     ITenantMigrationRunner migrations,
     string tenantDataDir = "data/tenants",
-    Documents.ITenantDocProvisioner? docProvisioner = null)
+    Documents.ITenantDocProvisioner? docProvisioner = null,
+    Vault.ITenantVaultProvisioner? vaultProvisioner = null)
     : ITenantProvisioner
 {
     public async Task<ProvisionResult> ProvisionAsync(
@@ -84,6 +85,15 @@ public sealed class TenantProvisioningService(
             tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
             await docProvisioner.EnsureAsync(tenant, ct);
             steps.Add("isppr-docs");
+        }
+
+        // Vault bucket (MPE-201): MinIO `lola-vault-<tid>` — re-entrant
+        // like every step; registered only under VAULT_ADAPTER=minio.
+        if (vaultProvisioner is not null)
+        {
+            tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;
+            await vaultProvisioner.EnsureAsync(tenant, ct);
+            steps.Add("vault-bucket");
         }
 
         tenant = await registry.FindByIdAsync(tenantId, ct) ?? tenant;

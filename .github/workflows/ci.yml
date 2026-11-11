@@ -81,6 +81,29 @@ jobs:
             sleep 1
           done
           echo "openbao did not come up"; docker logs openbao --tail 30; exit 1
+      - name: Start MinIO + ClamAV (vault scan pipeline)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # Same detached-container pattern as OpenBao. VaultLive* hard-
+        # requires both: the ciphertext round-trip + bucket lifecycle
+        # run against real MinIO, the EICAR verdict against real clamd.
+        # Dev creds — ephemeral job infra only.
+        run: |
+          docker run -d --name minio -p 9200:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            ghcr.io/coollabsio/minio:latest server /data
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9200/minio/health/live >/dev/null && break
+            sleep 1
+          done
+          docker run -d --name clamav -p 3310:3310 clamav/clamav:stable
+          # clamd loads its signature DB before accepting INSTREAM —
+          # the PING gate is the honest "scanner ready" signal.
+          for i in $(seq 1 180); do
+            (exec 3<>/dev/tcp/localhost/3310 && printf 'PING\n' >&3 \
+              && head -1 <&3 | grep -q PONG) && exit 0 || sleep 1
+          done
+          echo "clamav did not come up"; docker logs clamav --tail 30; exit 1
       - name: Checkout MPEx (live eval backend)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -221,6 +244,10 @@ jobs:
           ISPPR_API_KEY: isppr_dev_demo
           ISPPR_ADMIN_EMAIL: admin@isppr.local
           ISPPR_ADMIN_PASSWORD: isppr-admin
+          S3_ENDPOINT: http://localhost:9200
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
+          CLAMAV_ADDR: localhost:3310
         run: >
           dotnet test -c Release --collect:"XPlat Code Coverage" --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
