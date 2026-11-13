@@ -13,6 +13,10 @@ public static class Logging
     [
         new PatternMaskingOperator(@"\b\d{3}-\d{2}-\d{4}\b"), // SSN 123-45-6789
         new PatternMaskingOperator(@"\b\d{9}\b"), // SSN 123456789 — may catch 9-digit ids; masked-by-default wins
+        // Vault capability signatures ride the query string, which
+        // framework request logging captures — a live credential must
+        // not persist into Seq (the sig is ≤15-min, but logs outlive it).
+        new PatternMaskingOperator(@"(?<=sig=)[^&\s""']+"),
         new EmailAddressMaskingOperator()
     ];
 }

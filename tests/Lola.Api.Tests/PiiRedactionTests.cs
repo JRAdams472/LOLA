@@ -26,6 +26,25 @@ public class PiiRedactionTests
         sink.Rendered.ShouldContain("MASK");
     }
 
+    [Fact]
+    public void Vault_capability_signature_is_masked()
+    {
+        var sink = new CollectingSink();
+        var logger = new LoggerConfiguration()
+            .Enrich.WithSensitiveDataMasking(o => o.MaskingOperators = Logging.MaskingOperators)
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+
+        // Framework request logging captures the QueryString property —
+        // a live sig is a credential and must not persist into sinks.
+        logger.Information("Request starting GET {Path}{QueryString}",
+            "/api/vault-content/vlt-1",
+            "?tid=t1&exp=1700000900&sig=deadbeefcafe1234567890");
+
+        sink.Rendered.ShouldNotContain("deadbeefcafe1234567890");
+        sink.Rendered.ShouldContain("sig=");
+    }
+
     private sealed class CollectingSink : ILogEventSink
     {
         public string Rendered { get; private set; } = "";
