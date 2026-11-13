@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -28,6 +29,7 @@ import {
 /// only, so an SSN never lands in a URL, browser history, or access
 /// log. Results join the pipeline read-model for name/status display.
 export default function SearchPage() {
+  const router = useRouter();
   const { me } = useMe();
   const apps = useApplications(me?.tid);
   const search = useLoanSearch(me?.tid);
@@ -114,7 +116,12 @@ export default function SearchPage() {
             </TableHead>
             <TableBody>
               {hits.map((h) => (
-                <TableRow key={h.id} hover>
+                <TableRow
+                  key={h.id}
+                  hover
+                  onClick={() => router.push(`/loans/${h.id}`)}
+                  sx={{ cursor: "pointer" }}
+                >
                   <TableCell>{"borrowerName" in h ? (h.borrowerName ?? "—") : "—"}</TableCell>
                   <TableCell>
                     {"status" in h ? <StatusChip status={h.status} /> : "—"}

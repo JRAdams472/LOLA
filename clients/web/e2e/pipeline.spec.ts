@@ -64,12 +64,18 @@ test("new loan dialog creates a draft that appears in the pipeline", async ({
   await expect(
     page.getByRole("row", { name: /Ada Lovelace/ }).first(),
   ).toBeVisible();
-  const bodyRows = page.locator("tbody tr");
-  const before = await bodyRows.count();
   await page.getByRole("button", { name: "New loan" }).click();
   await page.getByRole("button", { name: "Create draft" }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await expect(bodyRows).toHaveCount(before + 1);
+  // Creating a draft lands in its loan workspace.
+  await expect(page).toHaveURL(/\/loans\/[a-z0-9-]+$/);
+  await expect(page.getByText("draft").first()).toBeVisible();
+  // Back on the pipeline a row for THIS new draft exists.
+  const newId = page.url().split("/").pop()!;
+  await page.goto("/");
+  // The Application column truncates to the id prefix.
+  await expect(
+    page.getByRole("row", { name: new RegExp(newId.slice(0, 8)) }),
+  ).toBeVisible();
 });
 
 test("search finds the draft by SSN — the term never reaches the URL", async ({

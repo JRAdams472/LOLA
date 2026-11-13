@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -32,6 +33,7 @@ import { mutationError } from "@/lib/api";
 /// Sorted soonest-deadline-first so the clock that expires next always
 /// sits on top; un-stamped loans sink to the bottom.
 export default function PipelinePage() {
+  const router = useRouter();
   const { me } = useMe();
   const apps = useApplications(me?.tid);
   const create = useCreateDraft(me?.tid);
@@ -97,7 +99,12 @@ export default function PipelinePage() {
                 </TableRow>
               ))}
             {rows.map((a) => (
-              <TableRow key={a.id} hover>
+              <TableRow
+                key={a.id}
+                hover
+                onClick={() => router.push(`/loans/${a.id}`)}
+                sx={{ cursor: "pointer" }}
+              >
                 <TableCell>{a.borrowerName ?? "—"}</TableCell>
                 <TableCell>
                   <StatusChip status={a.status} />
@@ -140,7 +147,12 @@ export default function PipelinePage() {
             disabled={create.isPending}
             onClick={() =>
               create.mutate(undefined, {
-                onSuccess: () => setNewOpen(false),
+                onSuccess: (res) => {
+                  setNewOpen(false);
+                  if (res.status < 400 && res.data?.id) {
+                    router.push(`/loans/${res.data.id}`);
+                  }
+                },
               })
             }
           >
