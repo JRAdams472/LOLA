@@ -42,7 +42,12 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService(builder.Configuration["OTEL_SERVICE_NAME"] ?? "lola"))
     .WithTracing(t =>
     {
-        t.AddAspNetCoreInstrumentation();
+        t.AddAspNetCoreInstrumentation(o =>
+            // url.query can carry credentials (the vault capability's
+            // sig) — strip it from every server span so no credential
+            // ever reaches a trace backend.
+            o.EnrichWithHttpRequest = (activity, _) =>
+                activity.SetTag("url.query", null));
         // Exporter-free when the endpoint is unset — local runs emit nothing.
         if (!string.IsNullOrWhiteSpace(otlpEndpoint)) t.AddOtlpExporter();
     });
@@ -417,8 +422,10 @@ builder.Services.AddSingleton<Lola.Application.Vault.IVaultUrlSigner,
     Lola.Infrastructure.Vault.TransitVaultUrlSigner>();
 builder.Services.AddSingleton(
     new Lola.Application.Vault.VaultUrlOptions(
+        // Hard-clamped to the M10 contract — the signer caps at 15 min
+        // even if ops sets a longer VAULT_URL_TTL_SECONDS.
         int.TryParse(builder.Configuration["VAULT_URL_TTL_SECONDS"],
-            out var vaultTtl) ? vaultTtl : 900));
+            out var vaultTtl) ? Math.Clamp(vaultTtl, 60, 900) : 900));
 builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningService(
     sp.GetRequiredService<ITenantRegistry>(),
     sp.GetRequiredService<ITenantKeyManager>(),

@@ -55,6 +55,11 @@ public static class VaultEndpoints
         await using var plaintext =
             await cipher.OpenAsync(doc.WrappedDek, ciphertext, ct);
         ctx.Response.ContentType = doc.ContentType;
+        // Plaintext protected data must never linger in a browser or
+        // intermediary cache; sniffed type + attachment + nosniff keep
+        // the response inert outside the save dialog.
+        ctx.Response.Headers.CacheControl = "no-store";
+        ctx.Response.Headers.XContentTypeOptions = "nosniff";
         // filename* carries the borrower's own name back — RFC5987
         // encoding, so arbitrary upload names can never inject a
         // header. No filename= fallback: every modern client reads

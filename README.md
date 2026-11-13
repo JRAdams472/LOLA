@@ -114,6 +114,31 @@ application spine. `POST /api/admin/tenants/{id}/isppr/republish-templates`
 (PlatformOps) bumps template versions without re-provisioning, and
 tenant erasure revokes the vendor key before crypto-shredding.
 
+Borrower document vault (M10) — `VAULT_ADAPTER=minio` selects the real
+pipeline (`stub` seals uploads in-memory for dev/tests): uploads are
+streamed multipart — never buffered, never a temp file — through a
+magic-byte allowlist (pdf/png/jpg/tiff/docx; bytes decide, declared
+claims are hints) into `VaultCipher`, a chunked AES-256-GCM seal whose
+per-object DEK is wrapped under the tenant's transit key. Ciphertext
+lands in the per-tenant MinIO bucket `lola-vault-<tid>` under
+`quarantine/`; a `vault_scan_outbox` row enqueues the AV pass in the
+same transaction, and `VaultScanWorker` (`VAULT_SCAN_ENABLED` /
+`VAULT_SCAN_INTERVAL_MS`) drains it — decrypt-stream → raw-TCP
+`zINSTREAM` to clamd → clean verdict promotes via `CopyObject` to
+`clean/` and destroys the quarantine source, infected verdict marks
+`infected` and destroys it (never reaches `clean/`), and scanner
+failures backoff to a bounded DLQ — scanning fails closed. The
+`vault_docs` registry holds references + ciphertext metadata only.
+Downloads are minted per call: `GET …/uploads/{id}/download` audits
+`vault_download` and 302s to a ≤15-min capability URL signed by a
+transit HMAC under the tenant's index key (hard-clamped even if
+`VAULT_URL_TTL_SECONDS` is misconfigured); the auth-free
+`/api/vault-content/{id}?tid&exp&sig` route re-verifies and streams
+the decrypt path with `Cache-Control: no-store`, RFC5987 filename, and
+a uniform 403 for every bad input — the signature dies with the
+tenant's keys on erasure, which also purges objects + bucket
+fail-closed before the crypto-shred.
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
