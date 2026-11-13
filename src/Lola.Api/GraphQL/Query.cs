@@ -1,10 +1,16 @@
 using System.Security.Claims;
 using HotChocolate.Resolvers;
 using Lola.Api.Identity;
+using Lola.Application.Admin.Groups;
 using Lola.Application.Admin.Users;
 using Lola.Application.Applications;
+using Lola.Application.Audit;
+using Lola.Application.Documents;
+using Lola.Application.Fees;
 using Lola.Application.Messaging;
+using Lola.Application.Pricing;
 using Lola.Application.Security;
+using Lola.Application.Vault;
 using Lola.Domain.Identity;
 using Wolverine;
 
@@ -44,6 +50,116 @@ public class Query(IMessageBus bus)
         var (actor, isBorrower) = Actor(context);
         return bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
             new ListApplicationsQuery(tenantId, actor, isBorrower), ct);
+    }
+
+    /// Blind-index equality search (M11) — staff-only inside the
+    /// handler; the value travels in the POST body, never a URL.
+    public Task<ApplicationSearchResult> Search(
+        string tenantId, string field, string value,
+        IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<ApplicationSearchResult>(
+            new SearchApplicationsQuery(tenantId, field, value, actor, isBorrower), ct);
+    }
+
+    public Task<PricingEvalDto?> Pricing(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<PricingEvalDto?>(
+            new GetApplicationPricingQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<PricingEvalDto>> PricingHistory(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<PricingEvalDto>>(
+            new GetPricingHistoryQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<FeeComparisonDto?> Fees(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<FeeComparisonDto?>(
+            new GetApplicationFeesQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<FeeEvalDto>> FeeHistory(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<FeeEvalDto>>(
+            new GetFeeHistoryQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<RateLockDto?> RateLock(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<RateLockDto?>(
+            new GetRateLockQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<DocDto>> Documents(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<DocDto>>(
+            new GetApplicationDocumentsQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<VaultDocDto>> Uploads(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<VaultDocDto>>(
+            new GetApplicationUploadsQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<StepEventDto>> Steps(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
+            new GetApplicationStepsQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<AuditEvent>> ApplicationAudit(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
+            new GetApplicationAuditQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    public Task<IReadOnlyList<AuditEvent>> TenantAudit(
+        string tenantId, IResolverContext context, CancellationToken ct,
+        string? actor = null, string? action = null,
+        string? since = null, string? until = null)
+    {
+        var (actorId, isBorrower) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
+            new GetTenantAuditQuery(tenantId, actorId, isBorrower,
+                actor, action, since, until), ct);
+    }
+
+    public Task<IReadOnlyList<GroupDto>> TenantGroups(
+        string tenantId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, _) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<GroupDto>>(
+            new ListGroupsQuery(tenantId), ct);
+    }
+
+    public Task<TenantRetentionReport> Retention(
+        string tenantId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        return bus.InvokeAsync<TenantRetentionReport>(
+            new GetTenantRetentionQuery(tenantId, actor, isBorrower), ct);
     }
 
     private static (string ActorId, bool IsBorrower) Actor(IResolverContext context)

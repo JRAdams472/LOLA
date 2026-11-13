@@ -27,7 +27,9 @@ public static class DocMasker
         }
     }
 
-    /// Same shape as PiiMasker.MaskValue — "•••" + last-4.
-    private static string Mask(string value) =>
+    /// Same shape as PiiMasker.MaskValue — "•••" + last-4. Internal so
+    /// non-doc projections (e.g. the pipeline borrower name) reuse the
+    /// exact mask instead of drifting on their own format.
+    internal static string Mask(string value) =>
         value.Length <= 4 ? "•••" : $"•••{value[^4..]}";
 }

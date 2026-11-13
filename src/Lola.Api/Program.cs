@@ -217,12 +217,16 @@ builder.Services.AddHostedService<DevUserSeeder>();
 builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
 builder.Services.AddScoped<TenantConnectionFactory>();
 builder.Services.AddScoped<SchemaInfoRepository>();
+// Typed (not lambda) interface registrations — Wolverine codegen
+// refuses opaque factories (ServiceLocationPolicy) and every handler
+// taking the interface would 500 at runtime. The concretes stay
+// registered because ApplicationRepository injects the party repo.
 builder.Services.AddScoped<ApplicationPartyRepository>();
-builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartyRepository>(
-    sp => sp.GetRequiredService<ApplicationPartyRepository>());
+builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartyRepository,
+    ApplicationPartyRepository>();
 builder.Services.AddScoped<ApplicationRepository>();
-builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository>(
-    sp => sp.GetRequiredService<ApplicationRepository>());
+builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository,
+    ApplicationRepository>();
 builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
     Lola.Application.Applications.WorkflowPipeline>();
 builder.Services.AddSingleton(TimeProvider.System);
