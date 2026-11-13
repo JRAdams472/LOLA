@@ -130,12 +130,26 @@ public static class ConnectEndpoints
         });
 
         // --- dev login form ----------------------------------------------
-        app.MapGet("/account/login", (string? returnUrl) => Results.Content($"""
-            <!doctype html><html><body>
-            <form method="post" action="/account/login">
-              <input type="hidden" name="returnUrl" value="{WebUtility.HtmlEncode(returnUrl ?? "/")}" />
-              <label>Email <input name="email" type="email" required /></label>
-              <label>Password <input name="password" type="password" required /></label>
+        // The IdP-side credential page the OIDC flows bounce through —
+        // styled to the console's GitHub-dark world; `err` marks a failed
+        // attempt. Credentials verify via Argon2 and set the lola.auth
+        // cookie /connect/authorize consumes.
+        // CSP is `default-src 'self'` — an inline <style> block is refused,
+        // so the page pulls its stylesheet from a same-origin route.
+        app.MapGet("/account/login.css", () => Results.Content(LoginCss, "text/css"));
+
+        app.MapGet("/account/login", (string? returnUrl, int? err) => Results.Content($$"""
+            <!doctype html><html lang="en"><head><meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Sign in — LOLA</title>
+            <link rel="stylesheet" href="/account/login.css"></head><body>
+            <form class="card" method="post" action="/account/login">
+              <h1>LOLA</h1>
+              <p class="sub">Officer console — sign in to continue</p>
+              {{(err is not null ? "<p class=\"err\">Invalid email or password.</p>" : "")}}
+              <input type="hidden" name="returnUrl" value="{{WebUtility.HtmlEncode(returnUrl ?? "/")}}" />
+              <label>Email<input name="email" type="email" required autocomplete="username" autofocus /></label>
+              <label>Password<input name="password" type="password" required autocomplete="current-password" /></label>
               <button type="submit">Sign in</button>
             </form></body></html>
             """, "text/html"));
@@ -177,4 +191,26 @@ public static class ConnectEndpoints
                 returnUrl.StartsWith('/') ? returnUrl : "/");
         }).RequireRateLimiting("auth-tight");
     }
+
+    private const string LoginCss = """
+        * { box-sizing: border-box }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+               background: #0d1117; color: #e6edf3;
+               font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif }
+        .card { width: 320px; padding: 28px; background: #161b22;
+                border: 1px solid #30363d; border-radius: 8px }
+        h1 { margin: 0 0 4px; font-size: 20px; color: #2f9cff }
+        .sub { margin: 0 0 20px; color: #9198a1; font-size: 13px }
+        label { display: block; margin-bottom: 14px; font-size: 13px }
+        input { display: block; width: 100%; margin-top: 4px; padding: 8px 10px;
+                background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+                color: #e6edf3; font-size: 14px }
+        input:focus { outline: none; border-color: #2f9cff }
+        button { width: 100%; padding: 9px; border: 0; border-radius: 6px;
+                 background: #2f9cff; color: #04121f; font-weight: 600;
+                 font-size: 14px; cursor: pointer }
+        button:hover { background: #58a6ff }
+        .err { margin: 0 0 14px; padding: 8px 10px; border: 1px solid #f85149;
+               border-radius: 6px; color: #f85149; font-size: 13px }
+        """;
 }

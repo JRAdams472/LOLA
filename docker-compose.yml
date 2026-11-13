@@ -96,6 +96,12 @@ services:
       SEQ_URL: http://seq
       OTEL_SERVICE_NAME: lola
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      # Dev seed (MPE-208): first human users — absent in real deployments.
+      DEV_SEED_TENANT: demo
+      DEV_SEED_ADMIN_EMAIL: admin@lola.dev
+      DEV_SEED_ADMIN_PASSWORD: lola-admin-dev
+      DEV_SEED_OFFICER_EMAIL: officer@lola.dev
+      DEV_SEED_OFFICER_PASSWORD: lola-officer-dev
     volumes:
       - lola-data:/app/data
       - ./data/openbao:/run/openbao:ro
@@ -116,8 +122,25 @@ services:
       seq:
         condition: service_started
 
-  # web-officer:                # M10 — Next.js officer console (:3200)
-  # web-borrower:               # M11 — Next.js borrower portal (:3300)
+  # Officer console (MPE-208) — BFF custody: OIDC_ISSUER/REDIRECT_URI are
+  # browser-facing (localhost), TOKEN_URL is container-facing (api).
+  web-officer:
+    build: ./clients/web
+    ports: ["3200:3200"]
+    environment:
+      PORT: "3200"
+      API_URL: http://api:8200
+      OIDC_ISSUER: http://localhost:8200
+      OIDC_AUTHORIZE_URL: http://localhost:8200/connect/authorize
+      OIDC_TOKEN_URL: http://api:8200/connect/token
+      OIDC_CLIENT_ID: lola-officer-console
+      OIDC_REDIRECT_URI: http://localhost:3200/callback
+      SESSION_SECRET: dev-session-secret-not-for-prod
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # web-borrower:               # M12 — Next.js borrower portal (:3300)
 
 volumes:
   minio-data:
