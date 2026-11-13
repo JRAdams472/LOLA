@@ -104,14 +104,45 @@ public sealed class ApplicationRepository(
             row.SubmittedUtc, doc);
     }
 
+    /// Pipeline rows (M11): party[0]'s name columns ride the join as
+    /// ciphertext and decrypt through the same transit boundary as the
+    /// doc payload — one batch round-trip, never plaintext at rest.
+    /// Masking happens in the handler (VisibilityContext), not here.
     public async Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default)
-        => await QueryAsync<ApplicationMeta>(
+    {
+        var rows = await QueryAsync<PipelineRow>(
             """
-            SELECT id AS Id, status AS Status, pipeline_step AS PipelineStep,
-                   borrower_user_id AS BorrowerUserId, current_version AS CurrentVersion,
-                   trid_clock_start AS TridClockStart
-            FROM applications ORDER BY created_utc DESC
+            SELECT a.id AS Id, a.status AS Status, a.pipeline_step AS PipelineStep,
+                   a.borrower_user_id AS BorrowerUserId, a.current_version AS CurrentVersion,
+                   a.trid_clock_start AS TridClockStart,
+                   p.first_name_ct AS FirstNameCt, p.last_name_ct AS LastNameCt
+            FROM applications a
+            LEFT JOIN application_parties p
+              ON p.application_id = a.id AND p.party_index = 0
+            ORDER BY a.created_utc DESC
             """, ct: ct);
+
+        var ciphertexts = rows
+            .SelectMany(r => new[] { r.FirstNameCt, r.LastNameCt })
+            .Where(c => c is not null).Select(c => c!).Distinct().ToList();
+        IReadOnlyList<string> plaintexts = ciphertexts.Count == 0
+            ? Array.Empty<string>()
+            : await cipher.DecryptAsync(ciphertexts, ct);
+        var plain = ciphertexts.Zip(plaintexts)
+            .ToDictionary(x => x.First, x => x.Second);
+
+        return rows.Select(r =>
+        {
+            var name = string.Join(' ', new[]
+                {
+                    r.FirstNameCt is null ? null : plain[r.FirstNameCt],
+                    r.LastNameCt is null ? null : plain[r.LastNameCt]
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            return new ApplicationMeta(r.Id, r.Status, r.PipelineStep,
+                r.BorrowerUserId, r.CurrentVersion, r.TridClockStart,
+                name.Length == 0 ? null : name, null);
+        }).ToList();
+    }
 
     /// Reg B retention input (MPE-118) — id + created_utc, no payload.
     public async Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
@@ -236,4 +267,9 @@ public sealed class ApplicationRepository(
         long CurrentVersion, string? TridClockStart, string Payload, string? SubmittedUtc);
 
     private sealed record MetaRow(long CurrentVersion, string VersionId);
+
+    private sealed record PipelineRow(
+        string Id, string Status, string PipelineStep,
+        string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
+        string? FirstNameCt, string? LastNameCt);
 }

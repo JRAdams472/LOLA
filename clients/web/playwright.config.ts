@@ -31,7 +31,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: process.env.E2E_BASE_URL ?? "http://localhost:3200",
+    // Probe a static asset — / 307-redirects to login, which the
+    // readiness check doesn't accept as "up".
+    url: `${process.env.E2E_BASE_URL ?? "http://localhost:3200"}/icon.svg`,
     reuseExistingServer: true,
     timeout: 120_000,
   },

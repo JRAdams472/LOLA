@@ -10,9 +10,15 @@ public sealed record ApplicationRecord(
     int CurrentVersion, string? TridClockStart, string? SubmittedUtc,
     ApplicationDocument Doc);
 
+/// Pipeline row (M11): `BorrowerName` is party[0]'s composed name —
+/// the repository decrypts inside the cipher boundary and the handler
+/// masks it per VisibilityContext (officers see plaintext, everyone
+/// else "•••"+last-4). `TridDeadlineUtc` is the Reg Z 3-business-day
+/// deadline derived from the once-only clock stamp.
 public sealed record ApplicationMeta(
     string Id, string Status, string PipelineStep,
-    string? BorrowerUserId, long CurrentVersion, string? TridClockStart);
+    string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
+    string? BorrowerName, string? TridDeadlineUtc);
 
 /// Append-only pipeline step event (MPE-112) — every named-step
 /// entry or seam-keyed attempt, attributed to an actor.

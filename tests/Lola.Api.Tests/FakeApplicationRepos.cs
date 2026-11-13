@@ -109,8 +109,21 @@ public sealed class FakeApplicationRepository(FakeApplicationStore store)
         => Task.FromResult<IReadOnlyList<ApplicationMeta>>(store.Apps
             .Select(kv => new ApplicationMeta(kv.Key, kv.Value.Status,
                 kv.Value.PipelineStep, kv.Value.BorrowerUserId,
-                kv.Value.Version, kv.Value.TridClockStart))
+                kv.Value.Version, kv.Value.TridClockStart,
+                BorrowerName(kv.Value.Doc), null))
             .ToList());
+
+    /// Mirrors the real repo's party[0] first+last composition — the
+    /// fake has no ciphertext, so it reads the stored doc directly.
+    private static string? BorrowerName(ApplicationDocument doc)
+    {
+        var name = string.Join(' ', new[]
+            {
+                doc.Get("party[0].first_name")?.GetValue<string>(),
+                doc.Get("party[0].last_name")?.GetValue<string>()
+            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        return name.Length == 0 ? null : name;
+    }
 }
 
 public sealed class FakeApplicationPartyRepository(FakeApplicationStore store)
