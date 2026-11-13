@@ -213,6 +213,7 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 builder.Services.AddHostedService<OidcClientSeeder>();
+builder.Services.AddHostedService<DevUserSeeder>();
 builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
 builder.Services.AddScoped<TenantConnectionFactory>();
 builder.Services.AddScoped<SchemaInfoRepository>();

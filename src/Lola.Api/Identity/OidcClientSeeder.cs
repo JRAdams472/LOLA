@@ -27,9 +27,11 @@ public sealed class OidcClientSeeder(
             }, cancellationToken);
 
         await EnsurePublicClient(applications, "lola-officer-console",
-            "Officer console", "http://localhost:3200/callback", cancellationToken);
+            "Officer console", "http://localhost:3200/callback",
+            "http://localhost:3200/auth/login", cancellationToken);
         await EnsurePublicClient(applications, "lola-borrower-portal",
-            "Borrower portal", "http://localhost:3300/callback", cancellationToken);
+            "Borrower portal", "http://localhost:3300/callback",
+            "http://localhost:3300/auth/login", cancellationToken);
 
         // Service client — confidential; the secret comes from env and
         // is hashed by the manager (never stored plaintext).
@@ -78,9 +80,23 @@ public sealed class OidcClientSeeder(
 
     private static async Task EnsurePublicClient(
         IOpenIddictApplicationManager applications,
-        string clientId, string displayName, string redirectUri, CancellationToken ct)
+        string clientId, string displayName, string redirectUri,
+        string postLogoutUri, CancellationToken ct)
     {
-        if (await applications.FindByClientIdAsync(clientId, ct) is not null) return;
+        var logout = new Uri(postLogoutUri);
+        if (await applications.FindByClientIdAsync(clientId, ct) is { } existing)
+        {
+            // Backfill the post-logout URI on clients seeded before the
+            // console existed — idempotent, updates only when missing.
+            var current = new OpenIddictApplicationDescriptor();
+            await applications.PopulateAsync(current, existing, ct);
+            if (!current.PostLogoutRedirectUris.Contains(logout))
+            {
+                current.PostLogoutRedirectUris.Add(logout);
+                await applications.UpdateAsync(existing, current, ct);
+            }
+            return;
+        }
         await applications.CreateAsync(new OpenIddictApplicationDescriptor
         {
             ClientId = clientId,
@@ -88,6 +104,7 @@ public sealed class OidcClientSeeder(
             DisplayName = displayName,
             ConsentType = ConsentTypes.Implicit,
             RedirectUris = { new Uri(redirectUri) },
+            PostLogoutRedirectUris = { logout },
             Permissions =
             {
                 Permissions.Endpoints.Authorization,
