@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { getSession } from "@/lib/auth";
-import { isVaultUpload } from "@/lib/bff-paths";
+import { hasUnsafeSegment, isVaultUpload } from "@/lib/bff-paths";
 
 const API_URL = process.env.API_URL ?? "http://localhost:8200";
 // Mirror the API's body ceiling — the BFF buffers bodies before proxying,
@@ -54,6 +54,12 @@ async function proxy(
     return Response.json({ error: "unauthenticated" }, { status: 401 });
   }
   const { path } = await ctx.params;
+  // Reject traversal — a `..` segment (or a backslash that WHATWG URL
+  // parsing folds to `/`) would escape the /api prefix when the path is
+  // re-joined onto API_URL below.
+  if (hasUnsafeSegment(path)) {
+    return Response.json({ error: "bad path" }, { status: 400 });
+  }
   const upload = isVaultUpload(path);
   const cap = upload ? MAX_UPLOAD_BODY : MAX_BODY;
   const declared = Number(req.headers.get("content-length") ?? 0);

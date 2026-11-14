@@ -9,3 +9,15 @@ export function isVaultUpload(path: string[]): boolean {
     path[5] === "uploads"
   );
 }
+
+/**
+ * Proxy segments are re-joined onto API_URL — a `.`/`..` segment, a
+ * backslash (WHATWG URL parsing normalizes `\` to `/` for special
+ * schemes, so `..\..` still escapes), or a raw `/` left over from an
+ * encoded `%2F` would traverse outside the `/api` prefix upstream.
+ */
+export function hasUnsafeSegment(path: string[]): boolean {
+  return path.some(
+    (s) => s === "." || s === ".." || s.includes("\\") || s.includes("/"),
+  );
+}

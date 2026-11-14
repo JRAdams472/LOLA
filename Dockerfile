@@ -6,10 +6,11 @@ RUN dotnet publish src/Lola.Api/Lola.Api.csproj -c Release -o /app --no-self-con
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -u 10001 -m lola && mkdir -p /app/data && chown lola:lola /app/data
-USER lola
+    && useradd -u 10001 -m lola
 WORKDIR /app
 COPY --from=build /app .
+RUN mkdir -p /app/data && chown lola:lola /app/data
+USER lola
 ENV ASPNETCORE_URLS=http://+:8200
 EXPOSE 8200
 ENTRYPOINT ["dotnet", "Lola.Api.dll"]

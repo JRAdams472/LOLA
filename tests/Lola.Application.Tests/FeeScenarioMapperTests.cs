@@ -38,7 +38,8 @@ public sealed class FeeScenarioMapperTests
         s.Loan.Amount.ShouldBe(350000m);
         s.Loan.TermMonths.ShouldBe(360);
         s.Property.State.ShouldBe("IL");
-        s.Property.Zip.ShouldBe("62701");
+        // Zip never crosses — the engine's inbound PII guard denies it.
+        s.Property.Zip.ShouldBeNull();
         s.Property.County.ShouldBe("Sangamon");
         s.Property.EstValue.ShouldBe(560000m);
         s.Property.PurchasePrice.ShouldBe(475000m);
@@ -55,8 +56,9 @@ public sealed class FeeScenarioMapperTests
         foreach (var leak in new[] { "Ada", "123456789", "firstName",
             "ssn", "dob", "email", "phone", "address" })
             json.ShouldNotContain(leak);
-        // Scenario attributes DO cross.
-        json.ShouldContain("62701");
+        // Scenario attributes DO cross — but the vendor-denied zip
+        // value must not, or the engine 422s the eval as PII.
+        json.ShouldNotContain("62701");
         json.ShouldContain("vaEligible");
     }
 

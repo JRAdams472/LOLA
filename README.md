@@ -139,6 +139,30 @@ a uniform 403 for every bad input — the signature dies with the
 tenant's keys on erasure, which also purges objects + bucket
 fail-closed before the crypto-shred.
 
+Officer console live (M11) — `clients/web` is a Next.js (App Router)
+loan-officer console over the live API, GitHub-dark and dense for
+internal-tool use. OIDC authorization-code + PKCE login mints an
+access token that **never reaches the browser**: a sealed JWE session
+cookie backs a same-origin BFF (`/bff/…`) that injects `Bearer`
+server-side — vendor endpoints (MPEx/Zara/ISPPr/MinIO) are provably
+unreachable from the page (e2e asserts zero direct calls, ADR-0007).
+Surfaces: a **Pipeline** of active loans with borrower, status, step,
+and a business-day TRID countdown; a **Loan Workspace** with
+generated MISMO/1003 tabs (`mismo-field-map.json` →
+`lib/field-map.ts`), dirty-tracked merge-patch edits on drafts,
+audited corrections on submitted apps, masked-by-default PII with an
+explicit reason-gated reveal that lands on the Audit tab, plus Steps
+history; **Closing Costs & Docs** — LE fee sections with 202-poll
+recalc and reason-gated overrides, pricing offers with lock/unlock,
+ISPPr package generation, and BFF-relayed 302 downloads for
+generated docs and borrower-vault uploads; **Search** by blind-index
+field (name/SSN/phone/email/property) via GraphQL POST — the term
+never reaches a URL; and an **Admin** console (users, groups +
+membership, invites, tenant audit, retention) gated by role.
+Reads are GraphQL (depth 8, cost ≤300, ADR-0011) over the same
+Wolverine handlers as REST; mutations stay REST. See
+[`docs/m11-plan.md`](docs/m11-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)

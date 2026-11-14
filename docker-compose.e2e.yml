@@ -1,0 +1,77 @@
+# Isolated screenshot stack — run with `-p lolashots` so every volume and
+# the network is project-scoped (fresh control.db, fresh tenant files,
+# fresh OpenBao). The dev stack's OpenBao token files stay untouched:
+# shots openbao-init mints into ./data/openbao-e2e, and the shots api
+# reads its token from there instead of ./data/openbao.
+#
+#   docker compose -p lolashots \
+#     -f docker-compose.yml -f docker-compose.e2e.yml \
+#     --profile seed up -d --build
+#
+# Then `node tools/wiki-shots/capture.mjs` (or re-run the seeder on the
+# host: `API_URL=http://localhost:8200 python tools/wiki-shots/seed_demo.py`).
+services:
+  openbao-init:
+    volumes:
+      - ./openbao/init.sh:/init.sh:ro
+      - ./data/openbao-e2e:/out
+
+  api:
+    environment:
+      # Browser OIDC traffic comes via localhost:8200 while the web
+      # container's token exchange uses api:8200 — without a canonical
+      # issuer, codes minted under one host 400 on the other.
+      OIDC_ISSUER: http://localhost:8200
+    volumes:
+      - lola-data:/app/data
+      - ./data/openbao-e2e:/run/openbao:ro
+
+  # The stub doc adapter is deterministic, but the package handler still
+  # requires a provisioned vendor binding (409 otherwise). Pointing the
+  # shots stack at live ISPPr would couple it to a sibling dev stack, so
+  # this one-shot writes the same synthetic binding the ISPPr provisioner
+  # would — the stub path then flows end-to-end, fully self-contained.
+  stub-bind:
+    image: python:3.13-alpine
+    profiles: ["seed"]
+    volumes:
+      - lola-data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - python
+      - -c
+      - |
+        import sqlite3, time
+        for _ in range(30):
+            try:
+                c = sqlite3.connect('/data/control.db', timeout=10)
+                c.execute("UPDATE tenants SET isppr_client_id='shots', isppr_customer_id='shots', updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id='demo'")
+                c.commit()
+                print('stub doc binding set')
+                break
+            except sqlite3.OperationalError:
+                time.sleep(2)
+        else:
+            raise SystemExit('control.db stayed locked')
+    restart: "no"
+
+  # One-shot demo seeder — waits for a healthy api + stub binding, then
+  # PKCE-logs in as the dev officer and seeds synthetic applications
+  # (never real or realistic PII; see seed_demo.py's borrower data).
+  seed:
+    image: python:3.13-alpine
+    profiles: ["seed"]
+    depends_on:
+      stub-bind:
+        condition: service_completed_successfully
+    volumes:
+      - ./tools/wiki-shots:/shots:ro
+    working_dir: /shots
+    environment:
+      API_URL: http://api:8200
+      OFFICER_EMAIL: officer@lola.dev
+      OFFICER_PASSWORD: lola-officer-dev
+    command: sh -c "pip install -q requests && python seed_demo.py"
+    restart: "no"

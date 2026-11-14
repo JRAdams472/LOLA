@@ -58,7 +58,7 @@ public sealed class FeeEvaluationTests
         eval.Adapter.ShouldBe("fake");
         eval.ApplicationId.ShouldBe("app-1");
         eval.Actor.ShouldBe("officer-1");
-        eval.ScenarioJson.ShouldContain("62701");
+        eval.ScenarioJson.ShouldNotContain("62701");
         eval.ScenarioJson.ShouldNotContain("000-00-0000");
         var outbox = fees.Outbox.Values.Single();
         outbox.Kind.ShouldBe("eval");

@@ -21,7 +21,23 @@ async function seedDraft(page: Page) {
           "party[0].ssn": `7${Date.now().toString().slice(-8)}`,
           "party[0].employment[0].monthly_income": "14200",
           "subject_property.street": "1 Prime Plaza",
+          "subject_property.city": "Springfield",
+          "subject_property.state": "IL",
+          "subject_property.county": "Sangamon",
           "subject_property.est_value": "560000",
+          "subject_property.purchase_price": "560000",
+          "subject_property.property_type": "single_family",
+          "subject_property.usage": "primary_residence",
+          "subject_property.units": "1",
+          // TRID artifacts gate on loan.purpose and MPEx eligibility on
+          // type/ltv/creditScore/occupancy/amortization/term — without
+          // them the evals return unmatched fees and ineligible offers.
+          loan_purpose: "purchase",
+          "loan.product_type": "conventional",
+          amortization_type: "fixed",
+          loan_term_months: "360",
+          "loan.ltv": "75.9",
+          "party[0].credit_score": "760",
           loan_amount: "425000",
         },
       },
