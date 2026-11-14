@@ -120,6 +120,44 @@ public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory
             .GetProperty("tridDeadlineUtc").GetString().ShouldNotBeNull();
     }
 
+    /// MPE-211: the admin membership read resolves through the same
+    /// handler as REST — group + member created over REST, member list
+    /// read over GraphQL.
+    [Fact]
+    public async Task Group_members_resolve_via_graphql()
+    {
+        var tenant = $"t{Guid.NewGuid():N}"[..12];
+        var admin = factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin));
+
+        var group = await admin.PostAsJsonAsync(
+            $"/api/admin/tenants/{tenant}/groups",
+            new { name = "officers", roles = new[] { "LoanOfficer" } });
+        group.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var gid = (await group.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetString()!;
+
+        var me = await admin.GetFromJsonAsync<JsonElement>(
+            $"/api/admin/tenants/{tenant}/users");
+        var uid = me.EnumerateArray().First()
+            .GetProperty("id").GetString()!;
+        (await admin.PostAsJsonAsync(
+            $"/api/admin/tenants/{tenant}/groups/{gid}/members",
+            new { userId = uid })).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var gql = await admin.PostAsJsonAsync("/graphql", new
+        {
+            query = $$"""
+                { groupMembers(tenantId: "{{tenant}}", groupId: "{{gid}}") }
+                """
+        });
+        gql.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await gql.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("data").GetProperty("groupMembers")
+            .EnumerateArray().Select(m => m.GetString()).ShouldBe([uid]);
+    }
+
     private static async Task<string> SeedNamedDraftAsync(HttpClient client, string tenant)
     {
         var created = await client.PostAsJsonAsync(

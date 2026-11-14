@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -196,6 +197,13 @@ export default function LoanWorkspacePage() {
           </>
         )}
         <Box sx={{ flexGrow: 1 }} />
+        <Button
+          component={Link}
+          href={`/loans/${appId}/closing`}
+          size="small"
+        >
+          Closing &amp; Docs
+        </Button>
         {isStaff && !revealed && (
           <Button
             size="small"
