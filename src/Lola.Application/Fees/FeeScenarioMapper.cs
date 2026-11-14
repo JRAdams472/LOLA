@@ -7,9 +7,9 @@ namespace Lola.Application.Fees;
 /// <see cref="FeeScenario"/> (MPE-75, invariant 2). Only the fields
 /// TRID fee rules need cross — identity data is structurally absent
 /// because no catalog path for it appears below; the firewall test
-/// enforces it. Property zip/county are location attributes fee
-/// rules key on, not personal data (firewall allowlists the member
-/// explicitly — the carve-out lives in the test, not a rename).
+/// enforces it. Zip stays OUT: the fee engine's inbound PII guard
+/// deny-lists `zip`/`postal` on the wire, so the eval request would
+/// 422 outright — state/county carry the geo signal the rules need.
 public static class FeeScenarioMapper
 {
     /// The catalog paths that feed the fee scenario — an active fee
@@ -19,7 +19,7 @@ public static class FeeScenarioMapper
     [
         "loan_purpose", "loan.product_type", "loan.base_amount",
         "loan_amount", "loan_term_months", "subject_property.state",
-        "subject_property.zip", "subject_property.county",
+        "subject_property.county",
         "subject_property.est_value",
         "subject_property.purchase_price", "declaration.va_eligible",
         "declaration.discount_points",
@@ -38,7 +38,8 @@ public static class FeeScenarioMapper
                 TermMonths: Int(doc, "loan_term_months")),
             new FeePropertySection(
                 State: Str(doc, "subject_property.state"),
-                Zip: Str(doc, "subject_property.zip"),
+                // Denied by the engine's inbound PII guard — omit.
+                Zip: null,
                 County: Str(doc, "subject_property.county"),
                 PurchasePrice: Num(doc, "subject_property.purchase_price"),
                 EstValue: Num(doc, "subject_property.est_value")),

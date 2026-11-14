@@ -75,6 +75,13 @@ builder.Services
     .AddGraphQLServer()
     .AddQueryType<Lola.Api.GraphQL.Query>()
     .AddMaxExecutionDepthRule(8)
+    .AddCostAnalyzer()
+    .ModifyCostOptions(o =>
+    {
+        // ADR-0011: depth 8 + enforced cost complexity limit 300.
+        o.EnforceCostLimits = true;
+        o.MaxFieldCost = 300;
+    })
     .ModifyRequestOptions(o => o.IncludeExceptionDetails = builder.Environment.IsDevelopment());
 
 builder.Services.AddRateLimiter(options =>
@@ -175,6 +182,12 @@ builder.Services.AddOpenIddict()
     })
     .AddServer(options =>
     {
+        // Canonical issuer (optional): request-host inference breaks when
+        // browsers and server-side callers reach the api on different
+        // hostnames (compose: localhost:8200 vs api:8200; prod: external
+        // edge host vs internal service name). Unset → inferred, as today.
+        if (builder.Configuration["OIDC_ISSUER"] is { Length: > 0 } iss)
+            options.SetIssuer(new Uri(iss));
         options.SetAuthorizationEndpointUris("/connect/authorize")
                .SetTokenEndpointUris("/connect/token")
                .SetUserInfoEndpointUris("/connect/userinfo")
