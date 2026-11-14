@@ -30,15 +30,15 @@ public sealed class DevUserSeeder(
         var groups = scope.ServiceProvider.GetRequiredService<IGroupDirectory>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
-        if (await registry.FindByIdAsync(tenantId, cancellationToken) is null)
-        {
-            await provisioner.ProvisionAsync(new ProvisionRequest(
-                tenantId,
-                config["DEV_SEED_TENANT_SLUG"] ?? tenantId,
-                config["DEV_SEED_TENANT_NAME"] ?? $"Demo {tenantId}"),
-                cancellationToken);
-            log.LogInformation("dev-seed: provisioned tenant {Tenant}", tenantId);
-        }
+        // The pipeline is re-entrant — it skips completed steps and
+        // resumes partial ones, so older dev tenants pick up newer
+        // provisioner steps (e.g. the ISPPr binding) on every boot.
+        await provisioner.ProvisionAsync(new ProvisionRequest(
+            tenantId,
+            config["DEV_SEED_TENANT_SLUG"] ?? tenantId,
+            config["DEV_SEED_TENANT_NAME"] ?? $"Demo {tenantId}"),
+            cancellationToken);
+        log.LogInformation("dev-seed: provisioned tenant {Tenant}", tenantId);
 
         var adminGroup = await EnsureGroup(groups, tenantId,
             "tenant-admins", [LolaRole.TenantAdmin], cancellationToken);

@@ -83,15 +83,19 @@ async function proxy(
     method: req.method,
     headers,
     body,
+    // Downloads 302 to a minted capability URL — `manual` keeps the
+    // Location header intact so the browser follows it itself (the
+    // vault/doc bytes never transit the BFF).
+    redirect: "manual",
     // @ts-expect-error — required for streaming request bodies in undici
     duplex: "half",
   });
-  return new Response(res.body, {
-    status: res.status,
-    headers: {
-      "content-type": res.headers.get("content-type") ?? "application/json",
-    },
-  });
+  const out: Record<string, string> = {
+    "content-type": res.headers.get("content-type") ?? "application/json",
+  };
+  const location = res.headers.get("location");
+  if (location) out.location = location;
+  return new Response(res.body, { status: res.status, headers: out });
 }
 
 export {

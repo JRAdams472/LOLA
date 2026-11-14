@@ -154,6 +154,17 @@ public class Query(IMessageBus bus)
             new ListGroupsQuery(tenantId), ct);
     }
 
+    /// Member ids of one group — the admin membership dialog joins
+    /// them against the tenant user list (MPE-211).
+    public Task<IReadOnlyList<string>> GroupMembers(
+        string tenantId, string groupId, IResolverContext context,
+        CancellationToken ct)
+    {
+        var (actor, _) = Actor(context);
+        return bus.InvokeAsync<IReadOnlyList<string>>(
+            new ListGroupMembersQuery(tenantId, groupId), ct);
+    }
+
     public Task<TenantRetentionReport> Retention(
         string tenantId, IResolverContext context, CancellationToken ct)
     {

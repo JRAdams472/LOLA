@@ -116,6 +116,16 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
             """, new { userId, groupId }, cancellationToken: ct));
     }
 
+    public async Task<IReadOnlyList<string>> MemberIdsAsync(
+        string groupId, CancellationToken ct = default)
+    {
+        using var conn = db.Open();
+        var ids = await conn.QueryAsync<string>(new CommandDefinition(
+            "SELECT user_id FROM user_groups WHERE group_id = @groupId",
+            new { groupId }, cancellationToken: ct));
+        return ids.AsList();
+    }
+
     private sealed record GroupRoleRow(
         string Id, string TenantId, string Name, string? Description, string? Role);
 

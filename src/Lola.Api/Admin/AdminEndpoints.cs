@@ -151,6 +151,13 @@ public static class AdminEndpoints
                 await bus.InvokeMaskedAsync<GroupDto>(new DeleteGroupCommand(id, gid), ct))))
             .RequireAuthorization(LolaPolicies.TenantAdmin);
 
+        admin.MapGet("/tenants/{id}/groups/{gid}/members", async (
+                string id, string gid, IMessageBus bus, CancellationToken ct) =>
+            await Guarded(id, async () => Results.Ok(
+                await bus.InvokeAsync<IReadOnlyList<string>>(
+                    new ListGroupMembersQuery(id, gid), ct))))
+            .RequireAuthorization(LolaPolicies.AdminRead);
+
         admin.MapPost("/tenants/{id}/groups/{gid}/members", async (
                 string id, string gid, MemberRequest body, IMessageBus bus, CancellationToken ct) =>
             await Guarded(id, async () => Results.Ok(

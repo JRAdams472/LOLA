@@ -188,6 +188,12 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
         (await assign.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("memberCount").GetInt32().ShouldBe(1);
 
+        // Member list (MPE-211) — the admin surface's membership read.
+        var members = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/admin/tenants/{tenant}/groups/{gid}/members");
+        members.EnumerateArray().Select(m => m.GetString())
+            .ShouldBe([uid]);
+
         var users = await client.GetFromJsonAsync<JsonElement>(
             $"/api/admin/tenants/{tenant}/users");
         var officerRow = users.EnumerateArray().First(u =>

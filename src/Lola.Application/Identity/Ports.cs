@@ -68,6 +68,10 @@ public interface IGroupDirectory
 
     Task AddMemberAsync(string groupId, string userId, CancellationToken ct = default);
     Task RemoveMemberAsync(string groupId, string userId, CancellationToken ct = default);
+
+    /// User ids currently in `groupId` — the admin membership surface
+    /// (MPE-211) joins these against the tenant user list.
+    Task<IReadOnlyList<string>> MemberIdsAsync(string groupId, CancellationToken ct = default);
 }
 
 /// Role → PII-class visibility map (role_visibility table, ADR-0008).

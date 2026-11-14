@@ -56,6 +56,18 @@ builder.Host.UseWolverine(opts =>
 {
     opts.Discovery.IncludeAssembly(typeof(Lola.Application.Messaging.PingQuery).Assembly);
     opts.Policies.AddMiddleware<Lola.Application.Behaviors.LogExecution>();
+    // Typed HttpClient registrations are opaque lambda factories to
+    // codegen — the documented escape hatch (Refit/EF-style services)
+    // routes just these through the locator while every other
+    // dependency stays constructor-inlined. Without this, handlers
+    // injecting the live adapters 500 under DOC_ADAPTER=isppr /
+    // PRICING_ADAPTER=mpex / FEE_ADAPTER=zara.
+    opts.CodeGeneration
+        .AlwaysUseServiceLocationFor<Lola.Application.Documents.IDocumentService>();
+    opts.CodeGeneration
+        .AlwaysUseServiceLocationFor<Lola.Application.Pricing.IPricingService>();
+    opts.CodeGeneration
+        .AlwaysUseServiceLocationFor<Lola.Application.Fees.IFeeService>();
 });
 
 builder.Services.AddOpenApi();
