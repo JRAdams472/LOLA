@@ -41,4 +41,65 @@ describe("invite accept page", () => {
     });
     expect(screen.getByText("Passwords don’t match.")).toBeInTheDocument();
   });
+
+  function fillValid() {
+    fireEvent.change(screen.getByLabelText(/Your name/), {
+      target: { value: "Sam Rivera" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: "a-long-enough-password" },
+    });
+    fireEvent.change(screen.getByLabelText(/Confirm password/), {
+      target: { value: "a-long-enough-password" },
+    });
+  }
+
+  it("posts the token and shows the sign-in handoff on success", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response),
+    );
+    render(<AcceptPage />);
+    fillValid();
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/invite-accept",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          token: "abc123",
+          displayName: "Sam Rivera",
+          password: "a-long-enough-password",
+        }),
+      }));
+    expect(
+      await screen.findByText("Account created"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href", "/auth/login");
+  });
+
+  it("surfaces the server's problem detail on rejection", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve({ detail: "Invite already used" }),
+      } as Response),
+    );
+    render(<AcceptPage />);
+    fillValid();
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Invite already used");
+  });
+
+  it("shows a generic error when the request fails outright", async () => {
+    global.fetch = jest.fn(() => Promise.reject(new Error("offline")));
+    render(<AcceptPage />);
+    fillValid();
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /try again/);
+  });
 });
