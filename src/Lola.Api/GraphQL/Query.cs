@@ -8,6 +8,7 @@ using Lola.Application.Audit;
 using Lola.Application.Documents;
 using Lola.Application.Fees;
 using Lola.Application.Messaging;
+using Lola.Application.Portal;
 using Lola.Application.Pricing;
 using Lola.Application.Security;
 using Lola.Application.Vault;
@@ -36,6 +37,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;   // officer surface — portal uses portalLoan
         var dto = await bus.InvokeAsync<ApplicationDto?>(
             new GetApplicationQuery(tenantId, appId, actor, isBorrower), ct);
         return dto is null ? null : new ApplicationView(
@@ -48,8 +50,42 @@ public class Query(IMessageBus bus)
         string tenantId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<ApplicationMeta>>([]);
         return bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
             new ListApplicationsQuery(tenantId, actor, isBorrower), ct);
+    }
+
+    /// Borrower-portal reads (M12) — own application only, borrower
+    /// vocabulary only (PortalLoanDto carries no internal fields).
+    /// Staff actors get null — the portal surface is borrower-scope
+    /// by construction.
+    public async Task<PortalLoanView?> PortalLoan(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (!isBorrower) return null;
+        var dto = await bus.InvokeAsync<PortalLoanDto?>(
+            new GetPortalLoanQuery(tenantId, appId, actor), ct);
+        return dto is null ? null : new PortalLoanView(
+            dto.Id, dto.StatusLabel, dto.StatusStage,
+            dto.StatusStages.Select(s => new PortalStageView(
+                s.Key, s.Label, s.Done, s.Current)).ToList(),
+            dto.Doc.ToJsonString(),
+            dto.Documents.Select(d => new PortalDocItemView(
+                d.DocId, d.PackageName, d.KindLabel, d.Ready,
+                d.Filename, d.CompletedUtc)).ToList(),
+            dto.Uploads.Select(u => new PortalUploadItemView(
+                u.VaultDocId, u.Classification, u.StatusLabel, u.StatusKey,
+                u.Filename, u.SizeBytes, u.UploadedUtc)).ToList());
+    }
+
+    public Task<IReadOnlyList<PortalLoanMeta>> PortalLoans(
+        string tenantId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (!isBorrower) return Task.FromResult<IReadOnlyList<PortalLoanMeta>>([]);
+        return bus.InvokeAsync<IReadOnlyList<PortalLoanMeta>>(
+            new ListPortalLoansQuery(tenantId, actor), ct);
     }
 
     /// Blind-index equality search (M11) — staff-only inside the
@@ -67,6 +103,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<PricingEvalDto?>(null);
         return bus.InvokeAsync<PricingEvalDto?>(
             new GetApplicationPricingQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -75,6 +112,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<PricingEvalDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<PricingEvalDto>>(
             new GetPricingHistoryQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -83,6 +121,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<FeeComparisonDto?>(null);
         return bus.InvokeAsync<FeeComparisonDto?>(
             new GetApplicationFeesQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -91,6 +130,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<FeeEvalDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<FeeEvalDto>>(
             new GetFeeHistoryQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -99,6 +139,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<RateLockDto?>(null);
         return bus.InvokeAsync<RateLockDto?>(
             new GetRateLockQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -107,6 +148,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<DocDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<DocDto>>(
             new GetApplicationDocumentsQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -115,6 +157,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<VaultDocDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<VaultDocDto>>(
             new GetApplicationUploadsQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -123,6 +166,7 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
         var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return Task.FromResult<IReadOnlyList<StepEventDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
             new GetApplicationStepsQuery(tenantId, appId, actor, isBorrower), ct);
     }
@@ -187,3 +231,21 @@ public sealed record ApplicationView(
     string Id, string Status, string PipelineStep, string? BorrowerUserId,
     int CurrentVersion, string? TridClockStart, string? TridDeadlineUtc,
     string? SubmittedUtc, string DocJson);
+
+/// GraphQL-facing portal views — flat records mirror the app DTOs so
+/// Hot Chocolate can bind them (records are already schema-friendly;
+/// the payload doc stays an opaque masked string).
+public sealed record PortalStageView(
+    string Key, string Label, bool Done, bool Current);
+public sealed record PortalDocItemView(
+    string DocId, string PackageName, string KindLabel,
+    bool Ready, string? Filename, string? CompletedUtc);
+public sealed record PortalUploadItemView(
+    string VaultDocId, string Classification, string StatusLabel,
+    string StatusKey, string Filename, long SizeBytes, string? UploadedUtc);
+public sealed record PortalLoanView(
+    string Id, string StatusLabel, int StatusStage,
+    IReadOnlyList<PortalStageView> StatusStages,
+    string DocJson,
+    IReadOnlyList<PortalDocItemView> Documents,
+    IReadOnlyList<PortalUploadItemView> Uploads);

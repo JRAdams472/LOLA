@@ -4,3 +4,4 @@ playwright-report/
 .shots/
 screenshots/
 shots/
+e2e/artifacts/
