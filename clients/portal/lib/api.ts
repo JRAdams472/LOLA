@@ -10,12 +10,13 @@ function bounceOn401(res: Response) {
   }
 }
 
-export async function apiPost<T>(
+async function apiWrite<T>(
+  method: string,
   path: string,
   body?: unknown,
 ): Promise<{ status: number; data: T }> {
   const res = await fetch(`${BFF}${path}`, {
-    method: "POST",
+    method,
     headers: { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -23,6 +24,11 @@ export async function apiPost<T>(
   const data = (await res.json().catch(() => ({}))) as T;
   return { status: res.status, data };
 }
+
+export const apiPost = <T>(path: string, body?: unknown) =>
+  apiWrite<T>("POST", path, body);
+export const apiPatch = <T>(path: string, body: unknown) =>
+  apiWrite<T>("PATCH", path, body);
 
 /** GraphQL reads (ADR-0011) — same BFF custody, POST body only, so a
  *  sensitive term never lands in a URL, log line, or browser history. */

@@ -1,6 +1,8 @@
+import { writeFileSync } from "node:fs";
 import { expect, test as setup } from "@playwright/test";
 
 const AUTH_FILE = "e2e/.auth/borrower.json";
+const CREDS_FILE = "e2e/.auth/creds.json";
 const OFFICER_BASE = process.env.E2E_OFFICER_BASE_URL ?? "http://localhost:3200";
 const OFFICER_EMAIL = process.env.E2E_OFFICER_EMAIL ?? "officer@lola.dev";
 const OFFICER_PASSWORD = process.env.E2E_OFFICER_PASSWORD ?? "lola-officer-dev";
@@ -66,4 +68,10 @@ setup("invite + authenticate as borrower", async ({ page, browser }) => {
     page.getByRole("heading", { name: "Home" }),
   ).toBeVisible();
   await page.context().storageState({ path: AUTH_FILE });
+  // Specs that exercise logout→login need the borrower's credentials —
+  // the email is generated per run, so persist it alongside the state.
+  writeFileSync(
+    CREDS_FILE,
+    JSON.stringify({ email: BORROWER_EMAIL, password: BORROWER_PASSWORD }),
+  );
 });
