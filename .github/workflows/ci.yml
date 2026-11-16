@@ -260,9 +260,13 @@ jobs:
   web:
     name: Web — lint / typecheck / test / build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        client: [clients/web, clients/portal]
     defaults:
       run:
-        working-directory: clients/web
+        working-directory: ${{ matrix.client }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -270,7 +274,7 @@ jobs:
           node-version: 24
           # npm cache + cache-dependency-path added when clients/web lands (M10)
       - name: lint / typecheck / test / build
-        if: ${{ hashFiles('clients/web/package.json') != '' }}
+        if: ${{ hashFiles(format('{0}/package.json', matrix.client)) != '' }}
         run: |
           npm ci
           npm run lint
