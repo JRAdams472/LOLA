@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { gql } from "@/lib/api";
 
@@ -52,7 +52,7 @@ export interface PortalLoan extends PortalLoanMeta {
 type LoansState =
   | { status: "loading" }
   | { status: "error"; error: string }
-  | { status: "ready"; loans: PortalLoan[] };
+  | { status: "ready"; loans: PortalLoan[]; reload: () => void };
 
 const LOAN_FIELDS = `
   id statusLabel statusStage
@@ -65,6 +65,10 @@ const LOAN_FIELDS = `
 /** Own applications only — the server filters by the session's sub. */
 export function usePortalLoans(tid: string | null | undefined): LoansState {
   const [state, setState] = useState<LoansState>({ status: "loading" });
+  // Bump to refetch — upload → quarantine → scan lands off the request
+  // path, so the documents page polls while anything is still checking.
+  const [nonce, setNonce] = useState(0);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
   useEffect(() => {
     if (!tid) return; // `me` still resolving — stay loading, never flash empty
     const ctrl = new AbortController();
@@ -89,6 +93,7 @@ export function usePortalLoans(tid: string | null | undefined): LoansState {
           setState({
             status: "ready",
             loans: loans.filter((l): l is PortalLoan => l !== null),
+            reload,
           });
       })
       .catch((e) => {
@@ -96,7 +101,7 @@ export function usePortalLoans(tid: string | null | undefined): LoansState {
           setState({ status: "error", error: `${e}` });
       });
     return () => ctrl.abort();
-  }, [tid]);
+  }, [tid, nonce, reload]);
   return state;
 }
 
