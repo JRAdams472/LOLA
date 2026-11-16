@@ -9,6 +9,9 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
   retries: 0,
+  // Every spec shares the one storageState borrower — parallel workers
+  // would interleave drafts and race assertions across specs.
+  workers: 1,
   // github = CI annotations; html = artifact uploaded on failure.
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import StatusTracker from "@/components/StatusTracker";
 import { maskedName, nextActionFor, type PortalLoan } from "@/lib/loans";
 
@@ -32,6 +34,15 @@ export default function LoanCard({ loan }: { loan: PortalLoan }) {
         <p className="mt-4 text-sm text-muted" role="status">
           {hint}
         </p>
+      )}
+
+      {loan.statusStage === 0 && (
+        <Link
+          href="/apply"
+          className="mt-3 inline-block rounded-md bg-accent-strong px-4 py-2 text-sm font-medium text-white hover:bg-accent"
+        >
+          Continue application
+        </Link>
       )}
 
       <dl className="mt-4 flex gap-6 border-t border-border pt-4 text-xs text-muted">
