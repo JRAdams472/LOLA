@@ -140,7 +140,25 @@ services:
       api:
         condition: service_healthy
 
-  # web-borrower:               # M12 — Next.js borrower portal (:3300)
+  # Borrower portal (MPE-220) — same BFF custody model as the console;
+  # sessions get the borrower bounds (30m idle / 4h absolute by default).
+  web-borrower:
+    build: ./clients/portal
+    ports: ["3300:3300"]
+    environment:
+      PORT: "3300"
+      API_URL: http://api:8200
+      OIDC_ISSUER: http://localhost:8200
+      OIDC_AUTHORIZE_URL: http://localhost:8200/connect/authorize
+      OIDC_TOKEN_URL: http://api:8200/connect/token
+      OIDC_CLIENT_ID: lola-borrower-portal
+      OIDC_REDIRECT_URI: http://localhost:3300/callback
+      SESSION_SECRET: dev-portal-session-secret-not-for-prod
+      PORTAL_SESSION_IDLE_MIN: "30"
+      PORTAL_SESSION_MAX_H: "4"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   minio-data:
