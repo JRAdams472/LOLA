@@ -52,6 +52,24 @@ public sealed class FakeApplicationRepository(FakeApplicationStore store)
         return Task.FromResult(app.Version);
     }
 
+    /// Mirrors the real seam's contract: draft-only, merge against the
+    /// stored doc, bump version — the in-memory store serializes on the
+    /// dictionary like the real file serializes on BEGIN IMMEDIATE.
+    public Task<(int Version, ApplicationDocument Doc)> PatchDraftAsync(
+        string id, IReadOnlyDictionary<string, string> patch,
+        string writtenBy, CancellationToken ct = default)
+    {
+        var app = store.Apps[id];
+        if (app.Status != "draft")
+            throw Lola.Application.Errors.DomainException.BadRequest(
+                "only drafts can be patched");
+        var doc = app.Doc;
+        foreach (var (path, value) in patch)
+            doc.Set(path, value);
+        app.Version++;
+        return Task.FromResult((app.Version, doc));
+    }
+
     public Task UpdateStatusAsync(string id, string status, CancellationToken ct = default)
     {
         store.Apps[id].Status = status;

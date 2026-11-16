@@ -28,15 +28,11 @@ public static class UpdateDraftHandler
             throw DomainException.BadRequest("only drafts can be patched");
         await Pricing.RateFreeze.EnforceAsync(locks, c.AppId, c.Patch.Keys, ct);
 
-        var doc = app.Doc;
-        foreach (var (path, value) in c.Patch)
-        {
+        foreach (var path in c.Patch.Keys)
             if (Catalog.SpecFor(path) is null)
                 throw DomainException.BadRequest($"unknown field path '{path}'");
-            doc.Set(path, value);
-        }
-        var version = await apps.WriteVersionAsync(
-            c.AppId, doc, "draft", c.ActorId, submitted: false, ct);
+        var (version, doc) = await apps.PatchDraftAsync(
+            c.AppId, c.Patch, c.ActorId, ct);
         if (TridClock.Complete(doc))
             await apps.EnsureTridClockStartAsync(c.AppId, ct);
         await audit.WriteAsync(c.ActorId, "write", "application", c.AppId,

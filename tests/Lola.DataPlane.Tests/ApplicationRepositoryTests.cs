@@ -167,6 +167,70 @@ public sealed class ApplicationRepositoryTests(OpenBaoFixture fixture)
         }
     }
 
+    /// MPE-216: two parallel PATCHes on disjoint fields compose under
+    /// BEGIN IMMEDIATE — before the fix, read-modify-write let the last
+    /// writer silently drop the other's fields.
+    [Fact]
+    public async Task Concurrent_patches_compose_without_losing_fields()
+    {
+        var (apps, _, svc, registry, cipher, _) = Sut();
+        var id = fixture.NewTenant();
+        try
+        {
+            await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"));
+            var rec = (await registry.FindByIdAsync(id))!;
+            var keyHex = await UnwrapAsync(rec, cipher);
+            using (CipherContext.Use(id))
+            using (TenantContext.Use(TenantScope.From(rec)))
+            {
+                var appId = $"app-{Guid.NewGuid():N}"[..16];
+                await apps.InsertAsync(appId, ApplicationDocument.Empty(),
+                    "draft", null, "test");
+
+                var patchA = new Dictionary<string, string>
+                {
+                    ["party[0].first_name"] = "Ada",
+                    ["party[0].last_name"] = "Lovelace",
+                    ["loan_amount"] = "425000",
+                };
+                var patchB = new Dictionary<string, string>
+                {
+                    ["subject_property.city"] = "Springfield",
+                    ["subject_property.state"] = "IL",
+                    ["subject_property.zip"] = "62701",
+                };
+
+                var results = await Task.WhenAll(
+                    apps.PatchDraftAsync(appId, patchA, "officer-a"),
+                    apps.PatchDraftAsync(appId, patchB, "officer-b"));
+
+                // Serialized under the write lock — sequential versions.
+                results.Select(r => r.Version).OrderBy(v => v).ShouldBe([2, 3]);
+
+                var got = (await apps.GetAsync(appId))!;
+                got.CurrentVersion.ShouldBe(3);
+                foreach (var kv in patchA.Concat(patchB))
+                    got.Doc.Get(kv.Key)!.GetValue<string>().ShouldBe(kv.Value);
+
+                // PII from the patch still lands as ciphertext at rest.
+                using (var conn = KeyedSqliteConnectionManager.OpenKeyed(rec.DbPath, keyHex))
+                {
+                    var payload = await conn.QuerySingleAsync<string>(
+                        """
+                        SELECT payload FROM application_versions
+                        WHERE application_id=@id AND version=3
+                        """, new { id = appId });
+                    payload.ShouldNotContain("Ada");
+                    payload.ShouldContain("vault:");
+                }
+            }
+        }
+        finally
+        {
+            await new TransitKeyManager(fixture.Transit).DestroyAsync(id);
+        }
+    }
+
     /// MPE-112: the TRID stamp is once-only (second ensure is a no-op)
     /// and pipeline step events are append-only on the real seam.
     [Fact]
