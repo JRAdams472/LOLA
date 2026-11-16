@@ -36,14 +36,22 @@ export default function LoanCard({ loan }: { loan: PortalLoan }) {
         </p>
       )}
 
-      {loan.statusStage === 0 && (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {loan.statusStage === 0 && (
+          <Link
+            href="/apply"
+            className="rounded-md bg-accent-strong px-4 py-2 text-sm font-medium text-white hover:bg-accent"
+          >
+            Continue application
+          </Link>
+        )}
         <Link
-          href="/apply"
-          className="mt-3 inline-block rounded-md bg-accent-strong px-4 py-2 text-sm font-medium text-white hover:bg-accent"
+          href={`/documents?app=${loan.id}`}
+          className="rounded-md border border-border px-4 py-2 text-sm text-text hover:bg-surface-2"
         >
-          Continue application
+          Documents
         </Link>
-      )}
+      </div>
 
       <dl className="mt-4 flex gap-6 border-t border-border pt-4 text-xs text-muted">
         <div>
