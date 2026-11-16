@@ -1,5 +1,6 @@
 using Dapper;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 using Lola.Application.Security;
 using Lola.Domain.Applications;
 using Lola.Domain.Classification;
@@ -80,6 +81,78 @@ public sealed class ApplicationRepository(
             """, new { version, status, id });
         await parties.SyncAsync(conn, id, doc, ct);
         return version;
+    }
+
+    /// Draft merge-patch (MPE-216): the whole read→merge→append runs
+    /// inside one BEGIN IMMEDIATE write transaction — same atomic
+    /// read+write discipline as the audit chain — so concurrent PATCHes
+    /// serialize on the tenant file and merge against current state
+    /// instead of last-writer-wins dropping disjoint fields. The draft
+    /// status check rides inside the lock so a racing submit can't be
+    /// followed by a patch that flips status back. Crypto boundary is
+    /// unchanged: reveal/merge/protect happens in memory and the
+    /// payload column still carries only `vault:` ciphertext.
+    public async Task<(int Version, ApplicationDocument Doc)> PatchDraftAsync(
+        string id, IReadOnlyDictionary<string, string> patch,
+        string writtenBy, CancellationToken ct = default)
+    {
+        await using var conn = await OpenAsync(ct);
+        await conn.ExecuteAsync("BEGIN IMMEDIATE");
+        try
+        {
+            var row = await conn.QuerySingleOrDefaultAsync<Row>(
+                """
+                SELECT a.id AS Id, a.status AS Status, a.pipeline_step AS PipelineStep,
+                       a.borrower_user_id AS BorrowerUserId, a.current_version AS CurrentVersion,
+                       a.trid_clock_start AS TridClockStart,
+                       v.payload AS Payload, v.submitted_utc AS SubmittedUtc
+                FROM applications a
+                JOIN application_versions v
+                  ON v.application_id = a.id AND v.version = a.current_version
+                WHERE a.id = @id
+                """, new { id });
+            if (row is null)
+                throw new KeyNotFoundException($"application '{id}' not found");
+            if (row.Status != "draft")
+                throw DomainException.BadRequest("only drafts can be patched");
+
+            var doc = await RevealAsync(ApplicationDocument.Parse(row.Payload), ct);
+            foreach (var (path, value) in patch)
+                doc.Set(path, value);
+            var protected_ = await ProtectAsync(doc, ct);
+
+            var version = (int)row.CurrentVersion + 1;
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO application_versions
+                    (id, application_id, version, status_at_write, payload,
+                     prev_version_id, written_by)
+                VALUES (@vid, @id, @version, @status, @payload, @prev, @writtenBy)
+                """, new
+                {
+                    vid = $"{id}-v{version}",
+                    id,
+                    version,
+                    status = row.Status,
+                    payload = protected_.ToJson(),
+                    prev = $"{id}-v{row.CurrentVersion}",
+                    writtenBy
+                });
+            await conn.ExecuteAsync(
+                """
+                UPDATE applications SET current_version=@version, status=@status,
+                       updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE id=@id
+                """, new { version, status = row.Status, id });
+            await parties.SyncAsync(conn, id, doc, ct);
+            await conn.ExecuteAsync("COMMIT");
+            return (version, doc);
+        }
+        catch
+        {
+            await conn.ExecuteAsync("ROLLBACK");
+            throw;
+        }
     }
 
     /// Current version with the payload DECRYPTED for the app layer.

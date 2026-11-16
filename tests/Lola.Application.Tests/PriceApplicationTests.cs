@@ -154,6 +154,7 @@ public sealed class PriceApplicationTests
                 : null);
         public Task InsertAsync(string id, ApplicationDocument d, string s, string? b, string w, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> WriteVersionAsync(string id, ApplicationDocument d, string s, string w, bool submitted, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<(int Version, ApplicationDocument Doc)> PatchDraftAsync(string id, IReadOnlyDictionary<string, string> patch, string writtenBy, CancellationToken ct = default) => throw new NotImplementedException();
         public Task UpdateStatusAsync(string id, string s, CancellationToken ct = default) => throw new NotImplementedException();
         public Task EnsureTridClockStartAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task UpdatePipelineStepAsync(string id, string s, CancellationToken ct = default) => throw new NotImplementedException();

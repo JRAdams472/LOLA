@@ -40,6 +40,16 @@ public interface IApplicationRepository
     Task<int> WriteVersionAsync(string id, ApplicationDocument doc,
         string status, string writtenBy, bool submitted, CancellationToken ct = default);
 
+    /// Draft merge-patch (MPE-216): read→merge→append runs inside one
+    /// write transaction so concurrent PATCHes serialize on the tenant
+    /// file and compose — the old read-modify-write path let the last
+    /// writer silently drop the other's disjoint fields. Returns the
+    /// new version and the merged doc (plaintext — callers are inside
+    /// CipherContext) for handlers that derive side-effects from it.
+    Task<(int Version, ApplicationDocument Doc)> PatchDraftAsync(
+        string id, IReadOnlyDictionary<string, string> patch,
+        string writtenBy, CancellationToken ct = default);
+
     /// Lifecycle transition — updates the applications row status only;
     /// version rows stay untouched (invariant 6).
     Task UpdateStatusAsync(string id, string status, CancellationToken ct = default);

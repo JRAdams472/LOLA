@@ -199,6 +199,7 @@ public sealed class RetentionGateTests
             CancellationToken ct = default) => Task.FromResult(rows);
         public Task InsertAsync(string id, Lola.Domain.Applications.ApplicationDocument doc, string status, string? borrowerUserId, string writtenBy, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> WriteVersionAsync(string id, Lola.Domain.Applications.ApplicationDocument doc, string status, string writtenBy, bool submitted, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<(int Version, Lola.Domain.Applications.ApplicationDocument Doc)> PatchDraftAsync(string id, IReadOnlyDictionary<string, string> patch, string writtenBy, CancellationToken ct = default) => throw new NotImplementedException();
         public Task UpdateStatusAsync(string id, string status, CancellationToken ct = default) => throw new NotImplementedException();
         public Task EnsureTridClockStartAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task UpdatePipelineStepAsync(string id, string step, CancellationToken ct = default) => throw new NotImplementedException();
