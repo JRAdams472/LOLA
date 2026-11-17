@@ -52,3 +52,4 @@ clients/*/e2e/.auth/
 
 # Secrets scanning artifacts
 gitleaks-report.json
+__pycache__/

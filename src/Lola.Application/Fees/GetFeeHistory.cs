@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 
 namespace Lola.Application.Fees;
 
@@ -16,6 +17,8 @@ public static class GetFeeHistoryHandler
         IFeeRepository fees, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("fee history is staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var rows = await fees.ListEvalsAsync(q.AppId, ct);

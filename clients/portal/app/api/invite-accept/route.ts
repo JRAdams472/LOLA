@@ -15,7 +15,36 @@ export async function POST(req: NextRequest) {
   if (declared > MAX_BODY) {
     return Response.json({ error: "body too large" }, { status: 413 });
   }
-  const body = await req.json().catch(() => null);
+  // A chunked body can omit content-length — count the real stream too.
+  const reader = req.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  if (reader) {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY) {
+        await reader.cancel();
+        return Response.json({ error: "body too large" }, { status: 413 });
+      }
+      chunks.push(value);
+    }
+  }
+  const flat = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    flat.set(c, off);
+    off += c.byteLength;
+  }
+  const raw = new TextDecoder().decode(flat);
+  const body = (() => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  })();
   if (
     !body ||
     typeof body.token !== "string" ||

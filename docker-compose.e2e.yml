@@ -22,6 +22,18 @@ services:
       # container's token exchange uses api:8200 — without a canonical
       # issuer, codes minted under one host 400 on the other.
       OIDC_ISSUER: http://localhost:8200
+      # Shots stay self-contained: the base compose wires the api at the
+      # live sibling stacks (mpex/zara/isppr via host.docker.internal),
+      # which the isolated stack must not touch. Stub adapters keep the
+      # pricing→fees→package flow deterministic, and blanking the ISPPr
+      # admin creds unregisters the doc provisioner so seeding never
+      # provisions real vendor clients — stub-bind writes the synthetic
+      # binding the stub path needs instead.
+      PRICING_ADAPTER: stub
+      FEE_ADAPTER: stub
+      DOC_ADAPTER: stub
+      ISPPR_ADMIN_EMAIL: ""
+      ISPPR_ADMIN_PASSWORD: ""
     volumes:
       - lola-data:/app/data
       - ./data/openbao-e2e:/run/openbao:ro

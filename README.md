@@ -163,6 +163,24 @@ Reads are GraphQL (depth 8, cost ≤300, ADR-0011) over the same
 Wolverine handlers as REST; mutations stay REST. See
 [`docs/m11-plan.md`](docs/m11-plan.md).
 
+Borrower portal live (M12) — `clients/portal` is a second Next.js
+app on the same token-custody architecture, hardened for the public
+surface: sealed `lola_portal` JWE cookies, a **30-minute idle window**
+(sliding on traffic) under a **4-hour absolute bound** that refresh
+rotation cannot extend, and a borrower-only read plane — GraphQL
+`portalLoan(s)` returns a masked, borrower-safe projection while every
+officer resolver and staff eval read (pricing, fees, steps, rate
+lock, ULDD export) refuses borrower tokens. Surfaces: **invite
+acceptance** (72h single-use hashed tokens), a five-section **intake
+wizard** generated from the same MISMO catalog with masked-confirm
+resume, save-as-you-go drafts, and validation deep-links; a
+**dashboard** with a friendly 3-stage status tracker that never
+exposes internal pipeline vocabulary; and **Documents** — upload to
+the M10 vault (classification picker, friendly quarantine/clean/
+rejected chips, retry) plus download of officer-generated disclosure
+packages through audited 302 capability URLs. See
+[`docs/m12-plan.md`](docs/m12-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)

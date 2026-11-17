@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 
 namespace Lola.Application.Fees;
 
@@ -16,6 +17,8 @@ public static class GetApplicationFeesHandler
         IFeeRepository fees, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("fee evals are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var batch = await fees.GetLatestBatchEvalsAsync(q.AppId, ct);

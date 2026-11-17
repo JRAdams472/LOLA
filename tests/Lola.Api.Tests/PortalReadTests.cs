@@ -181,4 +181,36 @@ public class PortalReadTests(LolaApiFactory factory) : IClassFixture<LolaApiFact
         })
             data.GetProperty(list).GetArrayLength().ShouldBe(0);
     }
+
+    /// MPE-224 hardening gate: the GraphQL officer read surface was
+    /// locked in MPE-221, but the same officer-eval reads were still
+    /// reachable over REST by a borrower token. These now 403, while
+    /// the own-app reads the borrower surface legitimately needs
+    /// (own doc, own list, documents, uploads) stay green.
+    [Fact]
+    public async Task Borrower_denied_officer_eval_reads_over_rest()
+    {
+        var tenant = $"t{Guid.NewGuid():N}"[..12];
+        var (client, appId) = await SeedBorrowerWithDraft(tenant, "b1");
+        var base_ = $"/api/tenants/{tenant}/applications";
+
+        foreach (var path in new[]
+        {
+            $"{appId}/pricing", $"{appId}/pricing/history",
+            $"{appId}/lock", $"{appId}/fees", $"{appId}/fees/history",
+            $"{appId}/steps", $"{appId}/export-uldd",
+        })
+            (await client.GetAsync($"{base_}/{path}"))
+                .StatusCode.ShouldBe(HttpStatusCode.Forbidden, path);
+
+        // Own-app reads the borrower surface keeps by design.
+        (await client.GetAsync($"{base_}/{appId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync(base_))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync($"{base_}/{appId}/documents"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync($"{base_}/{appId}/uploads"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
 }
