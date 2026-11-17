@@ -17,6 +17,8 @@ public static class GetApplicationPricingHandler
         IPricingRepository pricing, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("pricing evals are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var latest = await pricing.GetLatestEvalAsync(q.AppId, ct);

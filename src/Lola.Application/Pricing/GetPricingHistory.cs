@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 
 namespace Lola.Application.Pricing;
 
@@ -16,6 +17,8 @@ public static class GetPricingHistoryHandler
         IPricingRepository pricing, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("pricing history is staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var rows = await pricing.ListEvalsAsync(q.AppId, ct);

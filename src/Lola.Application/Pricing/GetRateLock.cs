@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 
 namespace Lola.Application.Pricing;
 
@@ -15,6 +16,8 @@ public static class GetRateLockHandler
         IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("rate locks are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         var active = await locks.GetActiveAsync(q.AppId, ct);

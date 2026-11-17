@@ -85,6 +85,11 @@ services:
     ports: ["8200:8200"]
     environment:
       CORS_ORIGIN: http://localhost:3200
+      # Canonical issuer: browser authorize hops hit localhost:8200 while
+      # the web containers exchange tokens at api:8200 — without a fixed
+      # issuer, codes minted under one host fail invalid_grant on the
+      # other (the e2e override documents the same constraint).
+      OIDC_ISSUER: http://localhost:8200
       OPENBAO_ADDR: http://openbao:8200
       OPENBAO_TOKEN_FILE: /run/openbao/api-token
       S3_ENDPOINT: http://minio:9000
@@ -93,6 +98,27 @@ services:
       CLAMAV_ADDR: clamav:3310
       VAULT_ADAPTER: minio
       CONTROL_DB_PATH: /app/data/control.db
+      PORTAL_BASE_URL: http://localhost:3300
+      # Sibling integrations (M4/M9) — the sibling stacks run in their own
+      # compose networks, so the container reaches them via the host ports.
+      PRICING_ADAPTER: mpex
+      PRICING_OUTBOX_ENABLED: "true"
+      MPEX_BASE_URL: http://host.docker.internal:8080
+      MPEX_TOKEN_URL: http://host.docker.internal:5556/dex/token
+      MPEX_CLIENT_ID: mpex-svc
+      MPEX_CLIENT_SECRET: ${MPEX_CLIENT_SECRET:-}
+      MPEX_AUDIENCE: mpex-api
+      FEE_ADAPTER: zara
+      FEE_OUTBOX_ENABLED: "true"
+      ZARA_BASE_URL: http://host.docker.internal:8400
+      ZARA_ENV: dev
+      ZARA_TENANT_ID: aa5ce000-0000-4000-8000-0000000000ac
+      ZARA_TOKEN_FILE: /run/zara/svc.jwt
+      DOC_ADAPTER: isppr
+      DOC_OUTBOX_ENABLED: "true"
+      ISPPR_BASE_URL: http://host.docker.internal:8090
+      ISPPR_ADMIN_EMAIL: admin@isppr.local
+      ISPPR_ADMIN_PASSWORD: isppr-admin
       SEQ_URL: http://seq
       OTEL_SERVICE_NAME: lola
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
@@ -105,6 +131,9 @@ services:
     volumes:
       - lola-data:/app/data
       - ./data/openbao:/run/openbao:ro
+      - ./data/zara:/run/zara:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8200/healthz || exit 1"]
       interval: 10s

@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 
 namespace Lola.Application.Interop;
 
@@ -15,6 +16,8 @@ public static class ExportUlddHandler
         Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.ActorIsBorrower)
+            throw DomainException.Forbidden("ULDD export is staff-only");
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
         await audit.WriteAsync(q.ActorId, "export", "application", q.AppId,

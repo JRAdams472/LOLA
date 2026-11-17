@@ -38,7 +38,12 @@ CLIENT_ID = "lola-officer-console"
 SCOPE = "openid profile offline_access lola-api"
 
 
-def login() -> str:
+def login(
+    email: str = EMAIL,
+    password: str = PASSWORD,
+    client_id: str = CLIENT_ID,
+    redirect_uri: str = REDIRECT_URI,
+) -> str:
     """Auth-code + PKCE against the API's own authorize endpoint."""
     s = requests.Session()
     verifier = secrets.token_urlsafe(64)
@@ -50,8 +55,8 @@ def login() -> str:
     r = s.get(
         f"{API}/connect/authorize",
         params={
-            "client_id": CLIENT_ID,
-            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": SCOPE,
             "state": secrets.token_urlsafe(16),
@@ -65,7 +70,7 @@ def login() -> str:
     return_url = urllib.parse.parse_qs(parsed.query).get("returnUrl", ["/"])[0]
     r = s.post(
         f"{API}/account/login",
-        data={"email": EMAIL, "password": PASSWORD, "returnUrl": return_url},
+        data={"email": email, "password": password, "returnUrl": return_url},
         allow_redirects=False,
     )
     assert r.status_code == 302, f"login POST -> {r.status_code}"
@@ -79,7 +84,7 @@ def login() -> str:
     # until the Location is the client callback carrying `code`.
     loc = r.headers["Location"]
     for _ in range(6):
-        if loc.startswith(REDIRECT_URI):
+        if loc.startswith(redirect_uri):
             break
         r = s.get(urllib.parse.urljoin(API, loc), allow_redirects=False)
         loc = r.headers.get("Location", "")
@@ -88,8 +93,8 @@ def login() -> str:
         f"{API}/connect/token",
         data={
             "grant_type": "authorization_code",
-            "client_id": CLIENT_ID,
-            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
             "code": code,
             "code_verifier": verifier,
         },
