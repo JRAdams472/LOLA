@@ -22,7 +22,8 @@ public sealed class VendorWorkerTests
     private static (
         Lola.Api.Vendors.VendorOutboxProcessor processor,
         FakeVendorOrderRepository repo,
-        FakeVendorCredentialSource creds) Sut(IVendorAdapter adapter)
+        FakeVendorCredentialSource creds) Sut(IVendorAdapter adapter,
+        Lola.Application.Security.IFieldCipher? cipher = null)
     {
         var repo = new FakeVendorOrderRepository();
         var creds = new FakeVendorCredentialSource();
@@ -31,7 +32,9 @@ public sealed class VendorWorkerTests
             .AddSingleton(adapter)
             .AddSingleton<IVendorCredentialSource>(creds)
             .AddSingleton<Lola.Application.Security.IFieldCipher>(
-                new LoopbackFieldCipher())
+                cipher ?? new LoopbackFieldCipher())
+            .AddSingleton<Lola.Application.Audit.ITenantAuditLog>(
+                new FakeTenantAuditLog())
             .BuildServiceProvider();
         return (new Lola.Api.Vendors.VendorOutboxProcessor(
             services, new FakeRegistry(), TimeProvider.System),
@@ -74,6 +77,22 @@ public sealed class VendorWorkerTests
             e => e.AppId == "app-1" && e.Step == "Credit" &&
                 e.Event == "completed");
         creds.Lookups.ShouldBe([VendorKind.Credit]);
+    }
+
+    /// MPE-229 regression: the dev drain DLQ'd orders with "No tenant
+    /// in CipherContext" — TransitFieldCipher reads CipherContext for
+    /// its key name and the processor only scoped TenantContext. A
+    /// cipher that enforces the same contract proves the drain sets
+    /// both contexts.
+    [Fact]
+    public async Task Drain_scopes_cipher_context_for_field_crypto()
+    {
+        var (processor, repo, _) = Sut(new AltStubVendorAdapter(),
+            new CipherContextCipher());
+        await EnqueueAsync(repo);
+
+        (await processor.DrainTenantAsync(Tenant)).ShouldBe(1);
+        repo.Orders["ord-1"].Status.ShouldBe("completed");
     }
 
     [Fact]
@@ -244,6 +263,49 @@ public sealed class VendorWorkerTests
         public Task<VendorResult?> PollAsync(VendorReceipt r,
             VendorCredentials? c, CancellationToken ct = default)
             => Task.FromResult<VendorResult?>(null);
+    }
+
+    /// Enforces the real TransitFieldCipher contract: every crypto op
+    /// requires CipherContext. LoopbackFieldCipher can't catch a
+    /// missing scope — this can.
+    private sealed class CipherContextCipher
+        : Lola.Application.Security.IFieldCipher
+    {
+        private readonly LoopbackFieldCipher _inner = new();
+
+        public Task<string> EncryptAsync(string plaintext,
+            CancellationToken ct = default)
+        {
+            _ = Lola.Application.Security.CipherContext
+                .RequiredTenantId;
+            return _inner.EncryptAsync(plaintext, ct);
+        }
+
+        public Task<IReadOnlyList<string>> EncryptAsync(
+            IReadOnlyList<string> plaintexts,
+            CancellationToken ct = default)
+        {
+            _ = Lola.Application.Security.CipherContext
+                .RequiredTenantId;
+            return _inner.EncryptAsync(plaintexts, ct);
+        }
+
+        public Task<string> DecryptAsync(string ciphertext,
+            CancellationToken ct = default)
+        {
+            _ = Lola.Application.Security.CipherContext
+                .RequiredTenantId;
+            return _inner.DecryptAsync(ciphertext, ct);
+        }
+
+        public Task<IReadOnlyList<string>> DecryptAsync(
+            IReadOnlyList<string> ciphertexts,
+            CancellationToken ct = default)
+        {
+            _ = Lola.Application.Security.CipherContext
+                .RequiredTenantId;
+            return _inner.DecryptAsync(ciphertexts, ct);
+        }
     }
 
     private sealed class FakeRegistry : ITenantRegistry

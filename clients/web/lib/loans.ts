@@ -128,6 +128,46 @@ export function useSteps(
   });
 }
 
+/// Staff-only vendor order projection (MPE-229). The encrypted
+/// request/result documents never cross this wire — summary is the
+/// server-normalized, PII-free display string produced by the audited
+/// read path.
+export interface VendorOrder {
+  orderId: string;
+  applicationId: string;
+  kind: string;
+  adapter: string;
+  externalId: string | null;
+  status: string;
+  error: string | null;
+  orderedBy: string;
+  createdUtc: string | null;
+  submittedUtc: string | null;
+  completedUtc: string | null;
+  summary: string | null;
+}
+
+export function useVendorOrders(
+  tid: string | null | undefined,
+  appId: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["vendor-orders", tid, appId],
+    enabled: !!tid && !!appId && enabled,
+    queryFn: () =>
+      gql<{ vendorOrders: VendorOrder[] | null }>(
+        `query VendorOrders($t: String!, $id: String!) {
+          vendorOrders(tenantId: $t, appId: $id) {
+            orderId applicationId kind adapter externalId status
+            error orderedBy createdUtc submittedUtc completedUtc summary
+          }
+        }`,
+        { t: tid, id: appId },
+      ).then((d) => d.vendorOrders ?? []),
+  });
+}
+
 export interface AuditEvent {
   seq: number;
   eventId: string;

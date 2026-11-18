@@ -291,4 +291,68 @@ public sealed class VendorOrderEndpointTests(LolaApiFactory factory)
             $"{base_}/{appId}/vendor-orders/{orderId}")).StatusCode
             .ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    /// MPE-229: the GraphQL read surface. The officer sees kind /
+    /// status / normalized summary; the serialized wire carries no
+    /// request/result document keys at all. Completed orders'
+    /// summary reads run through the audited decrypt path, and the
+    /// completion itself is audited — field classes only.
+    [Fact]
+    public async Task Graphql_vendorOrders_returns_summary_and_audits_reads()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+        var appId = await DraftWithIdentityAsync(officer, base_);
+        var placed = await officer.PostAsJsonAsync(
+            $"{base_}/{appId}/vendor-orders", new { kind = "credit" });
+        var orderId = (await placed.Content
+            .ReadFromJsonAsync<JsonElement>())
+            .GetProperty("orderId").GetString()!;
+        await DrainAsync(tenant);
+
+        var resp = await officer.PostAsJsonAsync("/graphql", new
+        {
+            query = $$"""
+                { vendorOrders(tenantId: "{{tenant}}", appId: "{{appId}}") {
+                    orderId kind adapter externalId status error
+                    orderedBy createdUtc submittedUtc completedUtc
+                    summary } }
+                """
+        });
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var raw = await resp.Content.ReadAsStringAsync();
+        foreach (var forbidden in new[]
+        {
+            "\"requestJson", "\"resultJson", "\"result",
+        })
+            raw.ShouldNotContain(forbidden);
+        var orders = JsonDocument.Parse(raw).RootElement
+            .GetProperty("data").GetProperty("vendorOrders");
+        orders.GetArrayLength().ShouldBe(1);
+        var o = orders[0];
+        o.GetProperty("orderId").GetString().ShouldBe(orderId);
+        o.GetProperty("kind").GetString().ShouldBe("credit");
+        o.GetProperty("status").GetString().ShouldBe("completed");
+        o.GetProperty("externalId").GetString()!
+            .ShouldStartWith("alt-credit-");
+        o.GetProperty("completedUtc").GetString().ShouldNotBeNullOrEmpty();
+        var summary = o.GetProperty("summary").GetString()!;
+        summary.ShouldNotBeNullOrEmpty();
+        summary.ShouldContain("score");
+
+        // Completion and result read are both attributed — field
+        // classes only, never report values.
+        var audit = factory.Services
+            .GetRequiredService<Lola.Application.Audit.ITenantAuditLog>();
+        var completions = await audit.QueryAsync(new AuditFilter(
+            Action: "vendor_result", EntityId: orderId));
+        completions.ShouldContain(e =>
+            e.Reason == "vendor order completed" &&
+            e.FieldClasses.Contains("VendorReport"));
+        completions.ShouldContain(e =>
+            e.Reason == "vendor result read" &&
+            e.FieldClasses.Contains("VendorReport"));
+        foreach (var e in completions)
+            e.FieldClasses.ShouldNotContain("123456789");
+    }
 }

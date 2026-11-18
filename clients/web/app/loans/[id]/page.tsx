@@ -40,6 +40,7 @@ import {
   useReveal,
   useSteps,
   useSubmit,
+  useVendorOrders,
   type RevealedApplication,
 } from "@/lib/loans";
 import { FIELD_MAP, fieldsFor, SECTIONS, type SectionId } from "@/lib/field-map";
@@ -62,6 +63,7 @@ export default function LoanWorkspacePage() {
   // Lazy per-tab queries — they fetch on first open and refetch on
   // revisit, so a reveal/save's audit event always shows fresh.
   const steps = useSteps(tid, appId, tab === "steps");
+  const vendors = useVendorOrders(tid, appId, isStaff && tab === "steps");
   const audit = useApplicationAudit(tid, appId, isStaff && tab === "audit");
   const patchDraft = usePatchDraft(tid, appId);
   const submit = useSubmit(tid, appId);
@@ -308,6 +310,85 @@ export default function LoanWorkspacePage() {
 
         {tab === "steps" && (
           <Box sx={{ p: 2 }}>
+            {isStaff && (
+              <>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Vendor orders
+                </Typography>
+                {vendors.isLoading && (
+                  <Skeleton variant="rectangular" height={64} />
+                )}
+                {vendors.isError && (
+                  <ErrorPanel
+                    title="Vendor orders failed"
+                    error={vendors.error}
+                  />
+                )}
+                {vendors.isSuccess && vendors.data.length === 0 && (
+                  <Typography color="text.secondary" sx={{ mb: 2 }}>
+                    No vendor orders placed.
+                  </Typography>
+                )}
+                {vendors.isSuccess && vendors.data.length > 0 && (
+                  <Table size="small" sx={{ mb: 3 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Vendor</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Summary</TableCell>
+                        <TableCell>Ordered</TableCell>
+                        <TableCell>Completed</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {vendors.data.map((o) => (
+                        <TableRow key={o.orderId}>
+                          <TableCell>{o.kind}</TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={o.status}
+                              color={
+                                o.status === "completed"
+                                  ? "success"
+                                  : o.status === "failed"
+                                    ? "error"
+                                    : o.status === "referred"
+                                      ? "warning"
+                                      : "info"
+                              }
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {o.summary ?? o.error ?? "—"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {o.createdUtc
+                                ? new Date(o.createdUtc).toLocaleString()
+                                : "—"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {o.completedUtc
+                                ? new Date(o.completedUtc).toLocaleString()
+                                : "—"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Pipeline events
+                </Typography>
+              </>
+            )}
             {steps.isLoading && <Skeleton variant="rectangular" height={120} />}
             {steps.isError && <ErrorPanel title="Steps failed" error={steps.error} />}
             {steps.isSuccess && steps.data.length === 0 && (
