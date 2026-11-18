@@ -203,6 +203,162 @@
       "member": "MfaSecretRef",
       "piiClass": "Account",
       "location": "control-plane"
+    },
+    {
+      "type": "Lola.Application.Vendors.AusOrderRequest",
+      "member": "MismoJson",
+      "piiClass": "Other",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "City",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "Dob",
+      "piiClass": "Dob",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "FirstName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "LastName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "Ssn",
+      "piiClass": "Ssn",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "State",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "Street",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.CreditOrderRequest",
+      "member": "Zip",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FloodOrderRequest",
+      "member": "City",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FloodOrderRequest",
+      "member": "State",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FloodOrderRequest",
+      "member": "Street",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FloodOrderRequest",
+      "member": "Zip",
+      "piiClass": "Address",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FraudOrderRequest",
+      "member": "Dob",
+      "piiClass": "Dob",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FraudOrderRequest",
+      "member": "FirstName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FraudOrderRequest",
+      "member": "LastName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.FraudOrderRequest",
+      "member": "Ssn",
+      "piiClass": "Ssn",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoeOrderRequest",
+      "member": "EmployerName",
+      "piiClass": "Other",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoeOrderRequest",
+      "member": "EmployerPhone",
+      "piiClass": "Other",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoeOrderRequest",
+      "member": "FirstName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoeOrderRequest",
+      "member": "LastName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoeOrderRequest",
+      "member": "Ssn",
+      "piiClass": "Ssn",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoiOrderRequest",
+      "member": "EmployerName",
+      "piiClass": "Other",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoiOrderRequest",
+      "member": "FirstName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoiOrderRequest",
+      "member": "LastName",
+      "piiClass": "Name",
+      "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.Application.Vendors.VoiOrderRequest",
+      "member": "Ssn",
+      "piiClass": "Ssn",
+      "location": "tenant-payload"
     }
   ]
 }

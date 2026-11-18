@@ -20,6 +20,7 @@ public static class CryptoServiceCollectionExtensions
             o.TokenFile = config["OPENBAO_TOKEN_FILE"];
         });
         services.AddHttpClient<OpenBaoTransitClient>();
+        services.AddHttpClient<OpenBaoKvClient>();
         services.AddSingleton<IFieldCipher, TransitFieldCipher>();
         services.AddSingleton<IBlindIndex, TransitBlindIndex>();
         services.AddSingleton<ITenantKeyManager, TransitKeyManager>();

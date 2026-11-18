@@ -57,6 +57,13 @@ if ! bao secrets list 2>/dev/null | grep -q '^lola-transit/'; then
   bao secrets enable -path=lola-transit transit >/dev/null
 fi
 
+# KVv2 mount — per-tenant vendor credentials (M13); nothing else
+# belongs here. Idempotent like the transit mount.
+if ! bao secrets list 2>/dev/null | grep -q '^lola-kv/'; then
+  echo "openbao-init: mounting lola-kv (kv-v2)"
+  bao secrets enable -path=lola-kv -version=2 kv >/dev/null
+fi
+
 # Scoped policy — api can do crypto + key admin on lola-transit only.
 echo "openbao-init: writing lola-api policy"
 bao policy write lola-api - >/dev/null <<'POLICY'
@@ -66,6 +73,8 @@ path "lola-transit/decrypt/*"   { capabilities = ["create","update"] }
 path "lola-transit/rewrap/*"    { capabilities = ["create","update"] }
 path "lola-transit/hmac/*"      { capabilities = ["create","update"] }
 path "lola-transit/keys/*/rotate" { capabilities = ["update"] }
+path "lola-kv/data/vendors/*"     { capabilities = ["create","read","update","delete"] }
+path "lola-kv/metadata/vendors/*" { capabilities = ["read","list","delete"] }
 path "sys/seal-status"          { capabilities = ["read"] }
 POLICY
 
