@@ -371,6 +371,19 @@ else
     builder.Services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin,
         Lola.Infrastructure.Documents.MissingDocVendorAdmin>();
 }
+// Vendor adapter seam (M13/MPE-77, ADR-0007): VENDOR_ADAPTER selects
+// the verification provider for credit/VOE/VOI/flood/fraud/AUS
+// orders; anything else gets the deterministic stub. Real vendors
+// arrive behind the same IVendorAdapter contract — adding one is a
+// new adapter class + one registration branch, zero core changes.
+// Credentials resolve per-call from OpenBao KV via
+// IVendorCredentialSource — never config/DB/repo.
+builder.Services.AddScoped<Lola.Application.Vendors.IVendorOrderRepository,
+    VendorRepository>();
+builder.Services.AddSingleton<Lola.Application.Vendors.IVendorCredentialSource,
+    Lola.Infrastructure.Vendors.OpenBaoVendorCredentialSource>();
+builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter,
+    Lola.Infrastructure.Vendors.StubVendorAdapter>();
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();
