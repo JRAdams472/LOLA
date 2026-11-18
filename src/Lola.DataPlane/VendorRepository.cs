@@ -100,18 +100,9 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
             "WHERE application_id=@appId ORDER BY created_utc",
             new { appId = applicationId }, ct);
 
-    public Task MarkSubmittedAsync(string orderId,
-        string externalId, CancellationToken ct = default)
-        => ExecuteAsync(
-            """
-            UPDATE vendor_orders
-            SET status='submitted', external_id=@ext,
-                submitted_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-            WHERE order_id=@id
-            """, new { id = orderId, ext = externalId }, ct);
-
-    public async Task CompleteAsync(string orderId, string resultJson,
-        string outboxId, string outcome, CancellationToken ct = default)
+    public async Task MarkSubmittedAsync(string orderId,
+        string externalId, string outboxId,
+        CancellationToken ct = default)
     {
         await using var conn = await OpenAsync(ct);
         await using var tx = (SqliteTransaction)conn
@@ -121,11 +112,10 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
             await conn.ExecuteAsync(
                 """
                 UPDATE vendor_orders
-                SET status=@outcome, result_json=@result,
-                    completed_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-                WHERE order_id=@id AND status IN ('ordered','submitted')
-                """,
-                new { id = orderId, outcome, result = resultJson }, tx);
+                SET status='submitted', external_id=@ext,
+                    submitted_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE order_id=@id
+                """, new { id = orderId, ext = externalId }, tx);
             await conn.ExecuteAsync(
                 "UPDATE vendor_outbox SET status='done', " +
                 "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
@@ -140,27 +130,97 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
         }
     }
 
-    public async Task FailAsync(string orderId, string error,
-        string outboxId, CancellationToken ct = default)
+    public async Task CompleteAsync(string orderId, string appId,
+        string resultJson, string outboxId, string outcome,
+        string step, string actor, CancellationToken ct = default)
     {
         await using var conn = await OpenAsync(ct);
         await using var tx = (SqliteTransaction)conn
             .BeginTransaction(System.Data.IsolationLevel.Serializable);
         try
         {
+            var changed = await conn.ExecuteAsync(
+                """
+                UPDATE vendor_orders
+                SET status=@outcome, result_json=@result,
+                    completed_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE order_id=@id AND status IN ('ordered','submitted')
+                """,
+                new { id = orderId, outcome, result = resultJson }, tx);
+            if (changed > 0)
+                await conn.ExecuteAsync(
+                    """
+                    INSERT INTO application_step_events
+                        (id, application_id, step, event, actor, reason)
+                    VALUES (@eventId, @appId, @step, @outcome, @actor,
+                            @reason)
+                    """,
+                    new
+                    {
+                        eventId = $"{appId}-step-{Guid.NewGuid():N}",
+                        appId,
+                        step,
+                        outcome,
+                        actor,
+                        reason = "vendor order completed"
+                    }, tx);
             await conn.ExecuteAsync(
+                "UPDATE vendor_outbox SET status='done', " +
+                "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
+                "WHERE outbox_id=@id AND status='pending'",
+                new { id = outboxId }, tx);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task FailAsync(string orderId, string appId,
+        string error, string outboxId, long attempts, string step,
+        string actor, CancellationToken ct = default)
+    {
+        await using var conn = await OpenAsync(ct);
+        await using var tx = (SqliteTransaction)conn
+            .BeginTransaction(System.Data.IsolationLevel.Serializable);
+        try
+        {
+            var changed = await conn.ExecuteAsync(
                 """
                 UPDATE vendor_orders
                 SET status='failed', error=@error,
                     completed_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-                WHERE order_id=@id
+                WHERE order_id=@id AND status IN ('ordered','submitted')
                 """,
                 new { id = orderId, error }, tx);
+            if (changed > 0)
+                await conn.ExecuteAsync(
+                    """
+                    INSERT INTO application_step_events
+                        (id, application_id, step, event, actor, reason)
+                    VALUES (@eventId, @appId, @step, 'failed', @actor,
+                            @reason)
+                    """,
+                    new
+                    {
+                        eventId = $"{appId}-step-{Guid.NewGuid():N}",
+                        appId,
+                        step,
+                        actor,
+                        reason = "vendor order failed"
+                    }, tx);
+            // 'pending' → 'dlq'; an already-closed row (webhook-driven
+            // failure after submit) is left as-is.
             await conn.ExecuteAsync(
-                "UPDATE vendor_outbox SET status='done', " +
-                "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
-                "WHERE outbox_id=@id",
-                new { id = outboxId }, tx);
+                """
+                UPDATE vendor_outbox
+                SET status='dlq', attempts=@attempts, last_error=@error,
+                    updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE outbox_id=@id AND status='pending'
+                """,
+                new { id = outboxId, attempts, error }, tx);
             await tx.CommitAsync(ct);
         }
         catch

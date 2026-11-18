@@ -382,8 +382,16 @@ builder.Services.AddScoped<Lola.Application.Vendors.IVendorOrderRepository,
     VendorRepository>();
 builder.Services.AddSingleton<Lola.Application.Vendors.IVendorCredentialSource,
     Lola.Infrastructure.Vendors.OpenBaoVendorCredentialSource>();
-builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter,
-    Lola.Infrastructure.Vendors.StubVendorAdapter>();
+var vendorAdapter = builder.Configuration["VENDOR_ADAPTER"] ?? "stub";
+builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter>(
+    vendorAdapter.ToLowerInvariant() switch
+    {
+        "stub" => (Lola.Application.Vendors.IVendorAdapter)
+            new Lola.Infrastructure.Vendors.StubVendorAdapter(),
+        var other => throw new InvalidOperationException(
+            $"unknown VENDOR_ADAPTER '{other}'")
+    });
+builder.Services.AddSingleton<Lola.Api.Vendors.VendorOutboxProcessor>();
 if (!"false".Equals(builder.Configuration["PRICING_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Pricing.PricingOutboxWorker>();
@@ -393,6 +401,9 @@ if (!"false".Equals(builder.Configuration["FEE_OUTBOX_ENABLED"],
 if (!"false".Equals(builder.Configuration["DOC_OUTBOX_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Documents.DocOutboxWorker>();
+if (!"false".Equals(builder.Configuration["VENDOR_OUTBOX_ENABLED"],
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHostedService<Lola.Api.Vendors.VendorOutboxWorker>();
 if (!"false".Equals(builder.Configuration["VAULT_SCAN_ENABLED"],
         StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHostedService<Lola.Api.Vault.VaultScanWorker>();
@@ -512,6 +523,7 @@ app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
 app.MapAdminEndpoints();
 app.MapApplicationEndpoints();
+Lola.Api.Vendors.VendorEndpoints.MapVendorEndpoints(app);
 Lola.Api.Vault.VaultEndpoints.MapVaultEndpoints(app);
 app.MapInviteEndpoints();
 

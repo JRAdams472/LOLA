@@ -5,7 +5,7 @@ namespace Lola.Application.Vendors;
 /// Vendor-kind token guards — the wire/DB vocabulary is lowercase
 /// (`credit|voe|voi|flood|fraud|aus`); anything else 400s before an
 /// order row exists.
-internal static class VendorGuards
+public static class VendorGuards
 {
     public static string Token(VendorKind kind) => kind switch
     {

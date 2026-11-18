@@ -96,14 +96,15 @@ public sealed class VendorRepositoryTests(OpenBaoFixture fixture)
         using var _ = TenantContext.Use(TenantScope.From(rec));
         await repo.EnqueueAsync(Order(), "ob-1");
 
-        await repo.MarkSubmittedAsync("ord-1", "stub-credit-abc123");
+        await repo.MarkSubmittedAsync("ord-1", "stub-credit-abc123", "ob-1");
         var submitted = await repo.GetAsync("ord-1");
         submitted!.Status.ShouldBe("submitted");
         submitted.ExternalId.ShouldBe("stub-credit-abc123");
         submitted.SubmittedUtc.ShouldNotBeNull();
 
         await repo.CompleteAsync(
-            "ord-1", "vault:v1:resultcipher", "ob-1", "completed");
+            "ord-1", "app-1", "vault:v1:resultcipher", "ob-1",
+            "completed", "Credit", "officer-1");
         var done = await repo.GetAsync("ord-1");
         done!.Status.ShouldBe("completed");
         done.ResultJson.ShouldBe("vault:v1:resultcipher");
@@ -123,7 +124,8 @@ public sealed class VendorRepositoryTests(OpenBaoFixture fixture)
         using var _ = TenantContext.Use(TenantScope.From(rec));
         await repo.EnqueueAsync(Order(), "ob-1");
 
-        await repo.FailAsync("ord-1", "vendor-auth", "ob-1");
+        await repo.FailAsync("ord-1", "app-1", "vendor-auth", "ob-1",
+            1, "Credit", "officer-1");
 
         var order = await repo.GetAsync("ord-1");
         order!.Status.ShouldBe("failed");

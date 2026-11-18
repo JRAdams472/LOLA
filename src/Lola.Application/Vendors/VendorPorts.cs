@@ -18,15 +18,21 @@ public interface IVendorOrderRepository
     Task<IReadOnlyList<VendorOrderRow>> ListByApplicationAsync(
         string applicationId, CancellationToken ct = default);
 
-    /// Receipt landed — order moves ordered → submitted.
+    /// Receipt landed — order moves ordered → submitted and the
+    /// outbox row closes atomically (submit is the outbox's whole
+    /// job; webhook/poll completion is a separate channel).
     Task MarkSubmittedAsync(string orderId, string externalId,
-        CancellationToken ct = default);
+        string outboxId, CancellationToken ct = default);
 
     /// Completion is order row + outbox row + step event, atomically —
     /// `resultJson` arrives already `vault:`-ciphertext.
-    Task CompleteAsync(string orderId, string resultJson,
-        string outboxId, string outcome, CancellationToken ct = default);
-    Task FailAsync(string orderId, string error, string outboxId,
+    Task CompleteAsync(string orderId, string appId,
+        string resultJson, string outboxId, string outcome,
+        string step, string actor, CancellationToken ct = default);
+    /// Terminal failure — order→failed, pending outbox→dlq, and the
+    /// step event in one transaction.
+    Task FailAsync(string orderId, string appId, string error,
+        string outboxId, long attempts, string step, string actor,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<VendorOutboxRow>> ListDueOutboxAsync(
@@ -46,7 +52,7 @@ public sealed record VendorOrderRow(
     string OrderId, string ApplicationId, string Kind, string Adapter,
     string? ExternalId, string Status, string RequestJson,
     string? ResultJson, string? Error, string OrderedBy,
-    string CreatedUtc, string? SubmittedUtc, string? CompletedUtc,
+    string? CreatedUtc, string? SubmittedUtc, string? CompletedUtc,
     string RequestHash);
 
 public sealed record VendorOutboxRow(
