@@ -29,7 +29,9 @@ public sealed class StubVendorAdapterTests
         var replay = await _adapter.SubmitAsync(Credit(), null);
 
         first.ExternalId.ShouldStartWith("stub-credit-");
-        first.ShouldBe(replay); // replay → same receipt (vendor idempotency)
+        // Replay → same external id (vendor idempotency); the
+        // received timestamp legitimately mints per call.
+        first.ExternalId.ShouldBe(replay.ExternalId);
         first.ReceivedUtc.ShouldNotBeNullOrEmpty();
     }
 
