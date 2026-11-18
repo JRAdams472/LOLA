@@ -24,6 +24,34 @@ public sealed class OpenBaoKvClient
 
     public bool Configured => _options.Configured;
 
+    /// Ensure the lola-kv v2 mount exists — root/admin-token operation
+    /// used by dev init and the test fixture; the scoped api token does
+    /// NOT get sys perms (least privilege, same as the transit mount).
+    public async Task EnsureMountAsync(CancellationToken ct = default)
+    {
+        using var req = CreateRequest(HttpMethod.Get, "sys/mounts");
+        using var resp = await _http.SendAsync(req, ct);
+        if (resp.IsSuccessStatusCode)
+        {
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            if (doc.RootElement.TryGetProperty($"{Mount}/", out _)) return;
+            if (doc.RootElement.TryGetProperty("data", out var data) &&
+                data.TryGetProperty($"{Mount}/", out _)) return;
+        }
+        using var write = await SendOnceOrRetryAsync(() =>
+        {
+            var m = CreateRequest(HttpMethod.Post, $"sys/mounts/{Mount}");
+            m.Content = JsonContent.Create(
+                new { type = "kv", options = new { version = "2" } });
+            return m;
+        }, ct);
+        if (!write.IsSuccessStatusCode)
+        {
+            var text = await write.Content.ReadAsStringAsync(ct);
+            throw OpenBaoException.FromResponse(write.StatusCode, text);
+        }
+    }
+
     /// Read a KVv2 secret. Null = absent (404 is a normal miss, not an
     /// error — an unbound tenant kind resolves no credentials).
     public async Task<IReadOnlyDictionary<string, string>?> ReadAsync(

@@ -27,6 +27,10 @@ public sealed class VendorCredentialSourceTests(OpenBaoFixture fixture)
     public async Task Credentials_round_trip_through_kv_only()
     {
         var kv = Kv();
+        // Root-token mount ensure — CI's OpenBao starts bare; compose
+        // dev already has lola-kv via openbao-init (both are no-ops
+        // when the mount exists).
+        await kv.EnsureMountAsync();
         var tenant = fixture.NewTenant();
         var path = $"vendors/{tenant}/credit";
         await kv.WriteAsync(path, new Dictionary<string, string>
