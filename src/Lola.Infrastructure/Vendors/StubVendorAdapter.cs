@@ -18,7 +18,21 @@ namespace Lola.Infrastructure.Vendors;
 /// never echoing request fields (invariant 3).
 public sealed class StubVendorAdapter : IVendorAdapter
 {
+    private readonly string? _webhookUrl;
+    private static readonly HttpClient Http = new()
+    { Timeout = TimeSpan.FromSeconds(10) };
+
+    /// `webhookUrl` non-null puts the stub in push mode — after each
+    /// submit it POSTs a signed completion to our own webhook
+    /// ingress (`VENDOR_STUB_WEBHOOK_URL`, e.g.
+    /// `http://localhost:8200/api/vendor-webhooks`) so e2e exercises
+    /// the push channel without a real vendor.
+    public StubVendorAdapter(string? webhookUrl = null)
+        => _webhookUrl = webhookUrl?.TrimEnd('/');
+
     public string Adapter => "stub";
+
+    public bool SupportsPush => _webhookUrl is not null;
 
     public IReadOnlySet<VendorKind> Kinds { get; } = new HashSet<VendorKind>
     {
@@ -33,9 +47,49 @@ public sealed class StubVendorAdapter : IVendorAdapter
             SHA256.HashData(Encoding.UTF8.GetBytes(
                 System.Text.Json.JsonSerializer.Serialize(order))))
             [..16].ToLowerInvariant();
-        return Task.FromResult(new VendorReceipt(
+        var receipt = new VendorReceipt(
             $"stub-{Token(order.Kind)}-{hash}",
-            DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")));
+            DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"));
+        if (_webhookUrl is not null)
+            _ = FireWebhookAsync(order.Kind, receipt, creds);
+        return Task.FromResult(receipt);
+    }
+
+    /// Simulated vendor push — posts the same normalized payload a
+    /// real vendor would, signed with the tenant's webhook secret.
+    /// Fire-and-forget by design: a dead ingress never breaks submit
+    /// (identical to the real-vendor contract — delivery is the
+    /// vendor's problem).
+    private async Task FireWebhookAsync(VendorKind kind,
+        VendorReceipt receipt, VendorCredentials? creds)
+    {
+        try
+        {
+            var payload = new JsonObject
+            {
+                ["tenant"] = Lola.Application.Tenancy.TenantContext
+                    .Current?.TenantId ?? "",
+                ["external_id"] = receipt.ExternalId,
+                ["outcome"] = "completed",
+                ["report"] = Report(kind, receipt.ExternalId)
+            }.ToJsonString();
+            var signature = Convert.ToHexString(
+                HMACSHA256.HashData(
+                    Encoding.UTF8.GetBytes(
+                        creds?.WebhookSecret ?? ""),
+                    Encoding.UTF8.GetBytes(payload)))
+                .ToLowerInvariant();
+            var req = new HttpRequestMessage(HttpMethod.Post,
+                $"{_webhookUrl}/{Token(kind)}")
+            {
+                Content = new StringContent(payload,
+                    Encoding.UTF8, "application/json")
+            };
+            req.Headers.TryAddWithoutValidation(
+                "X-Vendor-Signature", $"sha256={signature}");
+            using var resp = await Http.SendAsync(req);
+        }
+        catch { /* dead ingress in dev — the poll path is absent in push mode by contract */ }
     }
 
     public Task<VendorResult?> PollAsync(VendorReceipt receipt,
