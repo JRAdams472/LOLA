@@ -15,16 +15,20 @@ namespace Lola.Api.Vendors;
 /// attempts, exponential backoff, DLQ on terminal failure.
 ///
 /// After a successful submit the row is polled once opportunistically
-/// — a vendor answering synchronously (the stub) completes the whole
-/// lifecycle in one drain; a null poll leaves the order `submitted`
-/// for the webhook/poll channels (MPE-228). Terminal adapter
-/// failures fail the order AND write the service-step event.
+/// — a vendor answering synchronously completes the whole lifecycle
+/// in one drain. Poll vendors keep the outbox row pending as their
+/// poll handle (PollInterval cadence, PollMaxAttempts bound →
+/// timeout-fail); push vendors' rows close and complete via the
+/// webhook ingress. Terminal adapter failures fail the order AND
+/// write the service-step event.
 public sealed class VendorOutboxProcessor(
     IServiceProvider services, ITenantRegistry registry,
     TimeProvider clock)
 {
     private const int BatchSize = 25;
     private const int MaxAttempts = 5;
+    private const int PollMaxAttempts = 120;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan BaseBackoff = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(5);
 
@@ -79,6 +83,12 @@ public sealed class VendorOutboxProcessor(
                 ?? throw new VendorAdapterException(
                     VendorErrorKind.Contract,
                     "outbox row references a missing order");
+            if (order.Status == "submitted")
+            {
+                await PollRowAsync(repo, adapter, creds, cipher,
+                    row, order, attempts, ct);
+                return;
+            }
             var kind = VendorGuards.Parse(order.Kind);
             var request = (VendorOrderRequest?)
                 System.Text.Json.JsonSerializer.Deserialize(
@@ -90,11 +100,16 @@ public sealed class VendorOutboxProcessor(
             var credentials = await creds.ForAsync(kind, ct);
             var receipt = await adapter.SubmitAsync(
                 request, credentials, ct);
-            await repo.MarkSubmittedAsync(
-                row.OrderId, receipt.ExternalId, row.OutboxId, ct);
+            // Push vendors close the row at submit — the webhook is
+            // their only completion channel; poll vendors keep it
+            // pending as the poll handle (MPE-228).
+            await repo.MarkSubmittedAsync(row.OrderId,
+                receipt.ExternalId, row.OutboxId,
+                adapter.SupportsPush ? null : NowPlus(PollInterval),
+                ct);
 
             // Opportunistic completion — vendors answering in-band
-            // finish here; push vendors close via webhook (MPE-228).
+            // finish here; push vendors close via webhook.
             var result = await adapter.PollAsync(
                 receipt, credentials, ct);
             if (result is not null)
@@ -130,6 +145,41 @@ public sealed class VendorOutboxProcessor(
                     NowPlus(Backoff(attempts)),
                     $"unexpected: {ex.Message}", ct);
         }
+    }
+
+    /// Poll channel (MPE-228): a `submitted` order's pending outbox
+    /// row is its poll handle — each due tick polls once; a result
+    /// completes atomically (which closes the row), an empty answer
+    /// reschedules for PollInterval, and PollMaxAttempts empty
+    /// answers fail the order as a timeout.
+    private async Task PollRowAsync(IVendorOrderRepository repo,
+        IVendorAdapter adapter, IVendorCredentialSource creds,
+        IFieldCipher cipher, VendorOutboxRow row,
+        VendorOrderRow order, long attempts, CancellationToken ct)
+    {
+        var kind = VendorGuards.Parse(order.Kind);
+        var credentials = await creds.ForAsync(kind, ct);
+        var result = await adapter.PollAsync(
+            new VendorReceipt(order.ExternalId ?? "",
+                order.SubmittedUtc ?? ""), credentials, ct);
+        if (result is not null)
+        {
+            var resultJson = await cipher.EncryptAsync(
+                VendorRequestMapper.ResultJson(result), ct);
+            await repo.CompleteAsync(row.OrderId,
+                order.ApplicationId, resultJson, row.OutboxId,
+                result.Outcome, WorkflowPipeline.ServiceStep(kind),
+                order.OrderedBy, ct);
+            return;
+        }
+        if (attempts >= PollMaxAttempts)
+        {
+            await Fail(repo, row, attempts,
+                "poll timeout: vendor never completed", ct);
+            return;
+        }
+        await repo.MarkOutboxRetryAsync(row.OutboxId, attempts,
+            NowPlus(PollInterval), null, ct);
     }
 
     private async Task Fail(IVendorOrderRepository repo,

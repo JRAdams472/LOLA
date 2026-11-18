@@ -101,7 +101,7 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
             new { appId = applicationId }, ct);
 
     public async Task MarkSubmittedAsync(string orderId,
-        string externalId, string outboxId,
+        string externalId, string outboxId, string? pollAfterUtc,
         CancellationToken ct = default)
     {
         await using var conn = await OpenAsync(ct);
@@ -116,11 +116,22 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
                     submitted_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
                 WHERE order_id=@id
                 """, new { id = orderId, ext = externalId }, tx);
-            await conn.ExecuteAsync(
-                "UPDATE vendor_outbox SET status='done', " +
-                "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
-                "WHERE outbox_id=@id",
-                new { id = outboxId }, tx);
+            // Poll vendors keep the row pending — it doubles as the
+            // poll handle (next_retry_utc schedule, attempts reset);
+            // push vendors close it and complete via webhook.
+            if (pollAfterUtc is not null)
+                await conn.ExecuteAsync(
+                    "UPDATE vendor_outbox SET attempts=0, " +
+                    "next_retry_utc=@next, " +
+                    "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
+                    "WHERE outbox_id=@id",
+                    new { id = outboxId, next = pollAfterUtc }, tx);
+            else
+                await conn.ExecuteAsync(
+                    "UPDATE vendor_outbox SET status='done', " +
+                    "updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') " +
+                    "WHERE outbox_id=@id",
+                    new { id = outboxId }, tx);
             await tx.CommitAsync(ct);
         }
         catch
@@ -129,6 +140,17 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
             throw;
         }
     }
+
+    public Task<VendorOutboxRow?> FindOutboxByOrderAsync(string orderId,
+        CancellationToken ct = default)
+        => QuerySingleOrDefaultAsync<VendorOutboxRow>(
+            """
+            SELECT outbox_id AS OutboxId, order_id AS OrderId,
+                   request_hash AS RequestHash, status AS Status,
+                   attempts AS Attempts, next_retry_utc AS NextRetryUtc,
+                   last_error AS LastError
+            FROM vendor_outbox WHERE order_id=@id
+            """, new { id = orderId }, ct);
 
     public async Task CompleteAsync(string orderId, string appId,
         string resultJson, string outboxId, string outcome,

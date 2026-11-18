@@ -55,7 +55,8 @@ public sealed class FakeVendorOrderRepository : IVendorOrderRepository
                 .OrderBy(o => o.CreatedUtc ?? o.OrderId).ToList());
 
     public Task MarkSubmittedAsync(string orderId, string externalId,
-        string outboxId, CancellationToken ct = default)
+        string outboxId, string? pollAfterUtc,
+        CancellationToken ct = default)
     {
         Orders[orderId] = Orders[orderId] with
         {
@@ -63,9 +64,20 @@ public sealed class FakeVendorOrderRepository : IVendorOrderRepository
             ExternalId = externalId,
             SubmittedUtc = DateTimeOffset.UtcNow.ToString("O")
         };
-        Outbox[outboxId] = Outbox[outboxId] with { Status = "done" };
+        Outbox[outboxId] = pollAfterUtc is not null
+            ? Outbox[outboxId] with
+            {
+                Attempts = 0,
+                NextRetryUtc = pollAfterUtc
+            }
+            : Outbox[outboxId] with { Status = "done" };
         return Task.CompletedTask;
     }
+
+    public Task<VendorOutboxRow?> FindOutboxByOrderAsync(string orderId,
+        CancellationToken ct = default)
+        => Task.FromResult(Outbox.Values.FirstOrDefault(
+            r => r.OrderId == orderId));
 
     public Task CompleteAsync(string orderId, string appId,
         string resultJson, string outboxId, string outcome,

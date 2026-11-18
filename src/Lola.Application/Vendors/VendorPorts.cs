@@ -18,11 +18,18 @@ public interface IVendorOrderRepository
     Task<IReadOnlyList<VendorOrderRow>> ListByApplicationAsync(
         string applicationId, CancellationToken ct = default);
 
-    /// Receipt landed — order moves ordered → submitted and the
-    /// outbox row closes atomically (submit is the outbox's whole
-    /// job; webhook/poll completion is a separate channel).
+    /// Receipt landed — order moves ordered → submitted. `pollAfterUtc`
+    /// non-null keeps the outbox row pending as the poll handle
+    /// (`next_retry_utc`, attempts reset); null closes it — push
+    /// vendors complete exclusively via webhook.
     Task MarkSubmittedAsync(string orderId, string externalId,
-        string outboxId, CancellationToken ct = default);
+        string outboxId, string? pollAfterUtc,
+        CancellationToken ct = default);
+
+    /// The outbox row paired with an order — the webhook channel
+    /// needs it to close the poll handle atomically on completion.
+    Task<VendorOutboxRow?> FindOutboxByOrderAsync(string orderId,
+        CancellationToken ct = default);
 
     /// Completion is order row + outbox row + step event, atomically —
     /// `resultJson` arrives already `vault:`-ciphertext.

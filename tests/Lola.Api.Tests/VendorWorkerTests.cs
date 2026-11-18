@@ -77,7 +77,7 @@ public sealed class VendorWorkerTests
     }
 
     [Fact]
-    public async Task Pending_poll_leaves_order_submitted_outbox_done()
+    public async Task Pending_poll_keeps_the_outbox_as_poll_handle()
     {
         var (processor, repo, _) = Sut(new PendingAdapter());
         await EnqueueAsync(repo);
@@ -88,9 +88,53 @@ public sealed class VendorWorkerTests
         order.Status.ShouldBe("submitted");
         order.ExternalId.ShouldBe("ext-1");
         order.ResultJson.ShouldBeNull();
-        repo.Outbox["ob-1"].Status.ShouldBe("done");
+        // The pending row is now the poll handle — scheduled for the
+        // next tick with a fresh attempt budget (MPE-228).
+        var row = repo.Outbox["ob-1"];
+        row.Status.ShouldBe("pending");
+        row.NextRetryUtc.ShouldNotBeNull();
+        row.Attempts.ShouldBe(0);
         // No completion event until a channel lands the result.
         repo.StepEvents.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Deferred_poll_completes_on_a_later_drain()
+    {
+        var (processor, repo, _) = Sut(new DeferredPollAdapter(1));
+        await EnqueueAsync(repo);
+
+        // First drain: submit + null poll → submitted, poll scheduled.
+        await processor.DrainTenantAsync(Tenant);
+        repo.Orders["ord-1"].Status.ShouldBe("submitted");
+        repo.Outbox["ob-1"].Status.ShouldBe("pending");
+
+        // Second due drain: poll answers → completed atomically.
+        repo.Outbox["ob-1"] = repo.Outbox["ob-1"]
+            with
+        { NextRetryUtc = null };
+        await processor.DrainTenantAsync(Tenant);
+
+        var order = repo.Orders["ord-1"];
+        order.Status.ShouldBe("completed");
+        order.ResultJson.ShouldStartWith("vault:");
+        repo.Outbox["ob-1"].Status.ShouldBe("done");
+        repo.StepEvents.ShouldContain(
+            e => e.AppId == "app-1" && e.Step == "Credit" &&
+                e.Event == "completed");
+    }
+
+    [Fact]
+    public async Task Push_adapter_closes_the_outbox_at_submit()
+    {
+        var (processor, repo, _) = Sut(new PushAdapter());
+        await EnqueueAsync(repo);
+
+        await processor.DrainTenantAsync(Tenant);
+
+        repo.Orders["ord-1"].Status.ShouldBe("submitted");
+        // No poll handle for push — the webhook is the channel.
+        repo.Outbox["ob-1"].Status.ShouldBe("done");
     }
 
     [Fact]
@@ -157,6 +201,41 @@ public sealed class VendorWorkerTests
     private sealed class PendingAdapter : IVendorAdapter
     {
         public string Adapter => "pending";
+        public IReadOnlySet<VendorKind> Kinds { get; } =
+            new HashSet<VendorKind> { VendorKind.Credit };
+        public Task<VendorReceipt> SubmitAsync(VendorOrderRequest o,
+            VendorCredentials? c, CancellationToken ct = default)
+            => Task.FromResult(new VendorReceipt("ext-1", "now"));
+        public Task<VendorResult?> PollAsync(VendorReceipt r,
+            VendorCredentials? c, CancellationToken ct = default)
+            => Task.FromResult<VendorResult?>(null);
+    }
+
+    /// Poll answers null `empties` times, then the result — the
+    /// rescheduled-drain proof.
+    private sealed class DeferredPollAdapter(int empties)
+        : IVendorAdapter
+    {
+        private int _left = empties;
+        public string Adapter => "deferred";
+        public IReadOnlySet<VendorKind> Kinds { get; } =
+            new HashSet<VendorKind> { VendorKind.Credit };
+        public Task<VendorReceipt> SubmitAsync(VendorOrderRequest o,
+            VendorCredentials? c, CancellationToken ct = default)
+            => Task.FromResult(new VendorReceipt("ext-1", "now"));
+        public Task<VendorResult?> PollAsync(VendorReceipt r,
+            VendorCredentials? c, CancellationToken ct = default)
+            => Task.FromResult(_left-- > 0 ? null : new VendorResult(
+                VendorKind.Credit, "completed", null,
+                new System.Text.Json.Nodes.JsonObject
+                { ["external_id"] = r.ExternalId }));
+    }
+
+    /// Push-capable — the drain must not schedule polls.
+    private sealed class PushAdapter : IVendorAdapter
+    {
+        public string Adapter => "push";
+        public bool SupportsPush => true;
         public IReadOnlySet<VendorKind> Kinds { get; } =
             new HashSet<VendorKind> { VendorKind.Credit };
         public Task<VendorReceipt> SubmitAsync(VendorOrderRequest o,

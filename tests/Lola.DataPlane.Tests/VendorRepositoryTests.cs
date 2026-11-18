@@ -96,7 +96,8 @@ public sealed class VendorRepositoryTests(OpenBaoFixture fixture)
         using var _ = TenantContext.Use(TenantScope.From(rec));
         await repo.EnqueueAsync(Order(), "ob-1");
 
-        await repo.MarkSubmittedAsync("ord-1", "stub-credit-abc123", "ob-1");
+        await repo.MarkSubmittedAsync("ord-1", "stub-credit-abc123",
+            "ob-1", null);
         var submitted = await repo.GetAsync("ord-1");
         submitted!.Status.ShouldBe("submitted");
         submitted.ExternalId.ShouldBe("stub-credit-abc123");

@@ -108,6 +108,17 @@ builder.Services.AddRateLimiter(options =>
     // Intake surface (MPE-114) — per-tenant+actor budget so one
     // misbehaving token can't draft-spam a tenant file or starve the
     // tenant's other actors. Generous for PATCH-heavy intake traffic.
+    // Vendor webhook ingress (MPE-228) — per-IP+path budget;
+    // signature verification rejects junk fast, this just bounds
+    // the pre-auth spend.
+    options.AddPolicy("vendor-webhook", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"{ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"}|{ctx.Request.Path}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1)
+            }));
     options.AddPolicy("intake", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             $"{ctx.Request.RouteValues["id"]}|{ctx.User.FindFirst("sub")?.Value ?? "anon"}",
@@ -387,7 +398,8 @@ builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter>(
     vendorAdapter.ToLowerInvariant() switch
     {
         "stub" => (Lola.Application.Vendors.IVendorAdapter)
-            new Lola.Infrastructure.Vendors.StubVendorAdapter(),
+            new Lola.Infrastructure.Vendors.StubVendorAdapter(
+                builder.Configuration["VENDOR_STUB_WEBHOOK_URL"]),
         var other => throw new InvalidOperationException(
             $"unknown VENDOR_ADAPTER '{other}'")
     });
@@ -524,6 +536,7 @@ app.MapConnectEndpoints();
 app.MapAdminEndpoints();
 app.MapApplicationEndpoints();
 Lola.Api.Vendors.VendorEndpoints.MapVendorEndpoints(app);
+Lola.Api.Vendors.VendorWebhookEndpoints.MapVendorWebhookEndpoints(app);
 Lola.Api.Vault.VaultEndpoints.MapVaultEndpoints(app);
 app.MapInviteEndpoints();
 

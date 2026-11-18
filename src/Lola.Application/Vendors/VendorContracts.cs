@@ -34,6 +34,12 @@ public interface IVendorAdapter
     /// order is still in flight; the drain reschedules.
     Task<VendorResult?> PollAsync(VendorReceipt receipt,
         VendorCredentials? creds, CancellationToken ct = default);
+
+    /// True when the vendor pushes completions to the webhook
+    /// ingress — the drain skips poll scheduling and the pending
+    /// outbox row closes at submit; the webhook is the only
+    /// completion channel.
+    bool SupportsPush => false;
 }
 
 /// Service kinds — the five seams the ticket names.
