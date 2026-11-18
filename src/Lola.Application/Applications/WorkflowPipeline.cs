@@ -26,6 +26,24 @@ public sealed class WorkflowPipeline(IApplicationRepository apps)
     /// Steps whose handlers are real; everything later is seam-keyed.
     private const string LastRealStep = "Validate";
 
+    /// Orthogonal vendor service steps (MPE-227): they don't sit in
+    /// the linear Order — vendor orders run in parallel with the
+    /// intake pipeline and report ordered/completed/failed as
+    /// `application_step_events` under these names. The custom-
+    /// workflow seam reads the same vocabulary.
+    public static string ServiceStep(Lola.Application.Vendors.VendorKind
+        kind) => kind switch
+        {
+            Lola.Application.Vendors.VendorKind.Credit => "Credit",
+            Lola.Application.Vendors.VendorKind.Voe => "Voe",
+            Lola.Application.Vendors.VendorKind.Voi => "Voi",
+            Lola.Application.Vendors.VendorKind.Flood => "Flood",
+            Lola.Application.Vendors.VendorKind.Fraud => "Fraud",
+            Lola.Application.Vendors.VendorKind.Aus => "Aus",
+            _ => throw Errors.DomainException.BadRequest(
+                $"unknown vendor kind '{kind}'")
+        };
+
     public async Task AdvanceAsync(ApplicationRecord app, string targetStep,
         string actorId, string reason, CancellationToken ct = default)
     {

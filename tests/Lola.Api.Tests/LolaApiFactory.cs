@@ -36,6 +36,8 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         // Vault scans drain explicitly too — the always-clean stub
         // scanner would otherwise race the `quarantined` assertions.
         Environment.SetEnvironmentVariable("VAULT_SCAN_ENABLED", "false");
+        // Vendor outbox drains explicitly (MPE-227).
+        Environment.SetEnvironmentVariable("VENDOR_OUTBOX_ENABLED", "false");
 
         builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -106,6 +108,18 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeDocumentRepository>());
             services.AddSingleton<Lola.Application.Documents.IDocumentService,
                 AltStubDocumentService>();
+            // Vendor seam (MPE-227) — hermetic registry + credential
+            // source + second adapter: implementing IVendorAdapter is
+            // the whole swap contract.
+            services.AddSingleton(new FakeVendorOrderRepository());
+            services.AddSingleton<Lola.Application.Vendors.IVendorOrderRepository>(
+                sp => sp.GetRequiredService<FakeVendorOrderRepository>());
+            services.AddSingleton(new AltStubVendorAdapter());
+            services.AddSingleton<Lola.Application.Vendors.IVendorAdapter>(
+                sp => sp.GetRequiredService<AltStubVendorAdapter>());
+            services.AddSingleton(new FakeVendorCredentialSource());
+            services.AddSingleton<Lola.Application.Vendors.IVendorCredentialSource>(
+                sp => sp.GetRequiredService<FakeVendorCredentialSource>());
             // Vendor-admin seam (MPE-191) — republish + erasure
             // revoke resolve it; the fake records calls hermetically.
             services.AddSingleton(new FakeDocVendorAdmin());
