@@ -29,10 +29,14 @@ public static class GetVendorOrderHandler
         if (row is null || row.ApplicationId != q.AppId)
             return null;
         JsonObject? result = null;
+        string? summary = null;
         if (row.ResultJson is { } stored)
         {
             var plaintext = await cipher.DecryptAsync(stored, ct);
             result = JsonNode.Parse(plaintext)?.AsObject();
+            summary = VendorOrderSummary.Summarize(
+                VendorGuards.Parse(row.Kind),
+                result?["report"] as JsonObject);
             await audit.WriteAsync(q.ActorId, "vendor_result",
                 "vendor_order", row.OrderId,
                 ["VendorReport"],
@@ -42,6 +46,6 @@ public static class GetVendorOrderHandler
             row.OrderId, row.ApplicationId, row.Kind, row.Adapter,
             row.ExternalId, row.Status, row.Error, row.OrderedBy,
             row.CreatedUtc, row.SubmittedUtc, row.CompletedUtc,
-            result);
+            result, summary);
     }
 }

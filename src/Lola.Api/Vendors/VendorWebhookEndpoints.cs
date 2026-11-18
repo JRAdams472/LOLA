@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Lola.Application.Identity;
+using Lola.Application.Security;
 using Lola.Application.Tenancy;
 using Lola.Application.Vendors;
 using Microsoft.AspNetCore.Http;
@@ -60,6 +61,10 @@ public static class VendorWebhookEndpoints
             return Results.Unauthorized();
 
         using var _ = TenantContext.Use(TenantScope.From(tenant));
+        // CipherContext scopes the transit key — CompleteVendorOrder
+        // encrypts the result envelope (unauthenticated path: no
+        // middleware sets it here).
+        using var __ = CipherContext.Use(tenant.Id);
         var creds = await request.HttpContext.RequestServices
             .GetRequiredService<IVendorCredentialSource>()
             .ForAsync(vk, ct);

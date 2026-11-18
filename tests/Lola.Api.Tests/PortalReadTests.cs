@@ -81,11 +81,14 @@ public class PortalReadTests(LolaApiFactory factory) : IClassFixture<LolaApiFact
         ssn.ShouldStartWith("•••");
         ssn.ShouldNotContain("123456");
 
-        // The contract, on the serialized bytes: no internal/officer fields.
+        // The contract, on the serialized bytes: no internal/officer
+        // fields — including vendor/result keys (MPE-229: the vendor
+        // read surface never reaches borrower payloads).
         foreach (var forbidden in new[]
         {
             "pipelineStep", "currentVersion", "borrowerUserId",
             "trid", "POSIntake", "\"status\"",
+            "\"vendor", "\"Vendor", "\"result", "\"Result",
         })
             raw.ShouldNotContain(forbidden);
     }
@@ -165,7 +168,8 @@ public class PortalReadTests(LolaApiFactory factory) : IClassFixture<LolaApiFact
                   fees(tenantId: "{{tenant}}", appId: "{{appId}}") { evals { status } }
                   documents(tenantId: "{{tenant}}", appId: "{{appId}}") { status }
                   uploads(tenantId: "{{tenant}}", appId: "{{appId}}") { status sha256 }
-                  steps(tenantId: "{{tenant}}", appId: "{{appId}}") { step } }
+                  steps(tenantId: "{{tenant}}", appId: "{{appId}}") { step }
+                  vendorOrders(tenantId: "{{tenant}}", appId: "{{appId}}") { orderId } }
                 """
         });
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -175,6 +179,9 @@ public class PortalReadTests(LolaApiFactory factory) : IClassFixture<LolaApiFact
         data.GetProperty("pricing").ValueKind.ShouldBe(JsonValueKind.Null);
         data.GetProperty("rateLock").ValueKind.ShouldBe(JsonValueKind.Null);
         data.GetProperty("fees").ValueKind.ShouldBe(JsonValueKind.Null);
+        // MPE-229: vendorOrders is staff-only — borrowers get null.
+        data.GetProperty("vendorOrders").ValueKind
+            .ShouldBe(JsonValueKind.Null);
         foreach (var list in new[]
         {
             "applications", "documents", "uploads", "steps",

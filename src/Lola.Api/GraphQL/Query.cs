@@ -12,6 +12,7 @@ using Lola.Application.Portal;
 using Lola.Application.Pricing;
 using Lola.Application.Security;
 using Lola.Application.Vault;
+using Lola.Application.Vendors;
 using Lola.Domain.Identity;
 using Wolverine;
 
@@ -171,6 +172,23 @@ public class Query(IMessageBus bus)
             new GetApplicationStepsQuery(tenantId, appId, actor, isBorrower), ct);
     }
 
+    /// Vendor order surface (MPE-229) — staff-only; borrowers get
+    /// null (the M12 lockdown pattern). The same handler as REST
+    /// /vendor-orders — summary reads are audited there.
+    public async Task<IReadOnlyList<VendorOrderView>?> VendorOrders(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;
+        var dtos = await bus.InvokeAsync<IReadOnlyList<VendorOrderDto>>(
+            new ListVendorOrdersQuery(tenantId, appId, actor, isBorrower), ct);
+        return dtos.Select(d => new VendorOrderView(
+            d.OrderId, d.ApplicationId, d.Kind, d.Adapter,
+            d.ExternalId, d.Status, d.Error, d.OrderedBy,
+            d.CreatedUtc, d.SubmittedUtc, d.CompletedUtc,
+            d.Summary)).ToList();
+    }
+
     public Task<IReadOnlyList<AuditEvent>> ApplicationAudit(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
@@ -249,3 +267,12 @@ public sealed record PortalLoanView(
     string DocJson,
     IReadOnlyList<PortalDocItemView> Documents,
     IReadOnlyList<PortalUploadItemView> Uploads);
+
+/// GraphQL-facing vendor order view — scalar fields only; the
+/// encrypted request/result documents never reach the schema (the
+/// audited detail REST read is the only decrypt path).
+public sealed record VendorOrderView(
+    string OrderId, string ApplicationId, string Kind,
+    string Adapter, string? ExternalId, string Status,
+    string? Error, string OrderedBy, string? CreatedUtc,
+    string? SubmittedUtc, string? CompletedUtc, string? Summary);

@@ -5,6 +5,7 @@ using Lola.Application.Tenancy;
 using Lola.Application.Vendors;
 using Lola.Domain.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Lola.Api.Vendors;
 
@@ -23,7 +24,8 @@ namespace Lola.Api.Vendors;
 /// write the service-step event.
 public sealed class VendorOutboxProcessor(
     IServiceProvider services, ITenantRegistry registry,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<VendorOutboxProcessor>? log = null)
 {
     private const int BatchSize = 25;
     private const int MaxAttempts = 5;
@@ -59,14 +61,21 @@ public sealed class VendorOutboxProcessor(
             .GetRequiredService<IVendorCredentialSource>();
         var cipher = scope.ServiceProvider
             .GetRequiredService<IFieldCipher>();
+        var audit = scope.ServiceProvider
+            .GetRequiredService<Lola.Application.Audit.ITenantAuditLog>();
         var processed = 0;
+        // TenantContext scopes the file; CipherContext scopes the
+        // transit key — the drain decrypts request_json and encrypts
+        // result_json, so both contexts must be set (same shape as
+        // DocOutboxProcessor).
         using (TenantContext.Use(TenantScope.From(tenant)))
+        using (CipherContext.Use(tenant.Id))
         {
             var rows = await repo.ListDueOutboxAsync(
                 Now(), BatchSize, ct);
             ct.ThrowIfCancellationRequested();
             await Task.WhenAll(rows.Select(row => ProcessRowAsync(
-                repo, adapter, creds, cipher, row, ct)));
+                repo, adapter, creds, cipher, audit, row, ct)));
             processed += rows.Count;
         }
         return processed;
@@ -74,7 +83,9 @@ public sealed class VendorOutboxProcessor(
 
     private async Task ProcessRowAsync(IVendorOrderRepository repo,
         IVendorAdapter adapter, IVendorCredentialSource creds,
-        IFieldCipher cipher, VendorOutboxRow row, CancellationToken ct)
+        IFieldCipher cipher,
+        Lola.Application.Audit.ITenantAuditLog audit,
+        VendorOutboxRow row, CancellationToken ct)
     {
         var attempts = row.Attempts + 1;
         try
@@ -85,7 +96,7 @@ public sealed class VendorOutboxProcessor(
                     "outbox row references a missing order");
             if (order.Status == "submitted")
             {
-                await PollRowAsync(repo, adapter, creds, cipher,
+                await PollRowAsync(repo, adapter, creds, cipher, audit,
                     row, order, attempts, ct);
                 return;
             }
@@ -121,6 +132,9 @@ public sealed class VendorOutboxProcessor(
                     result.Outcome,
                     WorkflowPipeline.ServiceStep(kind),
                     order.OrderedBy, ct);
+                await audit.WriteAsync(order.OrderedBy, "vendor_result",
+                    "vendor_order", row.OrderId, ["VendorReport"],
+                    "vendor order completed", ct);
             }
         }
         catch (VendorAdapterException ex)
@@ -131,12 +145,17 @@ public sealed class VendorOutboxProcessor(
         }
         catch (VendorAdapterException ex)
         {
+            log?.LogWarning("vendor outbox row {OutboxId} retry {Attempts}: {Error}",
+                row.OutboxId, attempts, $"{ex.Kind}: {ex.Message}");
             await repo.MarkOutboxRetryAsync(row.OutboxId, attempts,
                 NowPlus(Backoff(attempts)),
                 $"{ex.Kind}: {ex.Message}", ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            log?.LogWarning(ex,
+                "vendor outbox row {OutboxId} attempt {Attempts} failed",
+                row.OutboxId, attempts);
             if (attempts >= MaxAttempts)
                 await Fail(repo, row, attempts,
                     $"unexpected: {ex.Message}", ct);
@@ -154,7 +173,9 @@ public sealed class VendorOutboxProcessor(
     /// answers fail the order as a timeout.
     private async Task PollRowAsync(IVendorOrderRepository repo,
         IVendorAdapter adapter, IVendorCredentialSource creds,
-        IFieldCipher cipher, VendorOutboxRow row,
+        IFieldCipher cipher,
+        Lola.Application.Audit.ITenantAuditLog audit,
+        VendorOutboxRow row,
         VendorOrderRow order, long attempts, CancellationToken ct)
     {
         var kind = VendorGuards.Parse(order.Kind);
@@ -170,6 +191,9 @@ public sealed class VendorOutboxProcessor(
                 order.ApplicationId, resultJson, row.OutboxId,
                 result.Outcome, WorkflowPipeline.ServiceStep(kind),
                 order.OrderedBy, ct);
+            await audit.WriteAsync(order.OrderedBy, "vendor_result",
+                "vendor_order", row.OrderId, ["VendorReport"],
+                "vendor order completed", ct);
             return;
         }
         if (attempts >= PollMaxAttempts)

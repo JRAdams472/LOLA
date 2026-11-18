@@ -10,4 +10,4 @@ public sealed record VendorOrderDto(
     string Adapter, string? ExternalId, string Status,
     string? Error, string OrderedBy, string? CreatedUtc,
     string? SubmittedUtc, string? CompletedUtc,
-    JsonObject? Result);
+    JsonObject? Result, string? Summary);

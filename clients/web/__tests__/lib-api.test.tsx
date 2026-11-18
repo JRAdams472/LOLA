@@ -14,6 +14,7 @@ import {
   usePatchDraft,
   useReveal,
   useSteps,
+  useVendorOrders,
   useSubmit,
 } from "@/lib/loans";
 
@@ -167,6 +168,55 @@ describe("loan hooks", () => {
     await waitFor(() => expect(audit.result.current.isSuccess).toBe(true));
     expect(steps.result.current.data![0].step).toBe("intake");
     expect(audit.result.current.data![0].action).toBe("write");
+  });
+
+  it("useVendorOrders maps rows and null-normalizes", async () => {
+    const spy = mockFetch();
+    spy.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          vendorOrders: [
+            {
+              orderId: "o1",
+              applicationId: "app-1",
+              kind: "credit",
+              adapter: "stub",
+              externalId: "stub-credit-1",
+              status: "completed",
+              error: null,
+              orderedBy: "officer-1",
+              createdUtc: "2026-01-01T00:00:00Z",
+              submittedUtc: "2026-01-01T00:00:01Z",
+              completedUtc: "2026-01-01T00:00:02Z",
+              summary: "score 744 · 3 bureaus",
+            },
+          ],
+        },
+      }),
+    ).mockResolvedValueOnce(
+      // Borrower scope serializes null — the hook surfaces [].
+      jsonResponse({ data: { vendorOrders: null } }),
+    );
+    const orders = renderHook(() => useVendorOrders("demo", "app-1"), {
+      wrapper,
+    });
+    await waitFor(() => expect(orders.result.current.isSuccess).toBe(true));
+    expect(orders.result.current.data![0]).toMatchObject({
+      kind: "credit",
+      status: "completed",
+      summary: "score 744 · 3 bureaus",
+    });
+    const body = JSON.parse(
+      (spy.mock.calls[0][1]?.body as string) ?? "{}",
+    );
+    expect(body.query).toContain("vendorOrders");
+    expect(body.query).not.toContain("resultJson");
+    orders.unmount();
+    const denied = renderHook(() => useVendorOrders("demo", "app-1"), {
+      wrapper,
+    });
+    await waitFor(() => expect(denied.result.current.isSuccess).toBe(true));
+    expect(denied.result.current.data).toEqual([]);
   });
 
   it("useLoanSearch posts the term inside the GraphQL body", async () => {
