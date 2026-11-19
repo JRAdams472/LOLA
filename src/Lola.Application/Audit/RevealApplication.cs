@@ -18,7 +18,8 @@ public static class RevealApplicationHandler
 {
     public static async Task<ApplicationDto?> Handle(
         RevealApplicationQuery q, IApplicationRepository apps,
-        ITenantAuditLog audit, CancellationToken ct)
+        ITenantAuditLog audit, Events.ILoanEventLog events,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
         if (q.ActorIsBorrower)
@@ -29,6 +30,14 @@ public static class RevealApplicationHandler
             apps, q.AppId, q.ActorId, isBorrower: false, ct);
         await audit.WriteAsync(q.ActorId, "reveal", "application",
             q.AppId, AuditFields.InDoc(app.Doc), q.Reason, ct);
+        // Mutation log mirrors the audit's class set — one event per
+        // PII class exposed; values never ride the log (invariant 3).
+        foreach (var clsName in AuditFields.InDoc(app.Doc))
+            await events.WriteAsync(new Events.LoanEventDraft(q.AppId,
+                Events.LoanEventKind.Reveal, q.ActorId, "application",
+                q.AppId,
+                FieldClass: Enum.Parse<Domain.Classification.PiiClass>(
+                    clsName)), ct);
         // Deliberately unmasked — the reveal IS the unmask.
         return new ApplicationDto(app.Id, app.Status, app.PipelineStep,
             app.BorrowerUserId, app.CurrentVersion, app.TridClockStart,

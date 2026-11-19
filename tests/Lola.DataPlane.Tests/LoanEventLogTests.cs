@@ -5,6 +5,7 @@ using Lola.Application.Security;
 using Lola.Application.Tenancy;
 using Lola.ControlPlane;
 using Lola.DataPlane;
+using Lola.Domain.Applications;
 using Lola.Domain.Identity;
 using Lola.Infrastructure.Crypto;
 using Shouldly;
@@ -22,14 +23,15 @@ public sealed class LoanEventLogTests(OpenBaoFixture fixture)
         SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_e_sqlcipher());
 
     private (LoanEventLog events, ConditionRepository conditions,
-             TenantProvisioningService svc, TenantRegistry registry,
-             TransitFieldCipher cipher) Sut()
+             ApplicationRepository apps, TenantProvisioningService svc,
+             TenantRegistry registry, TransitFieldCipher cipher) Sut()
     {
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"));
         db.Migrate();
         var registry = new TenantRegistry(db);
         var cipher = new TransitFieldCipher(fixture.Transit);
+        var blind = new TransitBlindIndex(fixture.Transit);
         var runner = new TenantMigrationRunner(
             cipher, registry, new TenantMigrationTracker(db));
         var svc = new TenantProvisioningService(
@@ -37,7 +39,11 @@ public sealed class LoanEventLogTests(OpenBaoFixture fixture)
             new TenantDbProvisioner(cipher), new StubServiceClients(),
             runner, fixture.DataDir);
         var factory = new TenantConnectionFactory(cipher);
-        return (new LoanEventLog(factory), new ConditionRepository(factory),
+        var events = new LoanEventLog(factory);
+        var parties = new ApplicationPartyRepository(factory, cipher, blind);
+        var apps = new ApplicationRepository(factory, cipher, parties,
+            blind, events);
+        return (events, new ConditionRepository(factory), apps,
                 svc, registry, cipher);
     }
 
@@ -58,7 +64,7 @@ public sealed class LoanEventLogTests(OpenBaoFixture fixture)
     [Fact]
     public async Task Loan_events_chain_verify_and_tamper_is_detected()
     {
-        var (events, _, svc, registry, cipher) = Sut();
+        var (events, _, _, svc, registry, cipher) = Sut();
         var id = fixture.NewTenant();
         try
         {
@@ -124,7 +130,7 @@ public sealed class LoanEventLogTests(OpenBaoFixture fixture)
     [Fact]
     public async Task Conditions_lifecycle_enforces_state_machine()
     {
-        var (_, conditions, svc, registry, cipher) = Sut();
+        var (_, conditions, _, svc, registry, cipher) = Sut();
         var id = fixture.NewTenant();
         try
         {
@@ -173,6 +179,95 @@ public sealed class LoanEventLogTests(OpenBaoFixture fixture)
                 open.ShouldBeEmpty();
                 var all = await conditions.ListByApplicationAsync(appId);
                 all.Count.ShouldBe(1);
+            }
+        }
+        finally
+        {
+            await new TransitKeyManager(fixture.Transit).DestroyAsync(id);
+        }
+    }
+
+    /// M15 P2 — patch emission rides PatchDraftAsync's own BEGIN
+    /// IMMEDIATE: PII after-values land as `idx:` HMACs, non-PII
+    /// plaintext; a merge failure rolls the event rows back with the
+    /// mutation; and the raw column scan proves no plaintext PII ever
+    /// reaches loan_events (acceptance bullets 1, 2, 4).
+    [Fact]
+    public async Task Patch_emits_same_tx_and_rollback_is_atomic()
+    {
+        var (events, _, apps, svc, registry, cipher) = Sut();
+        var id = fixture.NewTenant();
+        try
+        {
+            await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"));
+            var rec = (await registry.FindByIdAsync(id))!;
+            var keyHex = await UnwrapAsync(rec, cipher);
+            using (CipherContext.Use(id))
+            using (TenantContext.Use(TenantScope.From(rec)))
+            {
+                var doc = ApplicationDocument.Empty();
+                doc.Set("loan_amount", "1000");
+                doc.Set("party[0].ssn", "111-22-3333");
+                await apps.InsertAsync("app-1", doc, "draft", null,
+                    "seed");
+
+                // One patch touching a PII + a non-PII field.
+                await apps.PatchDraftAsync("app-1",
+                    new Dictionary<string, string>
+                    {
+                        ["party[0].ssn"] = "444-55-6666",
+                        ["loan_amount"] = "1200",
+                    }, "officer-1");
+
+                var rows = (await events.QueryAsync("app-1"))
+                    .OrderBy(e => e.Seq).ToList();
+                rows.Count.ShouldBe(2);
+                var ssn = rows.Single(e =>
+                    e.FieldPath == "party[0].ssn");
+                ssn.EventKind.ShouldBe("field_change");
+                ssn.FieldClass.ShouldBe("Ssn");
+                ssn.BeforeVal.ShouldStartWith("idx:");
+                ssn.AfterVal.ShouldStartWith("idx:");
+                ssn.BeforeVal.ShouldNotContain("111-22-3333");
+                ssn.AfterVal.ShouldNotContain("444-55-6666");
+                var amt = rows.Single(e => e.FieldPath == "loan_amount");
+                amt.FieldClass.ShouldBeNull();
+                amt.BeforeVal.ShouldBe("1000");
+                amt.AfterVal.ShouldBe("1200");
+
+                // Same-tx rollback: 'loan_amount' is a string leaf —
+                // 'loan_amount.foo' explodes during doc.Set inside the
+                // tx, after the event rows were already INSERTed. The
+                // ROLLBACK must take them back out.
+                await Should.ThrowAsync<Exception>(() =>
+                    apps.PatchDraftAsync("app-1",
+                        new Dictionary<string, string>
+                        { ["loan_amount.foo"] = "x" }, "officer-1"));
+                var after = await events.QueryAsync("app-1");
+                after.Count.ShouldBe(2); // no orphan event
+                var app = await apps.GetAsync("app-1");
+                app!.CurrentVersion.ShouldBe(2); // no partial version
+                var chain = await events.VerifyChainAsync();
+                chain.Ok.ShouldBeTrue();
+                chain.EventCount.ShouldBe(2);
+            }
+
+            // Raw-column plaintext scan — the invariant-1 proof:
+            // every before/after in the file is either null, an idx:
+            // token, or non-PII plaintext. The PII values must appear
+            // NOWHERE.
+            using (var conn = KeyedSqliteConnectionManager.OpenKeyed(
+                rec.DbPath, keyHex))
+            {
+                var vals = (await conn.QueryAsync<string>(
+                    "SELECT COALESCE(before_val,'') || '|' ||"
+                    + " COALESCE(after_val,'') FROM loan_events"))
+                    .ToList();
+                foreach (var v in vals)
+                {
+                    v.ShouldNotContain("111-22-3333");
+                    v.ShouldNotContain("444-55-6666");
+                }
             }
         }
         finally

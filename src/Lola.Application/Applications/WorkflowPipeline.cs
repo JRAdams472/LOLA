@@ -14,8 +14,8 @@ public interface IWorkflowPipeline
         string actorId, string reason, CancellationToken ct = default);
 }
 
-public sealed class WorkflowPipeline(IApplicationRepository apps)
-    : IWorkflowPipeline
+public sealed class WorkflowPipeline(IApplicationRepository apps,
+    Events.ILoanEventLog events) : IWorkflowPipeline
 {
     public static readonly IReadOnlyList<string> Steps =
         ["POSIntake", "Validate", "PPE", "Fee", "Doc", "Package"];
@@ -65,5 +65,8 @@ public sealed class WorkflowPipeline(IApplicationRepository apps)
         await apps.UpdatePipelineStepAsync(app.Id, targetStep, ct);
         await apps.RecordStepEventAsync(app.Id, targetStep, "entered",
             actorId, reason, ct);
+        await events.WriteAsync(new Events.LoanEventDraft(app.Id,
+            Events.LoanEventKind.Transition, actorId, "application",
+            app.Id, "pipeline_step", null, app.PipelineStep, targetStep), ct);
     }
 }

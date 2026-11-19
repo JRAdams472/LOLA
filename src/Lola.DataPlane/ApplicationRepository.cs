@@ -1,6 +1,7 @@
 using Dapper;
 using Lola.Application.Applications;
 using Lola.Application.Errors;
+using Lola.Application.Events;
 using Lola.Application.Security;
 using Lola.Domain.Applications;
 using Lola.Domain.Classification;
@@ -17,7 +18,9 @@ namespace Lola.DataPlane;
 public sealed class ApplicationRepository(
     TenantConnectionFactory factory,
     IFieldCipher cipher,
-    ApplicationPartyRepository parties) : TenantRepository(factory), IApplicationRepository
+    ApplicationPartyRepository parties,
+    IBlindIndex blind,
+    LoanEventLog events) : TenantRepository(factory), IApplicationRepository
 {
     private static readonly FieldCatalog Catalog = FieldCatalog.Current;
 
@@ -117,6 +120,14 @@ public sealed class ApplicationRepository(
                 throw DomainException.BadRequest("only drafts can be patched");
 
             var doc = await RevealAsync(ApplicationDocument.Parse(row.Payload), ct);
+            // Mutation event log (M15): per-path field_change rows ride
+            // this same tx — before-values come from the doc just
+            // revealed inside the lock, so they can't be raced; a
+            // rollback below takes the events with it.
+            var drafts = await LoanEventWriter.FieldChangesAsync(
+                id, writtenBy, doc, patch, blind, ct);
+            foreach (var d in drafts)
+                await events.WriteOnConnectionAsync(d, conn, ct);
             foreach (var (path, value) in patch)
                 doc.Set(path, value);
             var protected_ = await ProtectAsync(doc, ct);

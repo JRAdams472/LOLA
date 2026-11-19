@@ -25,7 +25,7 @@ public static class OverrideFeeHandler
     public static async Task<FeeOverrideResult> Handle(
         OverrideFeeCommand c, IApplicationRepository apps,
         IFeeRepository fees, ITenantAuditLog audit,
-        CancellationToken ct)
+        Events.ILoanEventLog events, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.ActorIsBorrower)
@@ -76,6 +76,15 @@ public static class OverrideFeeHandler
             await audit.WriteAsync(c.ActorId, "fee_override_clear",
                 "application", c.AppId, AuditFields.InDoc(app.Doc),
                 $"cleared fee override on {feeCode}: {c.Reason}", ct);
+            await events.WriteAsync(new Events.LoanEventDraft(
+                c.AppId, Events.LoanEventKind.Override, c.ActorId,
+                "fee_override", existing.OverrideId,
+                $"fees.{section}.{feeCode}",
+                BeforeVal: existing.Amount
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture),
+                AfterVal: item?.Item.Total
+                    .ToString(System.Globalization.CultureInfo
+                        .InvariantCulture)), ct);
             return new FeeOverrideResult(existing.OverrideId, null, true);
         }
 
@@ -87,6 +96,15 @@ public static class OverrideFeeHandler
         await audit.WriteAsync(c.ActorId, "fee_override",
             "application", c.AppId, AuditFields.InDoc(app.Doc),
             $"overrode {feeCode} → {c.Amount}: {c.Reason}", ct);
+        await events.WriteAsync(new Events.LoanEventDraft(
+            c.AppId, Events.LoanEventKind.Override, c.ActorId,
+            "fee_override", record.OverrideId,
+            $"fees.{section}.{feeCode}",
+            BeforeVal: (existing?.Amount ?? item?.Item.Total)?
+                .ToString(System.Globalization.CultureInfo
+                    .InvariantCulture),
+            AfterVal: c.Amount.Value
+                .ToString(System.Globalization.CultureInfo.InvariantCulture)), ct);
         return new FeeOverrideResult(record.OverrideId, c.Amount, false);
     }
 }

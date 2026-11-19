@@ -159,10 +159,11 @@ public sealed class FeeEvaluationTests
     public async Task Set_override_persists_and_audits()
     {
         var (apps, fees, audit, adapter) = Sut();
+        var events = new FakeEventLog();
         SeedItem(fees, "eval-1", "item-1", "origination", "A");
         using var _ = Scope();
         var r = await OverrideFeeHandler.Handle(
-            OverrideCmd(), apps, fees, audit, default);
+            OverrideCmd(), apps, fees, audit, events, default);
 
         r.Cleared.ShouldBeFalse();
         var o = fees.Overrides.Values.Single();
@@ -171,6 +172,11 @@ public sealed class FeeEvaluationTests
         o.Amount.ShouldBe(500.0);
         o.Reason.ShouldBe("LO corrections");
         audit.Events.Single().Action.ShouldBe("fee_override");
+        var e = events.Drafts.Single();
+        e.EventKind.ShouldBe("override");
+        e.FieldPath.ShouldBe("fees.A.origination");
+        e.BeforeVal.ShouldBe("100");   // computed item total
+        e.AfterVal.ShouldBe("500");
     }
 
     [Fact]
@@ -181,7 +187,8 @@ public sealed class FeeEvaluationTests
         using var _ = Scope();
         await Should.ThrowAsync<DomainException>(() =>
             OverrideFeeHandler.Handle(
-                OverrideCmd(reason: null), apps, fees, audit, default));
+                OverrideCmd(reason: null), apps, fees, audit,
+                new FakeEventLog(), default));
         fees.Overrides.ShouldBeEmpty();
     }
 
@@ -189,13 +196,14 @@ public sealed class FeeEvaluationTests
     public async Task Clear_restores_computed_and_audits()
     {
         var (apps, fees, audit, adapter) = Sut();
+        var events = new FakeEventLog();
         SeedItem(fees, "eval-1", "item-1", "origination", "A");
         using var _ = Scope();
         var set = await OverrideFeeHandler.Handle(
-            OverrideCmd(), apps, fees, audit, default);
+            OverrideCmd(), apps, fees, audit, events, default);
         var cleared = await OverrideFeeHandler.Handle(
             OverrideCmd(amount: null, reason: "client declined"),
-            apps, fees, audit, default);
+            apps, fees, audit, events, default);
 
         cleared.Cleared.ShouldBeTrue();
         cleared.OverrideId.ShouldBe(set.OverrideId);
@@ -203,6 +211,11 @@ public sealed class FeeEvaluationTests
             .ShouldBeEmpty(); // cleared rows stop affecting totals
         audit.Events.Select(e => e.Action).ShouldBe(
             ["fee_override", "fee_override_clear"]);
+        events.Drafts.Select(d => d.EventKind)
+            .ShouldBe(["override", "override"]);
+        // Clear: before = override amount, after = computed restored.
+        events.Drafts[1].BeforeVal.ShouldBe("500");
+        events.Drafts[1].AfterVal.ShouldBe("100");
     }
 
     [Fact]
@@ -213,7 +226,7 @@ public sealed class FeeEvaluationTests
         await Should.ThrowAsync<DomainException>(() =>
             OverrideFeeHandler.Handle(
                 OverrideCmd() with { ActorIsBorrower = true },
-                apps, fees, audit, default));
+                apps, fees, audit, new FakeEventLog(), default));
     }
 
     [Fact]

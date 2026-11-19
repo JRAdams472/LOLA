@@ -1,10 +1,11 @@
 namespace Lola.Application.Events;
 
 /// Append-only mutation log inside the tenant's SQLCipher file (M15).
-/// Writers pass drafts with raw values — the implementation encodes
-/// PII-classed before/after via the tenant blind index, chains the row
-/// to the previous hash, and writes it inside the caller's atomic
-/// unit. Rows are never updated or deleted.
+/// Values arrive already encoded — LoanEventWriter turns PII-classed
+/// before/after into blind-index HMACs upstream (never plaintext).
+/// The implementation chains the row to the previous hash and writes
+/// it inside the caller's atomic unit. Rows are never updated or
+/// deleted.
 public interface ILoanEventLog
 {
     /// Write one chained event row. The caller's write transaction must
