@@ -397,5 +397,14 @@ public sealed class VaultLiveTests
             .ShouldBeFalse();
         // Idempotent — purging a missing bucket is a no-op.
         await new TenantVaultProvisioner(s.S3).PurgeAsync(rec);
+
+        // MPE-234 drill finding: a never-uploaded bucket yields an
+        // S3Objects-less page on this MinIO build — purge must not NRE.
+        const string emptyBucket = "lola-vault-empty-drill";
+        await s.S3.PutBucketAsync(emptyBucket);
+        await new TenantVaultProvisioner(s.S3).PurgeAsync(
+            rec with { Id = "empty-drill" });
+        (await AmazonS3Util.DoesS3BucketExistV2Async(s.S3, emptyBucket))
+            .ShouldBeFalse();
     }
 }

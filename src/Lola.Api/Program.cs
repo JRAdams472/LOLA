@@ -361,9 +361,16 @@ if ("isppr".Equals(builder.Configuration["DOC_ADAPTER"],
         builder.Services.AddSingleton(
             new Lola.Infrastructure.Documents.IspprAdminOptions(
                 ispprBase, adminEmail, adminPassword));
-        builder.Services.AddHttpClient<Lola.Application.Documents.IDocVendorAdmin,
-            Lola.Infrastructure.Documents.IspprSessionClient>()
+        // Typed client on the concrete type + Singleton interface map:
+        // the interface->typedclient Transient-lambda form makes
+        // Wolverine codegen require service location for the erase
+        // handler, which NotAllowed policy rejects (MPE-234 drill
+        // finding — DELETE /admin/tenants/{id} 500'd under DOC_ADAPTER=
+        // isppr; typed-singleton fakes hid it in tests).
+        builder.Services.AddHttpClient<Lola.Infrastructure.Documents.IspprSessionClient>()
             .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
+        builder.Services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin>(
+            sp => sp.GetRequiredService<Lola.Infrastructure.Documents.IspprSessionClient>());
         builder.Services.AddSingleton<Lola.Application.Documents.ITenantDocProvisioner,
             Lola.Infrastructure.Documents.IspprTenantProvisioner>();
     }

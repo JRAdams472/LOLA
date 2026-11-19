@@ -101,3 +101,82 @@ Every field encrypted under the tenant DEK and every blind index becomes
 permanently unrecoverable — decryption fails even if the database file
 survives. Retention obligations (Reg B 25-month) are enforced by the
 caller *before* shredding — the key delete itself is unconditional.
+
+## Disaster recovery
+
+Drill-proven (MPE-234, 2026-11-19 dev stack): every statement below was
+executed against the compose deployment, not asserted from docs.
+
+### Sealed vault — behavior and recovery
+
+While sealed, every transit call returns `503 Vault is sealed`. The API
+fails **closed and loud**: tenant provisioning aborts mid-pipeline
+(`OpenBao 503`), crypto-dependent handlers error, and background drains
+log failures and retry — nothing silently corrupts or skips crypto. The
+registry stays readable (plain SQLite) so read-only admin ops still
+answer.
+
+```bash
+# confirm sealed
+curl -s $OPENBAO_ADDR/v1/sys/seal-status   # {"sealed":true,...}
+# unseal (dev — single share)
+curl -s -X PUT $OPENBAO_ADDR/v1/sys/unseal \
+  -d "{\"key\":\"$(cat data/openbao/unseal-key)\"}"
+# prod — threshold shares, one call per holder:
+bao operator unseal <share>   # repeat until sealed:false
+```
+
+After unseal the API recovers with no restart — transit ops resume on
+the next request. A tenant that died mid-provisioning sits at status
+`provisioning`; either resume it (`POST /api/admin/tenants` re-runs the
+pipeline from the failed step) or erase it — both paths handle the
+no-data-plane-key state (MPE-234).
+
+### Vault data loss (raft/file backend destroyed)
+
+Losing the OpenBao data volume loses every tenant DEK + index key —
+**equivalent to shredding every tenant at once**; no ciphertext in any
+tenant file or backup is recoverable. This is the encryption design
+working, not a bug: OpenBao *is* the key custodian.
+
+Recovery sequence after catastrophic vault loss:
+
+1. Re-init the vault (`openbao-init` in dev; `operator init` +
+   re-mount `lola-transit` + re-write `lola-api` policy + re-mint the
+   api token in real deployments).
+2. Tenant data is gone with the keys — re-provision tenants and restore
+   from *external* data sources if any exist. `data/backups/` snapshots
+   are useless without the transit keys (intended crypto-shred
+   property — see data-plane runbook).
+3. Rotate the api token path: the old token is dead with the storage;
+   re-mint per init.
+
+**If backups must survive a vault loss**, custody the tenant keys out
+of band (e.g., `bao read lola-transit/keys/tenant-<id>` export under
+org key-custody policy) — a deliberate key-backup strategy is the only
+DR lever that keeps `VACUUM INTO` snapshots meaningful. Dev does not
+do this.
+
+### Transit-key loss (per tenant)
+
+`tenant-<id>` DEK deleted/lost ⇒ all PII ciphertext + the wrapped file
+key for that tenant are permanently unrecoverable — the file and its
+backups become random bytes. `tenant-<id>-idx` lost ⇒ blind indexes
+die with it (equality search breaks even if fields decrypt — they
+don't, both keys go together in practice). Key loss is indistinguishable
+from erasure by design; protect keys accordingly.
+
+### Root token revocation / rotation
+
+The root token can do anything, including `sys/seal` and policy writes.
+Dev's file-stored root (`data/openbao/root-token`, gitignored) is a
+dev-only convenience. For real deployments:
+
+```bash
+bao token create -policy=root -ttl=8h     # bounded operator token
+bao token revoke <old-root-accessor>      # revoke the old one
+```
+
+Prefer day-to-day ops on scoped tokens (`lola-api` policy) and revoke
+root between maintenance windows. Audit device output (prod
+requirement, above) is how you detect token misuse after the fact.
