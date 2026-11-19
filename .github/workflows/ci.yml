@@ -67,6 +67,14 @@ jobs:
       - name: dotnet build
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         run: dotnet build -c Release
+      - name: dependency vuln scan (nuget)
+        run: |
+          out=$(dotnet list package --vulnerable --include-transitive 2>&1)
+          echo "$out"
+          if echo "$out" | grep -q "has the following vulnerable"; then
+            echo "::error::Vulnerable NuGet packages found"
+            exit 1
+          fi
       - name: Start OpenBao (dev mode — ephemeral test backend)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         # Detached container, same pattern as the SonarQube job. Dev mode
@@ -273,6 +281,8 @@ jobs:
         with:
           node-version: 24
           # npm cache + cache-dependency-path added when clients/web lands (M10)
+      - name: dependency vuln scan (npm)
+        run: npm audit --audit-level=high
       - name: lint / typecheck / test / build
         if: ${{ hashFiles(format('{0}/package.json', matrix.client)) != '' }}
         run: |
