@@ -221,6 +221,20 @@ tenants. [`docs/uat-matrix.md`](docs/uat-matrix.md) re-verifies every
 milestone acceptance bullet with live evidence. See
 [`docs/m14-plan.md`](docs/m14-plan.md).
 
+Mutation event log + conditions (M15) — a second append-only
+hash-chained table (`loan_events`) records every mutation as a typed
+event (`field_change`, `override`, `transition`, `reveal`,
+`condition_*`) written in the same `BEGIN IMMEDIATE` transaction as
+the change itself — a failed mutation rolls its events back. PII-class
+before/after values are stored as blind-index HMAC tokens, never
+plaintext; non-PII values may be plaintext. Staff read the spine via
+`GET …/applications/{id}/events` and verify the whole chain via
+`GET …/events/verify` (clean or first-broken seq). The `conditions`
+table tracks open→closed/waived lifecycle items with reasons and
+audit linkage; staff mutate under `TenantStaff` while borrowers see a
+stripped projection (kind/title/state/blocking only). See
+[`docs/m15-plan.md`](docs/m15-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md) ·
