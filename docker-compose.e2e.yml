@@ -44,7 +44,7 @@ services:
   # this one-shot writes the same synthetic binding the ISPPr provisioner
   # would — the stub path then flows end-to-end, fully self-contained.
   stub-bind:
-    image: python:3.13-alpine
+    image: python:3.15-alpine
     profiles: ["seed"]
     volumes:
       - lola-data:/data
@@ -73,7 +73,7 @@ services:
   # PKCE-logs in as the dev officer and seeds synthetic applications
   # (never real or realistic PII; see seed_demo.py's borrower data).
   seed:
-    image: python:3.13-alpine
+    image: python:3.15-alpine
     profiles: ["seed"]
     depends_on:
       stub-bind:
