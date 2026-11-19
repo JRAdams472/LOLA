@@ -41,7 +41,8 @@ public sealed class ApplicationRepositoryTests(OpenBaoFixture fixture)
         var parties = new ApplicationPartyRepository(
             new TenantConnectionFactory(cipher), cipher, blind);
         var apps = new ApplicationRepository(
-            new TenantConnectionFactory(cipher), cipher, parties);
+            new TenantConnectionFactory(cipher), cipher, parties, blind,
+            new LoanEventLog(new TenantConnectionFactory(cipher)));
         return (apps, parties, svc, registry, cipher, blind);
     }
 

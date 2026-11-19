@@ -82,6 +82,13 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 Lola.Application.Applications.WorkflowPipeline>();
             services.AddSingleton<Lola.Application.Audit.ITenantAuditLog,
                 FakeTenantAuditLog>();
+            // Mutation log + conditions (M15) — hermetic mirrors; the
+            // SQLCipher impls are proven in Lola.DataPlane.Tests.
+            services.AddSingleton(new FakeLoanEventLog());
+            services.AddSingleton<Lola.Application.Events.ILoanEventLog>(
+                sp => sp.GetRequiredService<FakeLoanEventLog>());
+            services.AddSingleton<Lola.Application.Events
+                .IConditionRepository, FakeConditionRepository>();
             // Pricing (MPE-130) — hermetic store + the swap-proof
             // second adapter: implementing IPricingService is the
             // whole contract, so this registration replaces the
