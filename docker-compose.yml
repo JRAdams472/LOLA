@@ -34,6 +34,17 @@ services:
       openbao:
         condition: service_started
 
+  data-init:
+    # One-shot data-volume bootstrap (MPE-234 drill finding): legacy
+    # lola-data volumes carry a root-owned /app/data, so the api
+    # (uid 10001) can't create top-level dirs like backups/. Fresh
+    # volumes inherit image ownership correctly; this fixes existing
+    # ones and is idempotent either way.
+    image: alpine:3
+    command: sh -c "mkdir -p /data/backups /data/tenants /data/oidc && chown -R 10001:10001 /data"
+    volumes:
+      - lola-data:/data
+
   minio:
     # Borrower document vault (M10). Community source-build continuation —
     # dev-only S3 stand-in.
@@ -133,6 +144,11 @@ services:
       DEV_SEED_ADMIN_PASSWORD: lola-admin-dev
       DEV_SEED_OFFICER_EMAIL: officer@lola.dev
       DEV_SEED_OFFICER_PASSWORD: lola-officer-dev
+      # Service-account clients (MPE-91) — seeded so the platform-ops
+      # surface (tenant create/backup/restore/erase) is reachable in dev;
+      # values match data/run-api-dev.sh. Absent in real deployments.
+      OIDC_SEED_SVC_SECRET: ${OIDC_SEED_SVC_SECRET:-lola-svc-dev}
+      OIDC_SEED_OPS_SECRET: ${OIDC_SEED_OPS_SECRET:-lola-ops-dev}
     volumes:
       - lola-data:/app/data
       - ./data/openbao:/run/openbao:ro
@@ -146,6 +162,8 @@ services:
       retries: 12
     depends_on:
       openbao-init:
+        condition: service_completed_successfully
+      data-init:
         condition: service_completed_successfully
       minio:
         condition: service_started

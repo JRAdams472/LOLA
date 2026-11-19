@@ -101,7 +101,7 @@ public sealed class MinioObjectVault(IAmazonS3 s3) : IObjectVault
                         BucketName = bucket,
                         ContinuationToken = continuation
                     }, ct);
-                if (page.S3Objects.Count > 0)
+                if (page.S3Objects?.Count > 0)
                     await s3.DeleteObjectsAsync(new DeleteObjectsRequest
                     {
                         BucketName = bucket,

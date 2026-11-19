@@ -79,6 +79,29 @@ public sealed class RetentionGateTests
     }
 
     [Fact]
+    public async Task Mid_provisioning_tenant_without_key_is_erasable()
+    {
+        // MPE-234 seal-drill finding: a tenant that died before its
+        // data-plane key was written has no file — reading retention
+        // windows throws "no data-plane key" instead of finding no
+        // apps. The read must be skipped so the eraser can converge
+        // to retired. The in-window row below would 409 a live
+        // tenant, proving the read was skipped rather than answered
+        // empty.
+        var (handler, _, erased, audit, _, _) = Fixture(
+            [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")],
+            tenant: Tenant with
+            {
+                Status = "provisioning",
+                DbKeyWrapped = null
+            });
+        (await handler(new EraseTenantCommand("t1", false, null, "ops")))
+            .TenantId.ShouldBe("t1");
+        erased.ShouldBe(["t1"]);
+        audit.Events.Select(e => e.Action).ShouldBe(["tenant_erased"]);
+    }
+
+    [Fact]
     public async Task Tenant_with_vendor_key_revokes_it_before_shredding()
     {
         var (handler, _, erased, audit, docAdmin, _) = Fixture(

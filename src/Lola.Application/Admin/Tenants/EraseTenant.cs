@@ -37,13 +37,19 @@ public static class EraseTenantHandler
 
         // Read application windows from the tenant file — scope comes
         // from the registry record, so tid-less operator principals
-        // resolve the same file the eraser would shred.
-        DateTimeOffset? clearAt;
-        using (TenantContext.Use(TenantScope.From(tenant)))
+        // resolve the same file the eraser would shred. A tenant that
+        // died mid-provisioning has no wrapped key (and no file, so no
+        // apps to gate on) — skipping the read keeps such tenants
+        // erasable instead of wedged (MPE-234 seal-drill finding).
+        DateTimeOffset? clearAt = null;
+        if (tenant.DbKeyWrapped is not null)
         {
-            var windows = await apps.RetentionWindowsAsync(ct);
-            clearAt = windows.Count == 0 ? null
-                : windows.Max(w => RetentionPolicy.Until(w.CreatedUtc));
+            using (TenantContext.Use(TenantScope.From(tenant)))
+            {
+                var windows = await apps.RetentionWindowsAsync(ct);
+                clearAt = windows.Count == 0 ? null
+                    : windows.Max(w => RetentionPolicy.Until(w.CreatedUtc));
+            }
         }
 
         if (clearAt is not null && clock.GetUtcNow() < clearAt.Value)

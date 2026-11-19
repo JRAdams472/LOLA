@@ -158,6 +158,25 @@ window to close) BEFORE keys die:
   `GET /api/tenants/{id}/retention` for per-app windows and the
   tenant's earliest-clear date.
 
+### Retention dry-run procedure (MPE-234)
+
+Run against a **scratch tenant** — the sequence ends in a real shred:
+
+1. `GET /api/tenants/{id}/retention` (staff) — per-app windows + the
+   tenant's earliest-clear date.
+2. `DELETE /api/admin/tenants/{id}` (no force) — expect **409** with the
+   earliest-clear date; nothing is touched (gate throws before any
+   destructive step).
+3. `DELETE ... ?force=true` (no reason) — expect **400** "a reason is
+   required for a retention override"; still nothing touched.
+4. `DELETE ... ?force=true&reason=<why>` — real shred; control-plane
+   `audit_events` shows `retention_override` → (`isppr_key_revoked`) →
+   (`vault_purged`) → `tenant_erased` in that order.
+5. Verify unrecoverable: tenant file + `backups/<id>/` gone,
+   `lola-transit/keys/tenant-<id>[-idx]` absent, restore → 404,
+   `svc-<id>` token mints fail `invalid_client`, tenant status
+   `retired`.
+
 ## Failure notes
 
 - `file is not a database` on open → wrong/missing key or non-SQLCipher
@@ -165,6 +184,12 @@ window to close) BEFORE keys die:
 - `tenant file is busy` on restore → the live checkpoint could not
   fully drain (a reader/writer holds a snapshot); the swap never
   started — retry in a quiet window.
+- `Access to the path '<data>/backups' is denied` on backup → the
+  data-volume root isn't writable by the api uid; the `data-init`
+  compose one-shot fixes existing volumes (mkdir + chown 10001) and
+  fresh volumes inherit the image layout already.
 - A tenant left `provisioning` after a failed provision is resumable —
   re-run `POST /api/admin/tenants`; the pipeline resumes at the failed
-  step (see `docs/identity-runbook.md`).
+  step (see `docs/identity-runbook.md`). It is also erasable directly —
+  the retention read is skipped when no data-plane key exists
+  (MPE-234).
