@@ -207,9 +207,25 @@ console **Steps** tab. `VENDOR_STUB_WEBHOOK_URL` points the stub at
 the real ingress for push-mode e2e. See
 [`docs/m13-plan.md`](docs/m13-plan.md).
 
+Hardening & close-out (M14) — [`docs/threat-model.md`](docs/threat-model.md)
+maps STRIDE across all five PII flow stages (ingress, at-rest, egress,
+logs, deletion) with per-threat mitigations and a residual-risk
+register. CI enforces dependency-vuln gates
+(`dotnet list package --vulnerable --include-transitive`,
+`npm audit --audit-level=high`) alongside gitleaks, the coverage
+floor, and the PII-firewall tests. `docs/openbao-runbook.md` carries
+the DR section (sealed-vault recovery, multi-share unseal, key-loss
+consequences, restore sequence); backup/restore, crypto-shred,
+retention, and seal/unseal drills were executed live on scratch
+tenants. [`docs/uat-matrix.md`](docs/uat-matrix.md) re-verifies every
+milestone acceptance bullet with live evidence. See
+[`docs/m14-plan.md`](docs/m14-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
-[`docs/data-plane-runbook.md`](docs/data-plane-runbook.md)
+[`docs/data-plane-runbook.md`](docs/data-plane-runbook.md) ·
+[`docs/threat-model.md`](docs/threat-model.md) ·
+[`docs/uat-matrix.md`](docs/uat-matrix.md)
 
 ## Observability
 
