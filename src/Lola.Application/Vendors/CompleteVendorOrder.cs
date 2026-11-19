@@ -19,7 +19,8 @@ public enum VendorCompletion
     Applied,    // order transitioned + step event written
     Duplicate,  // already terminal — replay, no-op (still 200)
     NotFound,   // unknown external id
-    HashMismatch // right order, wrong request_hash
+    HashMismatch, // right order, wrong request_hash
+    Ambiguous   // vendor reused the external id — cannot disambiguate
 }
 
 /// Idempotent result application (MPE-228): the repository's
@@ -33,9 +34,24 @@ public sealed class CompleteVendorOrderHandler(
     public async Task<VendorCompletion> Handle(
         CompleteVendorOrderCommand cmd, CancellationToken ct)
     {
-        var order = await repo.FindByExternalIdAsync(
+        // A vendor may dedupe identical submissions onto one tracking
+        // id, so several of our orders can share it. Prefer the single
+        // still-open match; all-terminal = replay; several open = the
+        // delivery can't be attributed (409, vendor must resolve).
+        var matches = await repo.ListByExternalIdAsync(
             VendorGuards.Token(cmd.Kind), cmd.ExternalId, ct);
-        if (order is null) return VendorCompletion.NotFound;
+        if (matches.Count == 0) return VendorCompletion.NotFound;
+        if (cmd.RequestHash is not null)
+        {
+            matches = matches.Where(m => m.RequestHash == cmd.RequestHash)
+                .ToList();
+            if (matches.Count == 0) return VendorCompletion.HashMismatch;
+        }
+        var open = matches.Where(
+            m => m.Status is "ordered" or "submitted").ToList();
+        if (open.Count == 0) return VendorCompletion.Duplicate;
+        if (open.Count > 1) return VendorCompletion.Ambiguous;
+        var order = open[0];
         if (cmd.RequestHash is not null &&
             order.RequestHash != cmd.RequestHash)
             return VendorCompletion.HashMismatch;

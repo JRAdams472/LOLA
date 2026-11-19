@@ -114,8 +114,9 @@ public sealed class VendorRepositoryTests(OpenBaoFixture fixture)
             .ShouldBeEmpty();
 
         // External-id correlation — the webhook channel's lookup.
-        (await repo.FindByExternalIdAsync(
-            "credit", "stub-credit-abc123"))!.OrderId.ShouldBe("ord-1");
+        var matched = await repo.ListByExternalIdAsync(
+            "credit", "stub-credit-abc123");
+        matched.ShouldHaveSingleItem().OrderId.ShouldBe("ord-1");
     }
 
     [Fact]

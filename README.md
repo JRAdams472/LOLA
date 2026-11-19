@@ -24,7 +24,7 @@ invariants in [`AGENTS.md`](AGENTS.md) and the megaplan in
 | Identity | OpenIddict (OIDC; custom Dapper-backed stores) |
 | Object store | MinIO (borrower document vault) + ClamAV (upload scanning) |
 | Web | Next.js (App Router) + TypeScript — officer console (MUI) + borrower portal |
-| Integrations | MPEx (PII-free pricing egress), Zara (fee engine), ISPPr (document packages) |
+| Integrations | MPEx (PII-free pricing egress), Zara (fee engine), ISPPr (document packages), vendor verification seam (credit/VOE/VOI/flood/fraud/AUS — stub adapter, real vendors later) |
 | Dev/deploy | Docker Compose; OTel → Seq + Jaeger |
 
 ## Status
@@ -180,6 +180,32 @@ the M10 vault (classification picker, friendly quarantine/clean/
 rejected chips, retry) plus download of officer-generated disclosure
 packages through audited 302 capability URLs. See
 [`docs/m12-plan.md`](docs/m12-plan.md).
+
+Vendor seam live (M13) — `VENDOR_ADAPTER=stub` selects the
+deterministic verification provider (credit tri-merge, VOE, VOI,
+flood cert, fraud/OFAC, AUS), shaped for real-vendor swap-in behind
+`IVendorAdapter`. A per-kind egress allowlist (`VendorEgress` +
+reflection firewall) pins exactly which PII fields each request may
+carry — nothing more; `VendorRequestMapper` builds the typed request
+from the application document, and staff-only
+`POST …/{id}/vendor-orders` enqueues order + outbox in one
+transaction. The registry-scoped `VendorOutboxWorker` resolves
+credentials per call from OpenBao KV
+(`lola-kv/vendors/{tenant}/{kind}` — never config/DB/repo), submits,
+and completes over two channels: poll vendors keep the pending
+outbox row as their poll handle (30s cadence, bounded →
+timeout-fail); push vendors (`SupportsPush`) close it at submit and
+complete through `POST /api/vendor-webhooks/{kind}` — HMAC-SHA256
+`X-Vendor-Signature` over the raw body keyed by the tenant's KV
+webhook secret, stream-bounded 64 KiB, dedicated per-IP+path rate
+policy, and replay dedupe at the order level (a duplicate can never
+write a second result or step event). Results land `vault:`-encrypted
+behind a status-guarded transition with `Credit|Voe|…` service-step
+events; officers read normalized PII-free summaries via staff-only
+REST/GraphQL (`vendorOrders` returns `null` for borrowers) on the
+console **Steps** tab. `VENDOR_STUB_WEBHOOK_URL` points the stub at
+the real ingress for push-mode e2e. See
+[`docs/m13-plan.md`](docs/m13-plan.md).
 
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·

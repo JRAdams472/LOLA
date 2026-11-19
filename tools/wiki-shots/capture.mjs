@@ -74,6 +74,35 @@ async function main() {
   await page.getByText(/expires/).first().waitFor();
   await shot(page, "officer-closing");
 
+  // ── steps tab — vendor order lifecycle (M13) ────────────────────
+  // Order all six stub services on the hero app, let the outbox
+  // drain complete them (stub poll channel), then shoot the Steps
+  // tab with the vendor-orders table + pipeline events.
+  const KINDS = ["credit", "voe", "voi", "flood", "fraud", "aus"];
+  for (const kind of KINDS) {
+    const placed = await page.request.post(
+      `${WEB}/bff/api/tenants/${TENANT}/applications/${heroId}/vendor-orders`,
+      { data: { kind } },
+    );
+    if (!placed.ok() && placed.status() !== 202)
+      console.log(`order ${kind}: ${placed.status()}`);
+  }
+  const ordersUrl =
+    `${WEB}/bff/api/tenants/${TENANT}/applications/${heroId}/vendor-orders`;
+  for (let i = 0; i < 60; i++) {
+    const res = await page.request.get(ordersUrl);
+    const rows = res.ok() ? await res.json() : [];
+    if (rows.filter((o) => o.status === "completed").length >= KINDS.length)
+      break;
+    await page.waitForTimeout(1000);
+  }
+  await page.goto(`${WEB}/loans/${heroId}`);
+  await page.getByRole("tab", { name: "Steps" }).click();
+  await page.getByRole("row", { name: /^credit\b/ }).waitFor();
+  await page.getByText("score 744 · 3 bureaus").waitFor();
+  await page.getByText("vendor order completed").first().waitFor();
+  await shot(page, "officer-steps-vendor");
+
   // ── search (blind-index SSN hit) ──────────────────────────────────
   await page.goto(`${WEB}/search`);
   await page.getByLabel("Field").click();

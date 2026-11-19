@@ -47,6 +47,85 @@ public sealed class StubVendorAdapterTests
         credit.ExternalId.ShouldNotBe(fraud.ExternalId);
     }
 
+    /// MPE-230 regression — the receipt hash must cover the derived
+    /// record's fields, not just the base `VendorOrderRequest` (STJ
+    /// serializes the declared type: two fraud payloads once produced
+    /// identical external ids → FindByExternalIdAsync collided on the
+    /// second same-kind order → webhook 500s).
+    [Fact]
+    public async Task Submit_ids_differ_per_payload_within_a_kind()
+    {
+        var a = await _adapter.SubmitAsync(new FraudOrderRequest(
+            "Marina", "Sample", "000-12-3456", "1990-04-01"), null);
+        var b = await _adapter.SubmitAsync(new FraudOrderRequest(
+            "Marina", "Sample", "000-98-7654", "1990-04-01"), null);
+
+        b.ExternalId.ShouldNotBe(a.ExternalId);
+    }
+
+    /// MPE-230 — a `${VAR:-}` compose passthrough injects an EMPTY
+    /// string when the env var is unset; that must mean poll mode,
+    /// not push (otherwise SupportsPush closes the outbox at submit
+    /// and orders park at `submitted` forever — no completion channel).
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Blank_webhook_url_keeps_poll_mode(string? url)
+        => new StubVendorAdapter(url).SupportsPush.ShouldBeFalse();
+
+    [Fact]
+    public void Set_webhook_url_enables_push_mode()
+        => new StubVendorAdapter("http://vendor.test/hook")
+            .SupportsPush.ShouldBeTrue();
+
+    /// MPE-230 — push mode POSTs a spec-shaped signed completion to
+    /// the configured ingress: `sha256=<hmac(secret, raw body)>`, body
+    /// carries tenant/external_id/outcome/report (MPE-228 contract).
+    [Fact]
+    public async Task Push_mode_posts_a_signed_completion_to_the_ingress()
+    {
+        using var listener = new System.Net.HttpListener();
+        listener.Prefixes.Add("http://localhost:51993/");
+        listener.Start();
+        var seen = new TaskCompletionSource<(string Body, string? Sig)>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = Task.Run(async () =>
+        {
+            var ctx = await listener.GetContextAsync();
+            using var reader = new System.IO.StreamReader(
+                ctx.Request.InputStream!);
+            var body = await reader.ReadToEndAsync();
+            ctx.Response.StatusCode = 200;
+            ctx.Response.Close();
+            seen.SetResult((body,
+                ctx.Request.Headers["X-Vendor-Signature"]));
+        });
+
+        var adapter = new StubVendorAdapter("http://localhost:51993/hook");
+        var creds = new VendorCredentials("k", "wh-secret");
+        var receipt = await adapter.SubmitAsync(
+            new FraudOrderRequest("Marina", "Sample",
+                "000-12-3456", "1990-04-01"), creds);
+
+        var done = await Task.WhenAny(seen.Task,
+            Task.Delay(TimeSpan.FromSeconds(10)));
+        done.ShouldBe(seen.Task,
+            "stub should POST the completion within dispatch latency");
+        var (body, sig) = await seen.Task;
+
+        var expected = "sha256=" + Convert.ToHexString(
+            System.Security.Cryptography.HMACSHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes("wh-secret"),
+                System.Text.Encoding.UTF8.GetBytes(body)))
+            .ToLowerInvariant();
+        sig.ShouldBe(expected);
+        body.ShouldContain(receipt.ExternalId);
+        body.ShouldContain("\"outcome\":\"completed\"");
+
+        listener.Stop();
+    }
+
     [Fact]
     public async Task Poll_returns_the_normalized_report_per_kind()
     {

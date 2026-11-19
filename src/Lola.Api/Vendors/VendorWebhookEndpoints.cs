@@ -88,6 +88,8 @@ public static class VendorWebhookEndpoints
                 new { status = "duplicate" }),
             VendorCompletion.HashMismatch => Results.Conflict(
                 new { status = "request_hash_mismatch" }),
+            VendorCompletion.Ambiguous => Results.Conflict(
+                new { status = "ambiguous_external_id" }),
             _ => Results.NotFound()
         };
     }

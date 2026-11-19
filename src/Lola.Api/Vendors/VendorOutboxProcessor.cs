@@ -119,10 +119,12 @@ public sealed class VendorOutboxProcessor(
                 adapter.SupportsPush ? null : NowPlus(PollInterval),
                 ct);
 
-            // Opportunistic completion — vendors answering in-band
-            // finish here; push vendors close via webhook.
-            var result = await adapter.PollAsync(
-                receipt, credentials, ct);
+            // Opportunistic completion — poll vendors answering in-band
+            // finish here; a push vendor's sole channel is the webhook
+            // (never PollAsync — the stub would short-circuit the very
+            // ingress the push mode exists to exercise).
+            var result = adapter.SupportsPush ? null
+                : await adapter.PollAsync(receipt, credentials, ct);
             if (result is not null)
             {
                 var resultJson = await cipher.EncryptAsync(
