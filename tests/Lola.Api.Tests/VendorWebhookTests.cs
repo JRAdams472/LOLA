@@ -179,6 +179,42 @@ public sealed class VendorWebhookTests(LolaApiFactory factory)
         resp.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    /// MPE-230 — a vendor that reuses an external id across orders gets
+    /// an explicit 409 (ambiguous), never an arbitrary completion or a
+    /// retry-forever 500. The real bug shape: the stub once hashed only
+    /// the base request type, so every same-kind order collided.
+    [Fact]
+    public async Task Duplicate_external_id_is_409_ambiguous()
+    {
+        var (tenant, appId, _, _, ext) = await SubmittedOrderAsync();
+        var repo = factory.Services
+            .GetRequiredService<FakeVendorOrderRepository>();
+        using (TenantContext.Use(new TenantScope(tenant, "x.db", "k")))
+        {
+            var json = VendorRequestMapper.RequestJson(
+                new CreditOrderRequest("Ada", "Testcase", "123456789",
+                    "1985-04-12", "42 Main St", "Springfield", "IL",
+                    "62701"));
+            var twinId = $"ord-{Guid.NewGuid():N}";
+            var twinApp = $"app-hook-twin-{Guid.NewGuid():N}"[..24];
+            await repo.EnqueueAsync(new VendorOrderRow(
+                twinId, twinApp, "credit", "alt-stub", null,
+                "ordered", "vault:req", null, null, "officer-1",
+                null, null, null,
+                VendorRequestMapper.RequestHash(tenant, twinApp,
+                    VendorKind.Credit, json)),
+                $"ob-{Guid.NewGuid():N}");
+            await repo.MarkSubmittedAsync(twinId, ext,
+                repo.OutboxIdFor(twinId)!, null);
+        }
+
+        var content = Signed(tenant, ext, null, out var body);
+        var resp = await WebhookClient(tenant, body)
+            .PostAsync("/api/vendor-webhooks/credit", content);
+
+        resp.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
     [Fact]
     public async Task Missing_signature_is_401()
     {

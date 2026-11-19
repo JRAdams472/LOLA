@@ -86,11 +86,11 @@ public sealed class VendorRepository(TenantConnectionFactory factory)
             $"SELECT {OrderColumns} FROM vendor_orders WHERE order_id=@id",
             new { id = orderId }, ct);
 
-    public Task<VendorOrderRow?> FindByExternalIdAsync(string kind,
-        string externalId, CancellationToken ct = default)
-        => QuerySingleOrDefaultAsync<VendorOrderRow>(
+    public Task<IReadOnlyList<VendorOrderRow>> ListByExternalIdAsync(
+        string kind, string externalId, CancellationToken ct = default)
+        => QueryAsync<VendorOrderRow>(
             $"SELECT {OrderColumns} FROM vendor_orders " +
-            "WHERE kind=@kind AND external_id=@ext",
+            "WHERE kind=@kind AND external_id=@ext ORDER BY created_utc",
             new { kind, ext = externalId }, ct);
 
     public Task<IReadOnlyList<VendorOrderRow>> ListByApplicationAsync(

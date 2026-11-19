@@ -116,6 +116,11 @@ services:
       ZARA_TOKEN_FILE: /run/zara/svc.jwt
       DOC_ADAPTER: isppr
       DOC_OUTBOX_ENABLED: "true"
+      VENDOR_ADAPTER: ${VENDOR_ADAPTER:-stub}
+      VENDOR_OUTBOX_ENABLED: ${VENDOR_OUTBOX_ENABLED:-true}
+      # Set (e.g. http://api:8200/api/vendor-webhooks) to exercise the
+      # push channel — the stub self-posts signed webhook completions.
+      VENDOR_STUB_WEBHOOK_URL: ${VENDOR_STUB_WEBHOOK_URL:-}
       ISPPR_BASE_URL: http://host.docker.internal:8090
       ISPPR_ADMIN_EMAIL: admin@isppr.local
       ISPPR_ADMIN_PASSWORD: isppr-admin

@@ -43,10 +43,12 @@ public sealed class FakeVendorOrderRepository : IVendorOrderRepository
         CancellationToken ct = default)
         => Task.FromResult(Orders.GetValueOrDefault(orderId));
 
-    public Task<VendorOrderRow?> FindByExternalIdAsync(string kind,
-        string externalId, CancellationToken ct = default)
-        => Task.FromResult(Orders.Values.FirstOrDefault(
-            o => o.Kind == kind && o.ExternalId == externalId));
+    public Task<IReadOnlyList<VendorOrderRow>> ListByExternalIdAsync(
+        string kind, string externalId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<VendorOrderRow>>(
+            Orders.Values.Where(
+                o => o.Kind == kind && o.ExternalId == externalId)
+            .OrderBy(o => o.CreatedUtc ?? o.OrderId).ToList());
 
     public Task<IReadOnlyList<VendorOrderRow>> ListByApplicationAsync(
         string applicationId, CancellationToken ct = default)

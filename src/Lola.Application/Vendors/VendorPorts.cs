@@ -13,8 +13,12 @@ public interface IVendorOrderRepository
 
     Task<VendorOrderRow?> GetAsync(string orderId,
         CancellationToken ct = default);
-    Task<VendorOrderRow?> FindByExternalIdAsync(string kind,
-        string externalId, CancellationToken ct = default);
+    /// All orders carrying this external id. Normally ≤1; vendors may
+    /// dedupe identical submissions onto one tracking id, so callers
+    /// must handle multiple matches (CompleteVendorOrderHandler picks
+    /// the single non-terminal match, else Ambiguous).
+    Task<IReadOnlyList<VendorOrderRow>> ListByExternalIdAsync(
+        string kind, string externalId, CancellationToken ct = default);
     Task<IReadOnlyList<VendorOrderRow>> ListByApplicationAsync(
         string applicationId, CancellationToken ct = default);
 

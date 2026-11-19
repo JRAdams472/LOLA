@@ -27,8 +27,12 @@ public sealed class StubVendorAdapter : IVendorAdapter
     /// ingress (`VENDOR_STUB_WEBHOOK_URL`, e.g.
     /// `http://localhost:8200/api/vendor-webhooks`) so e2e exercises
     /// the push channel without a real vendor.
+    // Empty/whitespace env (e.g. a `${VAR:-}` compose passthrough)
+    // means poll mode — only a real URL enables push.
     public StubVendorAdapter(string? webhookUrl = null)
-        => _webhookUrl = webhookUrl?.TrimEnd('/');
+        => _webhookUrl = string.IsNullOrWhiteSpace(webhookUrl)
+            ? null
+            : webhookUrl.TrimEnd('/');
 
     public string Adapter => "stub";
 
@@ -45,7 +49,8 @@ public sealed class StubVendorAdapter : IVendorAdapter
     {
         var hash = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(
-                System.Text.Json.JsonSerializer.Serialize(order))))
+                System.Text.Json.JsonSerializer.Serialize(
+                    (object)order, order.GetType()))))
             [..16].ToLowerInvariant();
         var receipt = new VendorReceipt(
             $"stub-{Token(order.Kind)}-{hash}",
@@ -65,6 +70,13 @@ public sealed class StubVendorAdapter : IVendorAdapter
     {
         try
         {
+            // Vendor-side processing latency — real vendors can't
+            // deliver before acknowledging the order. Without this the
+            // fire-and-forget POST can beat our own MarkSubmittedAsync
+            // and 404 on a not-yet-written external_id (orphaned
+            // order: outbox closed, completion lost).
+            await Task.Delay(500);
+
             var payload = new JsonObject
             {
                 ["tenant"] = Lola.Application.Tenancy.TenantContext
