@@ -33,6 +33,35 @@ public sealed class FakeLoanEventLog : ILoanEventLog
         return Task.CompletedTask;
     }
 
+    private readonly Dictionary<long, string?> _tampered = [];
+
+    /// Flip one row's stored value so VerifyChainAsync reports the seq
+    /// the real SQLCipher store would flag on tamper. Pair with
+    /// <see cref="UntamperForTest"/> — the fake is a singleton shared
+    /// across tests in the fixture, so a left-broken chain pollutes
+    /// later verifies.
+    public void TamperForTest(long seq = 1)
+    {
+        lock (_events)
+        {
+            var i = _events.FindIndex(e => e.Seq == seq);
+            _tampered[seq] = _events[i].AfterVal;
+            _events[i] = _events[i] with
+            { AfterVal = (_events[i].AfterVal ?? "") + "x" };
+        }
+    }
+
+    /// Undo a TamperForTest so the chain verifies clean again.
+    public void UntamperForTest(long seq = 1)
+    {
+        lock (_events)
+        {
+            var i = _events.FindIndex(e => e.Seq == seq);
+            _events[i] = _events[i] with { AfterVal = _tampered[seq] };
+            _tampered.Remove(seq);
+        }
+    }
+
     public Task<EventVerifyResult> VerifyChainAsync(
         CancellationToken ct = default)
     {

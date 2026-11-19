@@ -6,6 +6,7 @@ using Lola.Application.Admin.Users;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Documents;
+using Lola.Application.Events;
 using Lola.Application.Fees;
 using Lola.Application.Messaging;
 using Lola.Application.Portal;
@@ -170,6 +171,33 @@ public class Query(IMessageBus bus)
         if (isBorrower) return Task.FromResult<IReadOnlyList<StepEventDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
             new GetApplicationStepsQuery(tenantId, appId, actor, isBorrower), ct);
+    }
+
+    /// Mutation event spine (M15 P3) — staff-only; borrowers get null
+    /// (the M12 lockdown pattern). Rows carry blind-index tokens for
+    /// PII classes, never values.
+    public async Task<IReadOnlyList<LoanEvent>?> LoanEvents(
+        string tenantId, string appId, IResolverContext context,
+        CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;
+        return await bus.InvokeAsync<IReadOnlyList<LoanEvent>>(
+            new Lola.Application.Events.GetLoanEventsQuery(tenantId,
+                appId, actor, isBorrower), ct);
+    }
+
+    /// Conditions detail (M15 P3) — staff-only; borrowers get null.
+    /// The borrower projection rides REST /conditions.
+    public async Task<IReadOnlyList<ConditionDto>?> Conditions(
+        string tenantId, string appId, IResolverContext context,
+        CancellationToken ct)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;
+        return await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
+            new Lola.Application.Events.ListConditionsQuery(tenantId,
+                appId, actor, isBorrower), ct);
     }
 
     /// Vendor order surface (MPE-229) — staff-only; borrowers get
