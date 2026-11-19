@@ -548,6 +548,7 @@ app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
 app.MapAdminEndpoints();
 app.MapApplicationEndpoints();
+app.MapConditionEndpoints();
 Lola.Api.Vendors.VendorEndpoints.MapVendorEndpoints(app);
 Lola.Api.Vendors.VendorWebhookEndpoints.MapVendorWebhookEndpoints(app);
 Lola.Api.Vault.VaultEndpoints.MapVaultEndpoints(app);
