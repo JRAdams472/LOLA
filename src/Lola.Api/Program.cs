@@ -268,6 +268,7 @@ builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<Lola.Application.Audit.ITenantAuditLog, TenantAuditLog>();
 builder.Services.AddSingleton<Lola.Application.Audit.IControlPlaneAuditLog, ControlPlaneAuditLog>();
+builder.Services.AddSingleton<Lola.Application.Tasks.ITaskRepository, TaskQueue>();
 builder.Services.AddScoped<LoanEventLog>();
 builder.Services.AddScoped<Lola.Application.Events.ILoanEventLog,
     LoanEventLog>();
