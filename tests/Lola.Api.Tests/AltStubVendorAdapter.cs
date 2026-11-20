@@ -55,6 +55,7 @@ public sealed class AltStubVendorAdapter : IVendorAdapter
 public sealed class FakeVendorCredentialSource : IVendorCredentialSource
 {
     public List<VendorKind> Lookups { get; } = [];
+    public List<string> SourceLookups { get; } = [];
 
     public Task<VendorCredentials?> ForAsync(VendorKind kind,
         CancellationToken ct = default)
@@ -63,4 +64,53 @@ public sealed class FakeVendorCredentialSource : IVendorCredentialSource
         return Task.FromResult<VendorCredentials?>(
             new VendorCredentials("test-api-key", "test-webhook-secret"));
     }
+
+    public Task<VendorCredentials?> ForSourceAsync(string source,
+        CancellationToken ct = default)
+    {
+        SourceLookups.Add(source);
+        return Task.FromResult<VendorCredentials?>(
+            new VendorCredentials(null, "test-webhook-secret"));
+    }
+}
+
+/// Hermetic vendor-feedback ledger (M17) — mirrors the production
+/// INSERT OR IGNORE semantics on (source, feedback_id) so replay
+/// behavior is proven end-to-end.
+public sealed class FakeVendorFeedbackRepository
+    : IVendorFeedbackRepository
+{
+    public List<VendorFeedbackReceipt> Rows { get; } = [];
+
+    public Task<bool> TryRecordAsync(VendorFeedbackReceipt receipt,
+        CancellationToken ct = default)
+    {
+        if (Rows.Any(r => r.Source == receipt.Source
+            && r.FeedbackId == receipt.FeedbackId))
+            return Task.FromResult(false);
+        Rows.Add(receipt);
+        return Task.FromResult(true);
+    }
+
+    public Task<VendorFeedbackRow?> GetAsync(string source,
+        string feedbackId, CancellationToken ct = default)
+        => Task.FromResult(Rows
+            .Where(r => r.Source == source
+                && r.FeedbackId == feedbackId)
+            .Select(r => new VendorFeedbackRow(r.Source,
+                r.ApplicationId, r.FeedbackId, r.Finding,
+                r.Severity, r.LinkedEntity, r.LinkedEntityId,
+                "2026-01-01T00:00:00.000Z"))
+            .FirstOrDefault());
+
+    public Task<IReadOnlyList<VendorFeedbackRow>>
+        ListByApplicationAsync(string applicationId,
+            CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<VendorFeedbackRow>>(Rows
+            .Where(r => r.ApplicationId == applicationId)
+            .Select(r => new VendorFeedbackRow(r.Source,
+                r.ApplicationId, r.FeedbackId, r.Finding,
+                r.Severity, r.LinkedEntity, r.LinkedEntityId,
+                "2026-01-01T00:00:00.000Z"))
+            .ToList());
 }

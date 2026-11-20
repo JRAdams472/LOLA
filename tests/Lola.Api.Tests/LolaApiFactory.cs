@@ -133,6 +133,13 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton(new FakeVendorCredentialSource());
             services.AddSingleton<Lola.Application.Vendors.IVendorCredentialSource>(
                 sp => sp.GetRequiredService<FakeVendorCredentialSource>());
+            // Validation feedback (M17) — hermetic ledger mirroring
+            // the (source, feedback_id) dedupe semantics.
+            services.AddSingleton(new FakeVendorFeedbackRepository());
+            services.AddSingleton<Lola.Application.Vendors
+                .IVendorFeedbackRepository>(
+                sp => sp.GetRequiredService<
+                    FakeVendorFeedbackRepository>());
             // Vendor-admin seam (MPE-191) — republish + erasure
             // revoke resolve it; the fake records calls hermetically.
             services.AddSingleton(new FakeDocVendorAdmin());
