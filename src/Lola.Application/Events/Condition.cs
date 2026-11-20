@@ -13,6 +13,18 @@ public static class ConditionKind
         new HashSet<string> { DocRequired, DataValidation, DistanceCheck, Manual };
 }
 
+/// `linked_entity` conventions on classifier-written conditions
+/// (M18): `doc_kind` marks a requirement seeded by kind ("need a
+/// w2") that a clean classified doc satisfies; `vault_doc` marks a
+/// replace-doc condition tied to one flagged upload; `application`
+/// marks a loan-level review flag (distance_check).
+public static class ConditionLink
+{
+    public const string DocKind = "doc_kind";
+    public const string VaultDoc = "vault_doc";
+    public const string Application = "application";
+}
+
 /// Condition states: open → closed (reason) | waived (reason + audit,
 /// terminal); closed → open (reopen).
 public static class ConditionState
