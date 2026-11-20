@@ -19,7 +19,8 @@ public static class TransitionConditionHandler
     public static async Task<ConditionDto> Handle(
         TransitionConditionCommand c, IConditionRepository conditions,
         IApplicationRepository apps, ITenantAuditLog audit,
-        ILoanEventLog events, CancellationToken ct)
+        ILoanEventLog events, Tasks.TaskEvaluator eval,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.ActorIsBorrower)
@@ -76,6 +77,7 @@ public static class TransitionConditionHandler
             c.ActorId, "condition", c.ConditionId,
             FieldPath: $"conditions.{next.Kind}",
             BeforeVal: existing.State, AfterVal: next.State), ct);
+        await eval.EvaluateApplicationAsync(c.TenantId, c.AppId, ct);
         return ConditionDto.Of(next);
     }
 }

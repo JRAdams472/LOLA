@@ -147,6 +147,37 @@ public sealed class TaskQueueTests
             [top.TaskId, early.TaskId, late.TaskId, noDue.TaskId]);
     }
 
+    // PII-shaped tokens that must never appear in a tasks row —
+    // SSN, email, phone, DOB-ish dates, name-ish free text.
+    private static readonly string[] PiiTokens =
+    [
+        "111-22-3333", "123-45-6789", "@lola.dev", "@example.com",
+        "555-1212", "(555)", "Jane Doe", "John Smith", "1985-04-12"
+    ];
+
+    [Fact]
+    public async Task Row_level_pii_scan_finds_nothing()
+    {
+        var db = TempDb();
+        var q = new TaskQueue(db);
+        await q.UpsertAsync(Draft(title: "Resolve blocking condition"));
+        var claimed = await q.ClaimAsync(
+            (await q.ListQueueAsync("demo"))[0].TaskId, "officer-1");
+        claimed.ShouldNotBeNull();
+        using var conn = db.Open();
+        var row = conn.QuerySingle(
+            "SELECT * FROM tasks WHERE task_id = @id",
+            new { id = claimed.TaskId });
+        var flat = string.Join('|',
+            ((IDictionary<string, object?>)row).Values
+                .Select(v => v?.ToString() ?? ""));
+        foreach (var token in PiiTokens)
+            flat.ShouldNotContain(token, Case.Insensitive);
+        // claimed_by carries an actor id (u-…/email-scoped id), never
+        // a borrower attribute — assert it's the id we wrote.
+        flat.ShouldContain("officer-1");
+    }
+
     [Fact]
     public async Task Skill_filter_matches_tagged_and_untagged()
     {

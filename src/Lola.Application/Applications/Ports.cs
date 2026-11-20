@@ -18,7 +18,8 @@ public sealed record ApplicationRecord(
 public sealed record ApplicationMeta(
     string Id, string Status, string PipelineStep,
     string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
-    string? BorrowerName, string? TridDeadlineUtc);
+    string? BorrowerName, string? TridDeadlineUtc,
+    string? UpdatedUtc = null);
 
 /// Append-only pipeline step event (MPE-112) — every named-step
 /// entry or seam-keyed attempt, attributed to an actor.

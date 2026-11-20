@@ -18,7 +18,8 @@ public static class OpenConditionHandler
     public static async Task<ConditionDto> Handle(
         OpenConditionCommand c, IConditionRepository conditions,
         IApplicationRepository apps, ITenantAuditLog audit,
-        ILoanEventLog events, CancellationToken ct)
+        ILoanEventLog events, Tasks.TaskEvaluator eval,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.ActorIsBorrower)
@@ -40,6 +41,7 @@ public static class OpenConditionHandler
             LoanEventKind.ConditionOpened, c.ActorId, "condition",
             created.ConditionId, FieldPath: $"conditions.{c.Kind}",
             AfterVal: created.State), ct);
+        await eval.EvaluateApplicationAsync(c.TenantId, c.AppId, ct);
         return ConditionDto.Of(created);
     }
 }

@@ -198,7 +198,7 @@ public sealed class ApplicationRepository(
             """
             SELECT a.id AS Id, a.status AS Status, a.pipeline_step AS PipelineStep,
                    a.borrower_user_id AS BorrowerUserId, a.current_version AS CurrentVersion,
-                   a.trid_clock_start AS TridClockStart,
+                   a.trid_clock_start AS TridClockStart, a.updated_utc AS UpdatedUtc,
                    p.first_name_ct AS FirstNameCt, p.last_name_ct AS LastNameCt
             FROM applications a
             LEFT JOIN application_parties p
@@ -224,7 +224,7 @@ public sealed class ApplicationRepository(
                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
             return new ApplicationMeta(r.Id, r.Status, r.PipelineStep,
                 r.BorrowerUserId, r.CurrentVersion, r.TridClockStart,
-                name.Length == 0 ? null : name, null);
+                name.Length == 0 ? null : name, null, r.UpdatedUtc);
         }).ToList();
     }
 
@@ -355,5 +355,5 @@ public sealed class ApplicationRepository(
     private sealed record PipelineRow(
         string Id, string Status, string PipelineStep,
         string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
-        string? FirstNameCt, string? LastNameCt);
+        string? UpdatedUtc, string? FirstNameCt, string? LastNameCt);
 }
