@@ -258,6 +258,42 @@ def main() -> None:
     )
     print("package requested")
 
+    # Synthetic W2 upload — the rule classifier detects `w2` with
+    # extracted fields, so the officer closing page shows the intel
+    # chips (kind · confidence · field names) on the vault row.
+    import io as _io
+
+    w2_pdf = (
+        b"%PDF-1.4\n"
+        b"Form W-2 Wage and Tax Statement\n"
+        b"Employer Name: Example Holdings\n"
+        b"Employer Address: 400 Demo Way, Dallas, TX 75201\n"
+        b"Employer Identification Number: 36-0000001\n"
+        b"Tax Year: 2025\n"
+        b"Wages, tips, other compensation: 170,400.00\n"
+        b"trailer<</Root 1 0 R>>\n%%EOF\n"
+    )
+    r = requests.post(
+        f"{API}/api/tenants/{TENANT}/applications/{hero}/uploads",
+        params={"classification": "w2"},
+        headers={"authorization": f"Bearer {token}"},
+        files={"file": ("w2-2025.pdf", _io.BytesIO(w2_pdf), "application/pdf")},
+        timeout=30,
+    )
+    r.raise_for_status()
+    w2_id = r.json()["vaultDocId"]
+    for _ in range(60):
+        row = api(
+            "GET",
+            f"/api/tenants/{TENANT}/applications/{hero}/uploads/{w2_id}",
+            token,
+        ).json()
+        if row.get("status") in ("clean", "infected", "unavailable"):
+            break
+        time.sleep(1)
+    assert row.get("status") == "clean", f"w2 upload -> {row.get('status')}"
+    print("w2 uploaded + classified:", (row.get("intel") or {}).get("kind"))
+
     # Two drafts for pipeline density — partial 1003s stay drafts.
     create_and_patch(
         token,

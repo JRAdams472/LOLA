@@ -149,6 +149,21 @@ public class RuleDocClassifierTests
             f => f.Kind == DocFindingKind.KindMismatch);
     }
 
+    /// The upload allowlist declares `bank-statement` while detected
+    /// kinds use `bank_statement` — normalization must keep a correct
+    /// declaration from false-firing kind_mismatch.
+    [Fact]
+    public async Task Declared_hyphen_form_matches_detected_kind()
+    {
+        var c = await Classifier().ClassifyAsync(
+            Doc("bank-statement", "statement.txt"),
+            Encoding.ASCII.GetBytes(
+                string.Format(BankText, "02/01/2026")));
+        c.DocKind.ShouldBe(DocKind.BankStatement);
+        c.Findings.ShouldNotContain(
+            f => f.Kind == DocFindingKind.KindMismatch);
+    }
+
     [Fact]
     public async Task Binary_head_falls_back_and_flags_unreadable()
     {

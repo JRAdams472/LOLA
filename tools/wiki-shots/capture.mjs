@@ -72,6 +72,8 @@ async function main() {
   await page.goto(`${WEB}/loans/${heroId}/closing`);
   await page.getByText(/A — Origination charges/).first().waitFor();
   await page.getByText(/expires/).first().waitFor();
+  // M18 intel chips on the vault row — wait for the classified W2.
+  await page.getByText(/read as w2/).first().waitFor();
   await shot(page, "officer-closing");
 
   // ── steps tab — vendor order lifecycle (M13) ────────────────────

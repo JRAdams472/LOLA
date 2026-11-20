@@ -127,7 +127,7 @@ public sealed class RuleDocClassifier(TimeProvider clock)
         var confidence = bestScore > 0
             ? Math.Min(1.0, bestScore / 5.0) : 0.05;
 
-        var declared = doc.Classification;
+        var declared = DocKind.Normalize(doc.Classification);
         if (detected == DocKind.Misc && text.Length < MinTextChars)
             findings.Add(new DocFinding(DocFindingKind.Unreadable,
                 "no readable text or filename signal"));

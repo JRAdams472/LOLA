@@ -121,7 +121,7 @@ public static class RecordDocClassificationHandler
             foreach (var cond in open.Where(cond =>
                 cond.Kind == ConditionKind.DocRequired
                 && (cond.LinkedEntity == ConditionLink.DocKind
-                    && cond.LinkedEntityId == result.DocKind
+                    && DocKind.Normalize(cond.LinkedEntityId) == result.DocKind
                  || cond.LinkedEntity == ConditionLink.VaultDoc
                     && cond.LinkedEntityId != doc.VaultDocId)))
             {
@@ -129,7 +129,8 @@ public static class RecordDocClassificationHandler
                 {
                     var flagged = await vault.GetAsync(
                         cond.LinkedEntityId!, ct);
-                    if (flagged?.Classification != result.DocKind)
+                    if (DocKind.Normalize(flagged?.Classification)
+                            != result.DocKind)
                         continue;
                 }
                 var next = await conditions.TransitionAsync(
