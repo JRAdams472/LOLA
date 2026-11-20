@@ -3,6 +3,7 @@ using Amazon.S3;
 using Amazon.S3.Util;
 using Dapper;
 using Lola.Application.Audit;
+using Lola.Application.Events;
 using Lola.Application.Identity;
 using Lola.Application.Security;
 using Lola.Application.Tenancy;
@@ -14,8 +15,10 @@ using Lola.Infrastructure.Crypto;
 using Lola.Infrastructure.OpenBao;
 using Lola.Infrastructure.Vault;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Shouldly;
+using Wolverine;
 using SQLitePCL;
 
 namespace Lola.Api.Tests;
@@ -58,7 +61,12 @@ public sealed class VaultLiveTests
         public required ControlPlaneDb Db { get; init; }
         public required TenantRegistry Registry { get; init; }
         public required string DataDir { get; init; }
-        public void Dispose() => S3.Dispose();
+        public List<IHost> Hosts { get; } = [];
+        public void Dispose()
+        {
+            foreach (var h in Hosts) h.Dispose();
+            S3.Dispose();
+        }
     }
 
     private static async Task<Stack> StackAsync()
@@ -139,19 +147,34 @@ public sealed class VaultLiveTests
     }
 
     /// A processor bound to the real services — the same registrations
-    /// Program.cs makes under VAULT_ADAPTER=minio.
+    /// Program.cs makes under VAULT_ADAPTER=minio, plus a real
+    /// Wolverine mediator so M18's RecordDocClassification handler
+    /// runs inside the drain exactly as it does in the app.
     private static Lola.Api.Vault.VaultScanProcessor Processor(Stack s,
         IVirusScanner? scanner = null)
     {
-        var sc = new ServiceCollection();
-        sc.AddSingleton<IFieldCipher>(s.Cipher);
-        sc.AddSingleton(s.ConnFactory);
-        sc.AddScoped<IVaultDocRepository, VaultRepository>();
-        sc.AddScoped<ITenantAuditLog, TenantAuditLog>();
-        sc.AddSingleton<IObjectVault>(new MinioObjectVault(s.S3));
-        sc.AddSingleton<IVirusScanner>(scanner ?? s.Scanner);
-        sc.AddSingleton<VaultCipher>();
-        return new Lola.Api.Vault.VaultScanProcessor(sc.BuildServiceProvider(),
+        var builder = Host.CreateDefaultBuilder()
+            .UseWolverine(opts =>
+                opts.Discovery.IncludeAssembly(
+                    typeof(RecordDocClassificationCommand).Assembly));
+        builder.ConfigureServices(sc =>
+        {
+            sc.AddSingleton<IFieldCipher>(s.Cipher);
+            sc.AddSingleton(s.ConnFactory);
+            sc.AddScoped<IVaultDocRepository, VaultRepository>();
+            sc.AddScoped<ITenantAuditLog, TenantAuditLog>();
+            sc.AddScoped<ILoanEventLog, LoanEventLog>();
+            sc.AddSingleton<IObjectVault>(new MinioObjectVault(s.S3));
+            sc.AddSingleton<IVirusScanner>(scanner ?? s.Scanner);
+            sc.AddSingleton<VaultCipher>();
+            sc.AddSingleton(TimeProvider.System);
+            sc.AddSingleton<IDocClassifier>(
+                new RuleDocClassifier(TimeProvider.System));
+        });
+        var host = builder.Build();
+        host.StartAsync().GetAwaiter().GetResult();
+        s.Hosts.Add(host);
+        return new Lola.Api.Vault.VaultScanProcessor(host.Services,
             s.Registry, TimeProvider.System);
     }
 

@@ -5,6 +5,7 @@ using Lola.Application.Tenancy;
 using Lola.Application.Vault;
 using Lola.Domain.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Wolverine;
 
 namespace Lola.Api.Vault;
 
@@ -28,6 +29,7 @@ public sealed class VaultScanProcessor(
     TimeProvider clock)
 {
     private const int BatchSize = 25;
+    private const int ClassifyHeadBytes = 2 * 1024 * 1024;
     private const int MaxAttempts = 10;
     private static readonly TimeSpan ClaimWindow =
         TimeSpan.FromSeconds(30);
@@ -62,6 +64,8 @@ public sealed class VaultScanProcessor(
             .GetRequiredService<VaultCipher>();
         var audit = scope.ServiceProvider
             .GetRequiredService<ITenantAuditLog>();
+        var bus = scope.ServiceProvider
+            .GetRequiredService<IMessageBus>();
         var processed = 0;
         using (TenantContext.Use(TenantScope.From(tenant)))
         using (CipherContext.Use(tenant.Id))
@@ -70,7 +74,7 @@ public sealed class VaultScanProcessor(
             ct.ThrowIfCancellationRequested();
             await Task.WhenAll(rows.Select(row =>
                 ProcessRowAsync(repo, store, scanner, cipher, audit,
-                    row, ct)));
+                    bus, tenant, row, ct)));
             processed += rows.Count;
         }
         return processed;
@@ -78,7 +82,8 @@ public sealed class VaultScanProcessor(
 
     private async Task ProcessRowAsync(IVaultDocRepository repo,
         IObjectVault store, IVirusScanner scanner, VaultCipher cipher,
-        ITenantAuditLog audit, VaultScanOutboxRow row,
+        ITenantAuditLog audit, IMessageBus bus, TenantRecord tenant,
+        VaultScanOutboxRow row,
         CancellationToken ct)
     {
         var attempts = row.Attempts + 1;
@@ -111,12 +116,34 @@ public sealed class VaultScanProcessor(
                 await store.GetAsync(doc.S3Key, ct);
             await using var plaintext =
                 await cipher.OpenAsync(doc.WrappedDek, ciphertext, ct);
-            var verdict = await scanner.ScanAsync(plaintext, ct);
+            // Tee a bounded head for the classifier (M18) — the scan
+            // reads the full stream while the first ClassifyHeadBytes
+            // are captured for kind detection + extraction.
+            var capture = new HeadCapture(plaintext, ClassifyHeadBytes);
+            var verdict = await scanner.ScanAsync(capture, ct);
 
             switch (verdict.Status)
             {
                 case ScanStatus.Clean:
                     {
+                        // M18: classify runs before promote — the
+                        // result rides the doc row vault:-encrypted.
+                        // A classifier failure is additive-only: audit
+                        // and still promote (AV remains the gate).
+                        try
+                        {
+                            await bus.InvokeAsync(
+                                new RecordDocClassificationCommand(
+                                    tenant.Id, doc.VaultDocId,
+                                    capture.Head), ct);
+                        }
+                        catch (Exception ex)
+                            when (ex is not OperationCanceledException)
+                        {
+                            await AuditAsync(audit, doc,
+                                "doc_classify_failed",
+                                "classification failed", ct);
+                        }
                         var cleanKey = $"clean/{doc.VaultDocId}";
                         await store.CopyAsync(doc.S3Key, cleanKey, ct);
                         await repo.CompleteScanAsync(row.OutboxId,

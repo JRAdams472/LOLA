@@ -140,6 +140,36 @@ public sealed class VaultRepositoryTests(OpenBaoFixture fixture)
     }
 
     [Fact]
+    public async Task Classification_json_is_vault_encrypted_at_rest()
+    {
+        var (repo, rec, factory) = await ProvisionAsync();
+        using var _t = TenantContext.Use(TenantScope.From(rec));
+        using var _c = Lola.Application.Security.CipherContext.Use(rec.Id);
+
+        await repo.EnqueueAsync(Doc(), "vso-1");
+        var json = """{"docKind":"w2","fields":{"employer":"SEKRET"}}""";
+        await repo.SaveClassificationAsync("vlt-1", json,
+            "2026-03-01T00:00:00.000Z");
+
+        // Raw read: classification_json is ciphertext like filename —
+        // the extracted fields are PII-class (invariant 1).
+        await using var conn = await factory.OpenAsync();
+        var raw = await conn.QuerySingleAsync<(string? Json,
+            string? Utc)>(
+            "SELECT classification_json AS Json, " +
+            "classified_utc AS Utc FROM vault_docs " +
+            "WHERE vault_doc_id='vlt-1'");
+        raw.Json.ShouldNotBeNull();
+        raw.Json.ShouldStartWith("vault:");
+        raw.Json.ShouldNotContain("SEKRET");
+        raw.Utc.ShouldBe("2026-03-01T00:00:00.000Z");
+
+        var got = await repo.GetAsync("vlt-1");
+        got!.ClassificationJson.ShouldBe(json);
+        got.ClassifiedUtc.ShouldBe("2026-03-01T00:00:00.000Z");
+    }
+
+    [Fact]
     public async Task List_is_newest_first_and_app_scoped()
     {
         var (repo, rec, _) = await ProvisionAsync();
