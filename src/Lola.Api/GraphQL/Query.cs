@@ -200,6 +200,33 @@ public class Query(IMessageBus bus)
                 appId, actor, isBorrower), ct);
     }
 
+    /// Officer work queue (M16 P3) — staff-only; borrowers get null
+    /// (the M12 lockdown pattern). Same lazy-eval ranking as REST
+    /// /tasks.
+    public async Task<IReadOnlyList<Lola.Application.Tasks.QueueTask>?>
+        Tasks(string tenantId, IResolverContext context,
+            CancellationToken ct, IReadOnlyList<string>? skills = null)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;
+        return await bus.InvokeAsync<
+            IReadOnlyList<Lola.Application.Tasks.QueueTask>>(
+            new Lola.Application.Tasks.ListTasksQuery(tenantId, actor,
+                isBorrower, skills), ct);
+    }
+
+    /// Next-best-task (M16 P3) — staff-only; borrowers get null.
+    public async Task<Lola.Application.Tasks.QueueTask?> NextTask(
+        string tenantId, IResolverContext context,
+        CancellationToken ct, IReadOnlyList<string>? skills = null)
+    {
+        var (actor, isBorrower) = Actor(context);
+        if (isBorrower) return null;
+        return await bus.InvokeAsync<Lola.Application.Tasks.QueueTask?>(
+            new Lola.Application.Tasks.GetNextTaskQuery(tenantId, actor,
+                isBorrower, skills), ct);
+    }
+
     /// Vendor order surface (MPE-229) — staff-only; borrowers get
     /// null (the M12 lockdown pattern). The same handler as REST
     /// /vendor-orders — summary reads are audited there.
