@@ -157,7 +157,10 @@ public sealed class LoanEventEmissionTests
             "POSIntake", null, 1, null, null,
             ApplicationDocument.Empty());
         var events = new FakeEventLog();
-        var pipe = new WorkflowPipeline(new FakeApps(record), events);
+        var eval = new Tasks.TaskEvaluator(new FakeConditionRepository(),
+            new FakeApps(record), new FakeTaskRepository(),
+            TimeProvider.System);
+        var pipe = new WorkflowPipeline(new FakeApps(record), events, eval);
         await pipe.AdvanceAsync(record, "Validate", "officer-1",
             "intake complete");
         var e = events.Drafts.Single();

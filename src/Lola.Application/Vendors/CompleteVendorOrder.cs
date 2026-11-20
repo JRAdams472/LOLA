@@ -29,7 +29,7 @@ public enum VendorCompletion
 /// `Duplicate` verdict exists purely to report the no-op.
 public sealed class CompleteVendorOrderHandler(
     IVendorOrderRepository repo, IFieldCipher cipher,
-    ITenantAuditLog audit)
+    ITenantAuditLog audit, Tasks.TaskEvaluator eval)
 {
     public async Task<VendorCompletion> Handle(
         CompleteVendorOrderCommand cmd, CancellationToken ct)
@@ -70,6 +70,12 @@ public sealed class CompleteVendorOrderHandler(
         await audit.WriteAsync(cmd.Actor, "vendor_result",
             "vendor_order", order.OrderId, ["VendorReport"],
             "vendor order completed", ct);
+        // Step-event outcome landed — re-derive the app's task set
+        // (failed/referred outcomes open review tasks; completed
+        // resolves them). Ambient tenant: outbox/request scoped.
+        if (Tenancy.TenantContext.Current is { } scope)
+            await eval.EvaluateApplicationAsync(
+                scope.TenantId, order.ApplicationId, ct);
         return VendorCompletion.Applied;
     }
 }

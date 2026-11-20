@@ -46,6 +46,16 @@ public static class TaskSource
     public const string DraftAge = "draft_age";
 }
 
+/// Skill-tag vocabulary (M16) — free-form tags the evaluator stamps
+/// from the work type; the queue's skill filter matches officers
+/// against them. Untagged tasks are general work.
+public static class TaskSkills
+{
+    public const string Processing = "processing";
+    public const string Underwriting = "underwriting";
+    public const string Closing = "closing";
+}
+
 /// A queued work item in the control plane (M16). PII-free by
 /// construction — refs and operational metadata only; the PII-scan
 /// tests pin this contract. `Seq` is the monotonic row order used to

@@ -78,7 +78,7 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 FakeApplicationRepository>();
             services.AddSingleton<Lola.Application.Applications.IApplicationPartyRepository,
                 FakeApplicationPartyRepository>();
-            services.AddSingleton<Lola.Application.Applications.IWorkflowPipeline,
+            services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
                 Lola.Application.Applications.WorkflowPipeline>();
             services.AddSingleton<Lola.Application.Audit.ITenantAuditLog,
                 FakeTenantAuditLog>();
@@ -89,6 +89,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeLoanEventLog>());
             services.AddSingleton<Lola.Application.Events
                 .IConditionRepository, FakeConditionRepository>();
+            // Task queue derivation (M16): real evaluator over the
+            // fakes + the real TaskQueue on the temp control.db —
+            // queue rows are inspectable in tests. Scoped because the
+            // marquee factories swap in scoped real repos.
+            services.AddScoped<Lola.Application.Tasks
+                .TaskEvaluator>();
             // Pricing (MPE-130) — hermetic store + the swap-proof
             // second adapter: implementing IPricingService is the
             // whole contract, so this registration replaces the

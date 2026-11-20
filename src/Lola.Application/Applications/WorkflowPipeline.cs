@@ -15,7 +15,8 @@ public interface IWorkflowPipeline
 }
 
 public sealed class WorkflowPipeline(IApplicationRepository apps,
-    Events.ILoanEventLog events) : IWorkflowPipeline
+    Events.ILoanEventLog events,
+    Tasks.TaskEvaluator eval) : IWorkflowPipeline
 {
     public static readonly IReadOnlyList<string> Steps =
         ["POSIntake", "Validate", "PPE", "Fee", "Doc", "Package"];
@@ -68,5 +69,11 @@ public sealed class WorkflowPipeline(IApplicationRepository apps,
         await events.WriteAsync(new Events.LoanEventDraft(app.Id,
             Events.LoanEventKind.Transition, actorId, "application",
             app.Id, "pipeline_step", null, app.PipelineStep, targetStep), ct);
+        // Task queue re-derivation (M16): pipeline moves change which
+        // step/trid/draft tasks should exist — evaluate best-effort
+        // on the ambient tenant (middleware-scoped in requests).
+        if (Tenancy.TenantContext.Current is { } scope)
+            await eval.EvaluateApplicationAsync(
+                scope.TenantId, app.Id, ct);
     }
 }
