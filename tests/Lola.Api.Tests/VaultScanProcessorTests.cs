@@ -1,8 +1,10 @@
 using Lola.Api.Vault;
+using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Events;
 using Lola.Application.Identity;
 using Lola.Application.Security;
+using Lola.Application.Tasks;
 using Lola.Application.Tenancy;
 using Lola.Application.Vault;
 using Lola.Domain.Identity;
@@ -32,8 +34,15 @@ public sealed class VaultScanProcessorTests : IAsyncLifetime
     private readonly FakeAudit _audit = new();
     private readonly FakeEvents _events = new();
     private readonly ScriptedClassifier _classifier = new();
+    private FakeConditions _conditions = null!;
+    private FakeApps _apps = null!;
+    private FakeTasks _tasks = null!;
     private ScanVerdict _verdict = new(ScanStatus.Clean, null);
     private VaultCipher _cipher = null!;
+
+    private static ApplicationRecord App() => new(
+        "app-1", "submitted", "POSIntake", "u-b1", 2, null,
+        "2026-01-01T00:00:00Z", AppDocWithProperty());
 
     public async Task InitializeAsync()
     {
@@ -42,6 +51,9 @@ public sealed class VaultScanProcessorTests : IAsyncLifetime
             .UseWolverine(opts =>
                 opts.Discovery.IncludeAssembly(
                     typeof(RecordDocClassificationCommand).Assembly));
+        _conditions = new FakeConditions();
+        _apps = new FakeApps(App());
+        _tasks = new FakeTasks();
         builder.ConfigureServices(s => s
             .AddSingleton<IVaultDocRepository>(_repo)
             .AddSingleton<IObjectVault>(_store)
@@ -51,6 +63,11 @@ public sealed class VaultScanProcessorTests : IAsyncLifetime
             .AddSingleton<ITenantAuditLog>(_audit)
             .AddSingleton<ILoanEventLog>(_events)
             .AddSingleton<IDocClassifier>(_classifier)
+            .AddSingleton<IConditionRepository>(_conditions)
+            .AddSingleton<IApplicationRepository>(_apps)
+            .AddSingleton<ITaskRepository>(_tasks)
+            .AddSingleton(new TaskEvaluator(_conditions, _apps,
+                _tasks, TimeProvider.System))
             .AddSingleton(TimeProvider.System));
         _host = builder.Build();
         await _host.StartAsync();
@@ -106,10 +123,16 @@ public sealed class VaultScanProcessorTests : IAsyncLifetime
         _store.Objects.ShouldContainKey($"clean/{doc.VaultDocId}");
 
         // Metadata-only spines — the field value never leaves the row.
-        var evt = _events.Drafts.ShouldHaveSingleItem();
-        evt.EventKind.ShouldBe("doc_classified");
+        var evt = _events.Drafts.Single(
+            d => d.EventKind == "doc_classified");
         evt.AfterVal.ShouldBe("w2");
         evt.AfterVal!.ShouldNotContain("SEKRET-EMPLOYER-CORP");
+        // P3: the scripted `expired_doc` finding opened a blocking
+        // replace-doc condition in the same drain pass.
+        _events.Drafts.ShouldContain(
+            d => d.EventKind == "condition_opened");
+        _conditions.Store.ShouldHaveSingleItem()
+            .Blocking.ShouldBeTrue();
         var (action, reason) = _audit.Rows
             .Single(r => r.Action == "doc_classified");
         var detail = reason.ShouldNotBeNull();
@@ -264,6 +287,171 @@ public sealed class VaultScanProcessorTests : IAsyncLifetime
         public Task<IReadOnlyList<AuditEvent>> QueryAsync(
             AuditFilter filter, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<AuditEvent>>([]);
+    }
+
+    private static Lola.Domain.Applications.ApplicationDocument
+        AppDocWithProperty()
+    {
+        var doc = Lola.Domain.Applications.ApplicationDocument.Empty();
+        doc.Set("subject_property.state", "IL");
+        return doc;
+    }
+
+    private sealed class FakeConditions : IConditionRepository
+    {
+        public List<Condition> Store { get; } = [];
+        private int _n;
+        public Task<Condition> OpenAsync(ConditionDraft draft,
+            CancellationToken ct = default)
+        {
+            var c = new Condition($"cond-{++_n}", draft.ApplicationId,
+                draft.Kind, ConditionState.Open, draft.Blocking,
+                draft.LinkedEntity, draft.LinkedEntityId, draft.Title,
+                draft.Detail, draft.OpenedBy,
+                "2026-01-01T00:00:00.000Z", null, null, null);
+            Store.Add(c);
+            return Task.FromResult(c);
+        }
+        public Task<Condition?> GetAsync(string conditionId,
+            CancellationToken ct = default)
+            => Task.FromResult(Store.FirstOrDefault(
+                c => c.ConditionId == conditionId));
+        public Task<IReadOnlyList<Condition>> ListByApplicationAsync(
+            string applicationId, string? state = null,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<Condition>>(Store
+                .Where(c => c.ApplicationId == applicationId
+                    && (state is null || c.State == state))
+                .ToList());
+        public Task<Condition> TransitionAsync(string conditionId,
+            string toState, string? reason,
+            CancellationToken ct = default)
+        {
+            var c = Store.First(x => x.ConditionId == conditionId);
+            var i = Store.IndexOf(c);
+            Store[i] = c with
+            {
+                State = toState,
+                CloseReason = reason
+            };
+            return Task.FromResult(Store[i]);
+        }
+    }
+
+    private sealed class FakeApps(ApplicationRecord record)
+        : IApplicationRepository
+    {
+        public Task<ApplicationRecord?> GetAsync(string id,
+            CancellationToken ct = default)
+            => Task.FromResult<ApplicationRecord?>(
+                id == record.Id ? record : null);
+        public Task<IReadOnlyList<ApplicationMeta>> ListAsync(
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<ApplicationMeta>>(
+                [new ApplicationMeta(record.Id, record.Status,
+                    record.PipelineStep, null, 1, null, null, null,
+                    "2026-01-05T10:00:00.000Z")]);
+        public Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(
+            string id, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<StepEventDto>>([]);
+        public Task InsertAsync(string id,
+            Lola.Domain.Applications.ApplicationDocument doc,
+            string status, string? borrowerUserId, string writtenBy,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<int> WriteVersionAsync(string id,
+            Lola.Domain.Applications.ApplicationDocument doc,
+            string status, string writtenBy, bool submitted,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<(int Version,
+            Lola.Domain.Applications.ApplicationDocument Doc)>
+            PatchDraftAsync(string id,
+                IReadOnlyDictionary<string, string> patch,
+                string writtenBy, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task UpdateStatusAsync(string id, string status,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task EnsureTridClockStartAsync(string id,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task UpdatePipelineStepAsync(string id, string step,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task RecordStepEventAsync(string id, string step,
+            string evt, string actor, string? reason = null,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<ApplicationRetentionRow>>
+            RetentionWindowsAsync(CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<
+                ApplicationRetentionRow>>([]);
+    }
+
+    private sealed class FakeTasks : ITaskRepository
+    {
+        public List<QueueTask> Store { get; } = [];
+        private long _seq;
+        public Task<QueueTask> UpsertAsync(TaskDraft draft,
+            CancellationToken ct = default)
+        {
+            var key = draft.BlockingEntityId ?? "";
+            var live = Store.FirstOrDefault(t =>
+                t.TenantId == draft.TenantId
+                && t.ApplicationId == draft.ApplicationId
+                && t.Kind == draft.Kind
+                && (t.BlockingEntityId ?? "") == key
+                && t.State is TaskState.Open or TaskState.Claimed);
+            if (live is not null)
+            {
+                var i = Store.IndexOf(live);
+                Store[i] = live with
+                {
+                    Title = draft.Title,
+                    Priority = draft.Priority,
+                    SkillTags = draft.SkillTags ?? [],
+                    DueUtc = draft.DueUtc,
+                    BlockingEntity = draft.BlockingEntity
+                };
+                return Task.FromResult(Store[i]);
+            }
+            var task = new QueueTask(++_seq, $"task-{_seq}",
+                draft.TenantId, draft.ApplicationId, draft.Kind,
+                draft.Title, draft.Priority, draft.SkillTags ?? [],
+                draft.DueUtc, TaskState.Open, draft.BlockingEntity,
+                draft.BlockingEntityId, null,
+                "2026-01-01T00:00:00.000Z", null, null,
+                "2026-01-01T00:00:00.000Z");
+            Store.Add(task);
+            return Task.FromResult(task);
+        }
+        public Task<QueueTask?> GetAsync(string taskId,
+            CancellationToken ct = default)
+            => Task.FromResult(Store.FirstOrDefault(
+                t => t.TaskId == taskId));
+        public Task<IReadOnlyList<QueueTask>> ListQueueAsync(
+            string tenantId, IReadOnlyList<string>? skills = null,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<QueueTask>>(Store
+                .Where(t => t.TenantId == tenantId
+                    && t.State is TaskState.Open or TaskState.Claimed)
+                .ToList());
+        public Task<QueueTask?> ClaimAsync(string taskId, string actor,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<QueueTask?> CompleteAsync(string taskId,
+            string actor, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<int> ResolveBySourceAsync(string tenantId,
+            string applicationId, string blockingEntity,
+            string blockingEntityId, CancellationToken ct = default)
+            => Task.FromResult(Store.RemoveAll(t =>
+                t.TenantId == tenantId
+                && t.ApplicationId == applicationId
+                && t.BlockingEntity == blockingEntity
+                && (t.BlockingEntityId ?? "") == blockingEntityId
+                && t.State is TaskState.Open or TaskState.Claimed));
     }
 
     private sealed class FakeEvents : ILoanEventLog

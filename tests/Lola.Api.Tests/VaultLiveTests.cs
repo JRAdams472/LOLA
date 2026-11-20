@@ -2,10 +2,12 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Util;
 using Dapper;
+using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Events;
 using Lola.Application.Identity;
 using Lola.Application.Security;
+using Lola.Application.Tasks;
 using Lola.Application.Tenancy;
 using Lola.Application.Vault;
 using Lola.ControlPlane;
@@ -170,6 +172,18 @@ public sealed class VaultLiveTests
             sc.AddSingleton(TimeProvider.System);
             sc.AddSingleton<IDocClassifier>(
                 new RuleDocClassifier(TimeProvider.System));
+            // M18 P3 — the classify handler now maps findings onto
+            // conditions + converges the queue; the live drain wires
+            // the real tenant-side repos like Program.cs.
+            sc.AddScoped<IConditionRepository, ConditionRepository>();
+            sc.AddScoped<LoanEventLog>();
+            sc.AddScoped<ApplicationPartyRepository>();
+            sc.AddSingleton<IBlindIndex>(
+                new TransitBlindIndex(s.Transit));
+            sc.AddScoped<IApplicationRepository,
+                ApplicationRepository>();
+            sc.AddSingleton<ITaskRepository>(new TaskQueue(s.Db));
+            sc.AddScoped<Lola.Application.Tasks.TaskEvaluator>();
         });
         var host = builder.Build();
         host.StartAsync().GetAwaiter().GetResult();

@@ -129,7 +129,7 @@ public sealed class FakeConditionRepository : IConditionRepository
     {
         var c = Store.First(x => x.ConditionId == conditionId);
         var i = Store.IndexOf(c);
-        Store[i] = c with { State = toState };
+        Store[i] = c with { State = toState, CloseReason = reason };
         return Task.FromResult(Store[i]);
     }
 }
