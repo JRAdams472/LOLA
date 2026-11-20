@@ -20,12 +20,17 @@ public static class GetApplicationUploadsHandler
         AdminGuards.RequireTenant(q.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+        var staff = !q.ActorIsBorrower;
         return (await vault.ListAsync(q.AppId, ct))
-            .Select(ToDto).ToList();
+            .Select(d => ToDto(d, staff)).ToList();
     }
 
-    internal static VaultDocDto ToDto(VaultDocRecord d) => new(
+    internal static VaultDocDto ToDto(VaultDocRecord d,
+        bool includeIntel = false) => new(
         d.VaultDocId, d.ApplicationId, d.Classification, d.Filename,
         d.ContentType, d.SizeBytes, d.Sha256, d.Status, d.Error,
-        d.CreatedUtc, d.ScannedUtc);
+        d.CreatedUtc, d.ScannedUtc,
+        includeIntel
+            ? DocIntel.Of(d.ClassificationJson, d.ClassifiedUtc)
+            : null);
 }

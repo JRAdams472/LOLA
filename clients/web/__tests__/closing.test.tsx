@@ -157,7 +157,20 @@ describe("closing reads", () => {
       )
       .mockResolvedValueOnce(
         jsonResponse({
-          data: { uploads: [{ vaultDocId: "v1", status: "clean", filename: "paystub.pdf" }] },
+          data: {
+            uploads: [{
+              vaultDocId: "v1",
+              status: "clean",
+              filename: "paystub.pdf",
+              intel: {
+                kind: "w2",
+                confidence: 0.91,
+                findings: ["expired_doc"],
+                fieldNames: ["employer_name"],
+                classifiedUtc: "2026-11-20T00:00:00.000Z",
+              },
+            }],
+          },
         }),
       );
     const lock = renderHook(() => useRateLock("demo", "app-1"), { wrapper });
@@ -169,6 +182,10 @@ describe("closing reads", () => {
     expect(lock.result.current.data?.status).toBe("active");
     expect(docs.result.current.data?.[0].packageName).toBe("le");
     expect(uploads.result.current.data?.[0].filename).toBe("paystub.pdf");
+    expect(uploads.result.current.data?.[0].intel?.kind).toBe("w2");
+    expect(uploads.result.current.data?.[0].intel?.fieldNames).toEqual(
+      ["employer_name"],
+    );
   });
 
   it("downloadUrl builds the BFF download path", () => {

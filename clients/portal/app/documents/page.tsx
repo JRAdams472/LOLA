@@ -6,6 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 import AppShell from "@/components/AppShell";
 import {
+  conditionLabel,
+  useBorrowerConditions,
+} from "@/lib/conditions";
+import {
   CLASSIFICATIONS,
   classificationLabel,
   downloadUrl,
@@ -42,6 +46,11 @@ function DocumentsInner() {
       : undefined;
   const tid = me.status === "ready" ? me.me.tid : null;
   const reload = loans.status === "ready" ? loans.reload : undefined;
+  const conditions = useBorrowerConditions(tid, loan?.id);
+  const open =
+    conditions.status === "ready"
+      ? conditions.conditions.filter((c) => c.state === "open")
+      : [];
 
   // Poll while the scanner is still deciding — clean/infected lands
   // off the request path.
@@ -151,6 +160,36 @@ function DocumentsInner() {
               </p>
             )}
           </section>
+
+          {/* Open conditions — what the loan still needs */}
+          {open.length > 0 && (
+            <section className="mt-6 rounded-lg border border-border bg-surface p-5">
+              <h2 className="text-sm font-medium">What we need</h2>
+              <ul className="mt-3 divide-y divide-border">
+                {[...open]
+                  .sort((a, b) => Number(b.blocking) - Number(a.blocking))
+                  .map((c) => (
+                    <li
+                      key={c.conditionId}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 text-text">
+                        {conditionLabel(c)}
+                      </span>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs ${
+                          c.blocking
+                            ? "border-danger/40 bg-danger/10 text-danger"
+                            : "border-border bg-surface-2 text-muted"
+                        }`}
+                      >
+                        {c.blocking ? "Needed from you" : "In review"}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
 
           {/* Uploads */}
           <section className="mt-6 rounded-lg border border-border bg-surface p-5">

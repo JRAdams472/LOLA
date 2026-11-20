@@ -87,12 +87,16 @@ const errRes = (status: number) =>
     json: () => Promise.resolve({}),
   } as unknown as Response);
 
-function mockFetch(opts: { uploadStatus?: number } = {}) {
+function mockFetch(
+  opts: { uploadStatus?: number; conditions?: unknown } = {},
+) {
   const calls: { url: string; init?: RequestInit }[] = [];
   global.fetch = jest.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
     calls.push({ url, init });
     if (url === "/auth/me") return okRes(ME);
+    if (url.endsWith("/conditions"))
+      return okRes(opts.conditions ?? []);
     if (url === "/bff/graphql") {
       const body = JSON.parse(
         (init?.body as string) ?? "{}",
@@ -173,6 +177,53 @@ describe("documents page", () => {
     );
     expect(up?.init?.method).toBe("POST");
     expect(up?.init?.body).toBeInstanceOf(FormData);
+  });
+
+  it("lists open conditions in borrower language, closed ones hidden", async () => {
+    mockFetch({
+      conditions: [
+        {
+          conditionId: "c-1",
+          kind: "doc_required",
+          state: "open",
+          blocking: true,
+          title: "Replace document — expired_doc",
+          openedUtc: "2026-01-05",
+          closedUtc: null,
+        },
+        {
+          conditionId: "c-2",
+          kind: "distance_check",
+          state: "open",
+          blocking: false,
+          title: "Review — employer locality differs from subject property",
+          openedUtc: "2026-01-05",
+          closedUtc: null,
+        },
+        {
+          conditionId: "c-3",
+          kind: "doc_required",
+          state: "closed",
+          blocking: true,
+          title: "Replace document — unreadable",
+          openedUtc: "2026-01-01",
+          closedUtc: "2026-01-04",
+        },
+      ],
+    });
+    render(<DocumentsPage />);
+
+    expect(await screen.findByText("What we need")).toBeInTheDocument();
+    expect(
+      screen.getByText(/send a new copy — it looks out of date/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Needed from you")).toBeInTheDocument();
+    expect(
+      screen.getByText(/where you work versus the home's location/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("In review")).toBeInTheDocument();
+    // The closed condition never renders.
+    expect(screen.queryByText(/couldn't read it/)).not.toBeInTheDocument();
   });
 
   it.each([

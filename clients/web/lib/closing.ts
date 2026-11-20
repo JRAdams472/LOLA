@@ -211,6 +211,17 @@ export function useDocuments(
   });
 }
 
+/// Staff-only classification readout (M18) — metadata only: detected
+/// kind, confidence, finding names, and WHICH fields the classifier
+/// extracted. Values stay vault:-encrypted; they never cross the wire.
+export interface DocIntel {
+  kind: string;
+  confidence: number;
+  findings: string[];
+  fieldNames: string[];
+  classifiedUtc: string | null;
+}
+
 export interface VaultDoc {
   vaultDocId: string;
   applicationId: string;
@@ -223,6 +234,7 @@ export interface VaultDoc {
   error: string | null;
   createdUtc: string | null;
   scannedUtc: string | null;
+  intel: DocIntel | null;
 }
 
 export function useUploads(
@@ -241,6 +253,7 @@ export function useUploads(
             vaultDocId applicationId classification filename
             contentType sizeBytes sha256 status error
             createdUtc scannedUtc
+            intel { kind confidence findings fieldNames classifiedUtc }
           }
         }`,
         { t: tid, id: appId },
