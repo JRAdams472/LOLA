@@ -73,9 +73,12 @@ public static class RecordDocClassificationHandler
             ? "none"
             : string.Join(",",
                 result.Findings.Select(f => f.Kind));
-        await audit.WriteAsync(Actor, "doc_classified", "vault_doc",
-            c.VaultDocId, ["vault_docs"],
-            $"kind={result.DocKind} confidence={result.Confidence:0.00} findings={findings}",
+        // entity=application mirrors vault_scan_clean — the whole
+        // quarantine→scan→classify arc stays on one app spine.
+        await audit.WriteAsync(Actor, "doc_classified", "application",
+            doc.ApplicationId, ["vault_docs"],
+            $"doc={c.VaultDocId} kind={result.DocKind} " +
+            $"confidence={result.Confidence:0.00} findings={findings}",
             ct);
         await events.WriteAsync(new LoanEventDraft(
             doc.ApplicationId, LoanEventKind.DocClassified, Actor,

@@ -64,6 +64,7 @@ public class RuleDocClassifierTests
         c.Fields["employer_name"].ShouldBe("Acme Lending Corp");
         c.Fields["tax_year"].ShouldBe("2025");
         c.Fields["employer_address"].ShouldContain("Austin");
+        c.Fields["wages"].ShouldBe("85,400.00");
         c.Findings.ShouldBeEmpty();
     }
 

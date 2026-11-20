@@ -47,7 +47,7 @@ public sealed class RuleDocClassifier(TimeProvider clock)
              new("tax_year",
                  Re(@"tax\s*year\s*[:#]?\s*(?<v>20\d{2})"), true),
              new("wages",
-                 Re(@"wages[^0-9]{0,25}(?<v>\d[\d,]*\.\d{2})"), false)],
+                 Re(@"wages[^0-9]{0,40}(?<v>\d[\d,]*\.\d{2})"), false)],
             DateField: null, FreshWithinDays: 0, ExpiryInFuture: false),
 
         new(DocKind.Paystub,
