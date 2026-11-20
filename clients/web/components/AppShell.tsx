@@ -11,6 +11,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import ViewKanbanIcon from "@mui/icons-material/ViewKanban";
+import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import SearchIcon from "@mui/icons-material/Search";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -26,6 +27,7 @@ const DRAWER_WIDTH = 220;
 
 const NAV = [
   { href: "/", label: "Pipeline", icon: <ViewKanbanIcon /> },
+  { href: "/queue", label: "Queue", icon: <PlaylistPlayIcon /> },
   { href: "/search", label: "Loan Search", icon: <SearchIcon /> },
   { href: "/admin", label: "Admin", icon: <AdminPanelSettingsIcon />, staffOnly: true },
 ];
