@@ -27,6 +27,24 @@ public static class FeedbackSeverity
         new HashSet<string> { Info, Warning, Error };
 }
 
+/// Feedback sources (M17) — the `{source}` path segment on the
+/// validation webhook. Whitelisted: only signed sibling systems may
+/// push; unknown sources are rejected before the body is parsed.
+public static class FeedbackSource
+{
+    public const string Mpex = "mpex";
+    public const string Isppr = "isppr";
+
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string> { Mpex, Isppr };
+
+    public static string Parse(string token)
+        => token.ToLowerInvariant() is { } t && All.Contains(t)
+            ? t
+            : throw Errors.DomainException.BadRequest(
+                $"unknown feedback source '{token}'");
+}
+
 /// `conditions.linked_entity` value stamped on feedback-raised
 /// conditions (M17) — the marker the task evaluator reads to emit
 /// `validation_exception` tasks instead of plain `condition_blocking`,

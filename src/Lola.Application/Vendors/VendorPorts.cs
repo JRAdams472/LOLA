@@ -80,4 +80,11 @@ public interface IVendorCredentialSource
 {
     Task<VendorCredentials?> ForAsync(VendorKind kind,
         CancellationToken ct = default);
+
+    /// Resolves the CURRENT tenant's credentials for a validation
+    /// feedback source (M17) — `lola-kv/vendors/{tenant}/{source}`.
+    /// Same credential shape as kind bindings; the webhook secret is
+    /// the signature key.
+    Task<VendorCredentials?> ForSourceAsync(string source,
+        CancellationToken ct = default);
 }

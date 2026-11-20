@@ -17,12 +17,24 @@ public sealed class OpenBaoVendorCredentialSource(OpenBaoKvClient kv)
     public static string Path(string tenantId, VendorKind kind)
         => $"vendors/{tenantId}/{Token(kind)}";
 
-    public async Task<VendorCredentials?> ForAsync(VendorKind kind,
+    public Task<VendorCredentials?> ForAsync(VendorKind kind,
         CancellationToken ct = default)
+        => ReadAsync($"vendors/{TenantContext.Required.TenantId}"
+            + $"/{Token(kind)}", ct);
+
+    /// Feedback sources (M17) bind at `vendors/{tenant}/{source}` —
+    /// mpex/isppr are not order kinds but share the same KV layout
+    /// and credential shape; the webhook secret is the HMAC key.
+    public Task<VendorCredentials?> ForSourceAsync(string source,
+        CancellationToken ct = default)
+        => ReadAsync($"vendors/{TenantContext.Required.TenantId}"
+            + $"/{source}", ct);
+
+    private async Task<VendorCredentials?> ReadAsync(string path,
+        CancellationToken ct)
     {
         if (!kv.Configured) return null;
-        var tenantId = TenantContext.Required.TenantId;
-        var data = await kv.ReadAsync(Path(tenantId, kind), ct);
+        var data = await kv.ReadAsync(path, ct);
         if (data is null) return null;
         data.TryGetValue("api_key", out var apiKey);
         data.TryGetValue("webhook_secret", out var webhookSecret);
