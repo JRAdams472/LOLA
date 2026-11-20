@@ -108,6 +108,9 @@ services:
       S3_SECRET_KEY: minioadmin
       CLAMAV_ADDR: clamav:3310
       VAULT_ADAPTER: minio
+      # Doc intelligence seam (M18) — rule default; DOC_CLASSIFIER=stub
+      # on `docker compose up` proves the env-swap live.
+      DOC_CLASSIFIER: ${DOC_CLASSIFIER:-rule}
       CONTROL_DB_PATH: /app/data/control.db
       PORTAL_BASE_URL: http://localhost:3300
       # Sibling integrations (M4/M9) — the sibling stacks run in their own

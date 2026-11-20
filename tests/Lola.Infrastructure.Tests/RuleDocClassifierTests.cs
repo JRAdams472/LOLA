@@ -64,6 +64,7 @@ public class RuleDocClassifierTests
         c.Fields["employer_name"].ShouldBe("Acme Lending Corp");
         c.Fields["tax_year"].ShouldBe("2025");
         c.Fields["employer_address"].ShouldContain("Austin");
+        c.Fields["wages"].ShouldBe("85,400.00");
         c.Findings.ShouldBeEmpty();
     }
 
@@ -145,6 +146,21 @@ public class RuleDocClassifierTests
                 string.Format(BankText, "02/01/2026")));
         c.DocKind.ShouldBe(DocKind.BankStatement);
         c.Findings.ShouldContain(
+            f => f.Kind == DocFindingKind.KindMismatch);
+    }
+
+    /// The upload allowlist declares `bank-statement` while detected
+    /// kinds use `bank_statement` — normalization must keep a correct
+    /// declaration from false-firing kind_mismatch.
+    [Fact]
+    public async Task Declared_hyphen_form_matches_detected_kind()
+    {
+        var c = await Classifier().ClassifyAsync(
+            Doc("bank-statement", "statement.txt"),
+            Encoding.ASCII.GetBytes(
+                string.Format(BankText, "02/01/2026")));
+        c.DocKind.ShouldBe(DocKind.BankStatement);
+        c.Findings.ShouldNotContain(
             f => f.Kind == DocFindingKind.KindMismatch);
     }
 

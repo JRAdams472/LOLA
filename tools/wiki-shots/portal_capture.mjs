@@ -60,6 +60,9 @@ async function main() {
   await page.goto(`${PORTAL}/documents?app=${appId}`);
   await page.getByText("bank-statement.pdf").waitFor();
   await page.getByText("Received").first().waitFor();
+  // M18 — the seeded expired statement auto-opened a replace-doc
+  // condition; the "What we need" section lists it in borrower language.
+  await page.getByText("What we need").waitFor();
   await shot(page, "portal-documents");
 
   await browser.close();

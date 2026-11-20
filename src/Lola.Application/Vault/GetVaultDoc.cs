@@ -23,6 +23,7 @@ public static class GetVaultDocHandler
             throw DomainException.NotFound("upload not found");
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, doc.ApplicationId, q.ActorId, q.ActorIsBorrower, ct);
-        return GetApplicationUploadsHandler.ToDto(doc);
+        return GetApplicationUploadsHandler.ToDto(doc,
+            includeIntel: !q.ActorIsBorrower);
     }
 }

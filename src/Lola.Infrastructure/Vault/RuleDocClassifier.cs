@@ -47,7 +47,7 @@ public sealed class RuleDocClassifier(TimeProvider clock)
              new("tax_year",
                  Re(@"tax\s*year\s*[:#]?\s*(?<v>20\d{2})"), true),
              new("wages",
-                 Re(@"wages[^0-9]{0,25}(?<v>\d[\d,]*\.\d{2})"), false)],
+                 Re(@"wages[^0-9]{0,40}(?<v>\d[\d,]*\.\d{2})"), false)],
             DateField: null, FreshWithinDays: 0, ExpiryInFuture: false),
 
         new(DocKind.Paystub,
@@ -127,7 +127,7 @@ public sealed class RuleDocClassifier(TimeProvider clock)
         var confidence = bestScore > 0
             ? Math.Min(1.0, bestScore / 5.0) : 0.05;
 
-        var declared = doc.Classification;
+        var declared = DocKind.Normalize(doc.Classification);
         if (detected == DocKind.Misc && text.Length < MinTextChars)
             findings.Add(new DocFinding(DocFindingKind.Unreadable,
                 "no readable text or filename signal"));

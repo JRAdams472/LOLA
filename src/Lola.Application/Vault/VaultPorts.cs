@@ -147,12 +147,24 @@ public interface IVaultDocRepository
         CancellationToken ct = default);
 }
 
-/// Wire-facing registry row.
+/// Wire-facing registry row. `Intel` is staff-only — the handlers
+/// leave it null for borrower reads (masked-by-default, invariant 8).
 public sealed record VaultDocDto(
     string VaultDocId, string ApplicationId, string Classification,
     string Filename, string ContentType, long SizeBytes,
     string Sha256, string Status, string? Error,
-    string? CreatedUtc, string? ScannedUtc);
+    string? CreatedUtc, string? ScannedUtc,
+    DocIntelDto? Intel = null);
+
+/// Staff-facing classification readout (M18 P4) — metadata only:
+/// detected kind, confidence, finding names, and WHICH fields the
+/// classifier extracted. The extracted VALUES stay `vault:`-encrypted
+/// on the row and never cross this wire.
+public sealed record DocIntelDto(
+    string Kind, double Confidence,
+    IReadOnlyList<string> Findings,
+    IReadOnlyList<string> FieldNames,
+    string? ClassifiedUtc);
 
 /// Provisioning step seam (MPE-201 impl): ensures the tenant's vault
 /// bucket exists (re-entrant like every provisioning step) and purges

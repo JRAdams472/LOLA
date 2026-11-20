@@ -306,6 +306,74 @@ public sealed class VaultEndpointTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    /// M18 P4 — the uploads read surface carries classification
+    /// METADATA for staff (kind, confidence, finding names, extracted
+    /// field NAMES) while the borrower's own-app read gets none —
+    /// and the extracted values never cross the wire for anyone.
+    [Fact]
+    public async Task Staff_reads_classification_intel_borrower_sees_none()
+    {
+        var (tenant, officer) = await SetupAsync();
+        var base_ = $"/api/tenants/{tenant}/applications";
+
+        var user = await factory.SeedUserAsync(tenant,
+            $"b-{tenant}@test.dev", PkceLogin.Password, LolaRole.Borrower);
+        var borrower = factory.CreateClient();
+        borrower.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant,
+                LolaRole.Borrower,
+                email: $"b-{tenant}@test.dev", seed: false));
+
+        // The borrower owns the app — their upload is what the staff
+        // surface annotates.
+        var appId = await DraftAsync(borrower, base_);
+        var post = await UploadAsync(borrower,
+            $"{base_}/{appId}/uploads?classification=w2",
+            PdfBytes("intel-marker"), fileName: "w2-2024.pdf");
+        post.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var docId = (await post.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("vaultDocId").GetString()!;
+
+        // Seed exactly what the handler's save boundary persisted —
+        // camelCase JSON carrying extracted VALUES; the DTO must
+        // project names only.
+        var vault = factory.Services.GetRequiredService<
+            Lola.Application.Vault.IVaultDocRepository>();
+        await vault.SaveClassificationAsync(docId,
+            """{"docKind":"w2","confidence":0.91,"fields":{"employer_name":"SECRET-CORP","wages":"4200"},"findings":[{"kind":"expired_doc"}]}""",
+            "2026-11-20T00:00:00.000Z");
+
+        var detail = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/uploads/{docId}");
+        var intel = detail.GetProperty("intel");
+        intel.GetProperty("kind").GetString().ShouldBe("w2");
+        intel.GetProperty("confidence").GetDouble().ShouldBe(0.91);
+        intel.GetProperty("classifiedUtc").GetString()
+            .ShouldBe("2026-11-20T00:00:00.000Z");
+        intel.GetProperty("findings")[0].GetString()
+            .ShouldBe("expired_doc");
+        intel.GetProperty("fieldNames").EnumerateArray()
+            .Select(e => e.GetString()).ToList()
+            .ShouldBe(["employer_name", "wages"]);
+        detail.GetRawText().ShouldNotContain("SECRET-CORP");
+        detail.GetRawText().ShouldNotContain("4200");
+
+        var list = await officer.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/uploads");
+        list[0].GetProperty("intel").GetProperty("kind").GetString()
+            .ShouldBe("w2");
+
+        var bDetail = await borrower.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/uploads/{docId}");
+        bDetail.GetProperty("intel").ValueKind
+            .ShouldBe(JsonValueKind.Null);
+        var bList = await borrower.GetFromJsonAsync<JsonElement>(
+            $"{base_}/{appId}/uploads");
+        bList[0].GetProperty("intel").ValueKind
+            .ShouldBe(JsonValueKind.Null);
+        bDetail.GetRawText().ShouldNotContain("SECRET-CORP");
+    }
+
     [Fact]
     public async Task Cross_tenant_path_never_reaches_the_handler()
     {

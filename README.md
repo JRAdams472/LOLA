@@ -274,6 +274,36 @@ advisory severities stay non-blocking. Every accepted receipt lands
 [`docs/vendor-feedback-contract.md`](docs/vendor-feedback-contract.md);
 see [`docs/m17-plan.md`](docs/m17-plan.md).
 
+Document intelligence + auto-conditions (M18) — the vault scan drain
+now classifies between ClamAV's Clean verdict and promotion:
+`quarantine → scan → classify → promote`. `DOC_CLASSIFIER` selects the
+`IDocClassifier` implementation (`rule` = deterministic table over
+filename/mime/text markers — the default, no engine, no model;
+`stub` = seam test double that echoes the declared kind). The
+classifier reads a bounded 2 MiB plaintext head tee'd off the
+decrypt→INSTREAM stream — bytes never touch durable storage — and
+produces a detected kind, confidence, extracted fields, and findings
+(`expired_doc`, `kind_mismatch`, `unreadable`, `missing_field`).
+Extracted fields are PII-class, so the whole `DocClassification` lands
+in `vault_docs.classification_json` as `vault:` ciphertext; events and
+audit carry metadata only (kind, confidence, finding names — a test
+plants a sentinel value and proves it absent from every row).
+Findings derive conditions through the existing M15/M16 machinery
+(actor `auto:classifier`): a matching kind auto-closes the linked
+`doc_required`; `expired_doc`/`kind_mismatch`/`unreadable` open
+blocking replace-doc conditions pinned to the specific `vault_doc`;
+`missing_field` opens a non-blocking `data_validation`; coarse
+employer↔property locality divergence opens a non-blocking
+`distance_check`. Replays converge — no duplicate accumulation.
+Officers see names-only intel chips on vault rows (`read as w2 ·
+100%`, finding chips, extracted field names — never values);
+borrowers see a "What we need" section on the portal documents page
+backed by the stripped `BorrowerConditionDto` projection. Upload-side
+`bank-statement` and classifier-side `bank_statement` reconcile
+through `DocKind.Normalize`. A classifier failure is audited and the
+doc still promotes — AV remains the only pipeline gate. See
+[`docs/m18-plan.md`](docs/m18-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md) ·

@@ -29,12 +29,33 @@ BORROWER_EMAIL = "portal-demo@example.test"
 BORROWER_NAME = "Demo Portal"
 BORROWER_PASSWORD = "wiki-portal-demo-pass"
 
-# Minimal valid PDF — the allowlist sniffs %PDF magic bytes; ClamAV
-# passes a clean text payload through quarantine.
-PDF_BYTES = (
-    b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
-    b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
-    b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\n"
+# Minimal valid PDFs with text payloads — the allowlist sniffs %PDF
+# magic; ClamAV passes them clean; the rule classifier reads the
+# strings-style text. Statement date is deliberately >120 days stale
+# so `expired_doc` auto-opens a replace-doc condition — the portal
+# "What we need" section renders it without any manual seeding.
+STATEMENT_PDF = (
+    b"%PDF-1.4\n"
+    b"FIRST SYNTHETIC BANK - ACCOUNT SUMMARY\n"
+    b"Statement Period: monthly\n"
+    b"Statement Date: 05/01/2025\n"
+    b"Beginning Balance: $1,200.00\n"
+    b"Ending Balance: $2,050.00\n"
+    b"Routing Number: 111000025\n"
+    b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+    b"trailer<</Root 1 0 R>>\n%%EOF\n"
+)
+
+# Employer in TX vs the seeded IL subject property — the coarse
+# locality heuristic opens a non-blocking distance_check review.
+W2_PDF = (
+    b"%PDF-1.4\n"
+    b"Form W-2 Wage and Tax Statement\n"
+    b"Employer Name: Example Holdings\n"
+    b"Employer Address: 400 Demo Way, Dallas, TX 75201\n"
+    b"Employer Identification Number: 36-0000001\n"
+    b"Tax Year: 2025\n"
+    b"Wages, tips, other compensation: 141,600.00\n"
     b"trailer<</Root 1 0 R>>\n%%EOF\n"
 )
 
@@ -64,12 +85,18 @@ def accept_invite(token: str) -> None:
         raise SystemExit(f"invite accept -> {r.status_code}: {r.text[:300]}")
 
 
-def upload_pdf(borrower: str, app_id: str, classification: str, name: str) -> str:
+def upload_pdf(
+    borrower: str,
+    app_id: str,
+    classification: str,
+    name: str,
+    content: bytes = STATEMENT_PDF,
+) -> str:
     r = requests.post(
         f"{API}/api/tenants/{TENANT}/applications/{app_id}/uploads",
         params={"classification": classification},
         headers={"authorization": f"Bearer {borrower}"},
-        files={"file": (name, io.BytesIO(PDF_BYTES), "application/pdf")},
+        files={"file": (name, io.BytesIO(content), "application/pdf")},
         timeout=30,
     )
     if r.status_code >= 400:
@@ -122,8 +149,9 @@ def main() -> None:
         },
     )
     upload_pdf(borrower, app_id, "bank-statement", "bank-statement.pdf")
+    upload_pdf(borrower, app_id, "w2", "w2-2025.pdf", W2_PDF)
     wait_clean(borrower, app_id)
-    print("upload clean")
+    print("uploads clean — expired statement + W2 classified")
 
     api(
         "POST",

@@ -532,10 +532,34 @@ export default function ClosingPage() {
                 <TableRow key={u.vaultDocId}>
                   <TableCell sx={{ pl: 0, py: 0.5 }}>
                     <Typography variant="body2">{u.filename}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                       {u.classification} · {(u.sizeBytes / 1024).toFixed(0)} KB
                       {u.error ? ` — ${u.error}` : ""}
                     </Typography>
+                    {u.intel && (
+                      <Box sx={{ mt: 0.5, display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          color={u.intel.findings.length > 0 ? "warning" : "success"}
+                          label={`read as ${u.intel.kind} · ${Math.round(u.intel.confidence * 100)}%`}
+                        />
+                        {u.intel.findings.map((f) => (
+                          <Chip
+                            key={f}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            label={f}
+                          />
+                        ))}
+                        {u.intel.fieldNames.length > 0 && (
+                          <Typography variant="caption" color="text.secondary">
+                            fields: {u.intel.fieldNames.join(", ")}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
                   </TableCell>
                   <TableCell align="right" sx={{ py: 0.5, whiteSpace: "nowrap" }}>
                     <Chip

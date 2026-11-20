@@ -25,6 +25,15 @@ async function apiWrite<T>(
   return { status: res.status, data };
 }
 
+export const apiGet = async <T>(
+  path: string,
+): Promise<{ status: number; data: T }> => {
+  const res = await fetch(`${BFF}${path}`);
+  bounceOn401(res);
+  const data = (await res.json().catch(() => ({}))) as T;
+  return { status: res.status, data };
+};
+
 export const apiPost = <T>(path: string, body?: unknown) =>
   apiWrite<T>("POST", path, body);
 export const apiPatch = <T>(path: string, body: unknown) =>

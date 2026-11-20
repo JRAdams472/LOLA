@@ -44,6 +44,13 @@ public static class DocKind
     public static readonly IReadOnlySet<string> All =
         new HashSet<string> { W2, Paystub, BankStatement, Id,
             FloodCert, Misc };
+
+    /// Upload-declared vocab uses `bank-statement` (borrower language,
+    /// UploadAllowlist.Classifications); detected kinds use
+    /// `bank_statement`. Normalize before comparing so a correctly
+    /// declared doc never false-fires `kind_mismatch`.
+    public static string? Normalize(string? kind)
+        => kind?.Replace('-', '_');
 }
 
 /// Finding tokens the classifier may raise. `expired_doc` and

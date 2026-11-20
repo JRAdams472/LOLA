@@ -13,7 +13,8 @@ public sealed class StubDocClassifier : IDocClassifier
     public Task<DocClassification> ClassifyAsync(VaultDocRecord doc,
         ReadOnlyMemory<byte> head, CancellationToken ct = default)
         => Task.FromResult(new DocClassification(
-            doc.Classification is { Length: > 0 } declared
+            DocKind.Normalize(doc.Classification)
+                is { Length: > 0 } declared
                 && DocKind.All.Contains(declared)
                     ? declared : DocKind.Misc,
             0.5,
