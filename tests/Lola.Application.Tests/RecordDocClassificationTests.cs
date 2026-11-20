@@ -137,8 +137,8 @@ public sealed class RecordDocClassificationTests
 
         // Full result — extracted fields included — goes to the repo
         // (encrypted at rest); the spines see names only.
-        vault.SavedJson.ShouldNotBeNull();
-        vault.SavedJson.ShouldContain("SEKRET-EMPLOYER-CORP");
+        var savedJson = vault.SavedJson.ShouldNotBeNull();
+        savedJson.ShouldContain("SEKRET-EMPLOYER-CORP");
         vault.SavedUtc.ShouldNotBeNull();
 
         var evt = events.Drafts.ShouldHaveSingleItem();
@@ -154,8 +154,9 @@ public sealed class RecordDocClassificationTests
         reason.ShouldContain("expired_doc");
 
         // The extracted VALUES are provably absent from both spines.
-        reason.ShouldNotContain("SEKRET-EMPLOYER-CORP");
-        reason.ShouldNotContain("999999");
+        var detail = reason.ShouldNotBeNull();
+        detail.ShouldNotContain("SEKRET-EMPLOYER-CORP");
+        detail.ShouldNotContain("999999");
         evt.AfterVal.ShouldNotContain("SEKRET-EMPLOYER-CORP");
         (evt.BeforeVal ?? "").ShouldNotContain("999999");
         outcome.Kind.ShouldBe("w2");
