@@ -103,6 +103,24 @@ async function main() {
   await page.getByText("vendor order completed").first().waitFor();
   await shot(page, "officer-steps-vendor");
 
+  // ── queue (M16) — open blocking conditions so the engine derives  //
+  // real tasks, wait for the ranked row, then shoot the page.        //
+  for (const cond of [
+    { kind: "doc_required", title: "Paystub covering 30 days" },
+    { kind: "data_validation", title: "Verify occupancy intent" },
+  ]) {
+    const res = await page.request.post(
+      `${WEB}/bff/api/tenants/${TENANT}/applications/${heroId}/conditions`,
+      { data: { ...cond, blocking: true } },
+    );
+    if (!res.ok()) console.log(`condition ${cond.title}: ${res.status()}`);
+  }
+  await page.goto(`${WEB}/queue`);
+  await page.getByText("Next best task").waitFor();
+  await page.getByRole("cell", { name: /Resolve blocking condition/ })
+    .first().waitFor();
+  await shot(page, "officer-queue");
+
   // ── search (blind-index SSN hit) ──────────────────────────────────
   await page.goto(`${WEB}/search`);
   await page.getByLabel("Field").click();

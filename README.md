@@ -235,6 +235,21 @@ audit linkage; staff mutate under `TenantStaff` while borrowers see a
 stripped projection (kind/title/state/blocking only). See
 [`docs/m15-plan.md`](docs/m15-plan.md).
 
+Task engine + officer queue (M16) — a PII-free `tasks` table in the
+**control plane** holds work items derived from tenant state by the
+`TaskEvaluator`: open+blocking conditions, failed/referred pipeline
+steps, TRID clock proximity (urgent ≤24h), and drafts stale >7d. Titles
+are generated, never staff free-text — the queue is an egress boundary.
+Evaluation runs on mutation paths and lazily on every queue read, so
+time-driven tasks stay current with no worker. Officers read the ranked
+list at `GET /api/tenants/{id}/tasks` (priority → due → seq, optional
+`?skills=`), fetch the single highest item at `…/tasks/next`, and move
+`open → claimed → done` via audited POST transitions (409 on another
+officer's claim). GraphQL exposes `tasks`/`nextTask` staff-only; the
+console's **Queue** page adds a "Do next" flow that claims the top task
+and lands on its loan workspace. See
+[`docs/m16-plan.md`](docs/m16-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md) ·
