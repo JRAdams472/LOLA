@@ -276,6 +276,8 @@ builder.Services.AddScoped<Lola.Application.Events.ILoanEventLog,
 builder.Services.AddScoped<ConditionRepository>();
 builder.Services.AddScoped<Lola.Application.Events.IConditionRepository,
     ConditionRepository>();
+builder.Services.AddScoped<Lola.Application.Vendors.IVendorFeedbackRepository,
+    VendorFeedbackRepository>();
 builder.Services.AddScoped<Lola.Application.Tasks.TaskEvaluator>();
 // Pricing seam (MPE-71, ADR-0007): `PRICING_ADAPTER=mpex` selects the
 // real MPEx adapter (Dex client-credentials + evaluate endpoints);

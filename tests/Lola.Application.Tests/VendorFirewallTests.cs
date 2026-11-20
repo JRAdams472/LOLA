@@ -101,6 +101,24 @@ public sealed class VendorFirewallTests
             .Select(m => $"{m.T.Name}.{m.P.Name}")
             .ShouldBeEmpty();
 
+    // M17 (invariant 2): the validation-feedback contract is
+    // payload-minimal by enumeration — every member is a reference,
+    // an enum token, or an opaque source id. New members must be
+    // justified here AND survive the namespace scan; the two tests
+    // fail in different directions so neither can drift silently.
+    private static readonly HashSet<string> FeedbackContractMembers =
+    [
+        "Source", "ApplicationId", "FeedbackId", "Finding", "Severity",
+        "ConditionId", "LinkedEntity", "LinkedEntityId"
+    ];
+
+    [Fact]
+    public void Validation_feedback_contract_members_equal_the_allowlist()
+        => typeof(ValidationFeedback)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name).ToHashSet()
+            .ShouldBe(FeedbackContractMembers);
+
     [Fact]
     public void Vendor_metadata_types_carry_no_pii_members()
         => VendorTypes()
