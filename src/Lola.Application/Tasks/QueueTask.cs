@@ -8,11 +8,13 @@ public static class TaskKind
     public const string StepReview = "step_review";
     public const string TridDeadline = "trid_deadline";
     public const string StaleDraft = "stale_draft";
+    public const string ValidationException = "validation_exception";
     public const string Manual = "manual";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>
     {
-        ConditionBlocking, StepReview, TridDeadline, StaleDraft, Manual
+        ConditionBlocking, StepReview, TridDeadline, StaleDraft,
+        ValidationException, Manual
     };
 }
 

@@ -61,10 +61,24 @@ public sealed class TaskEvaluator(
             if (!c.Blocking) continue;
             if (c.State == ConditionState.Open)
             {
+                // M17: feedback-raised blockers surface as
+                // validation_exception (High, skill by source) —
+                // officers see vendor exceptions in the same ranked
+                // queue, resolved convergently when the condition
+                // closes. BlockingEntity stays `condition` so one
+                // resolve path covers both kinds.
+                var fromVendor =
+                    c.LinkedEntity == Vendors.FeedbackLink.VendorFeedback;
                 await tasks.UpsertAsync(new TaskDraft(
-                    tenantId, appId, TaskKind.ConditionBlocking,
-                    $"Resolve blocking condition — {c.Kind}",
-                    TaskPriority.High, SkillsFor(c),
+                    tenantId, appId,
+                    fromVendor ? TaskKind.ValidationException
+                        : TaskKind.ConditionBlocking,
+                    fromVendor
+                        ? $"Resolve vendor exception — {c.Kind}"
+                        : $"Resolve blocking condition — {c.Kind}",
+                    TaskPriority.High,
+                    fromVendor ? SkillsForSource(c.OpenedBy)
+                        : SkillsFor(c),
                     BlockingEntity: TaskSource.Condition,
                     BlockingEntityId: c.ConditionId), ct);
             }
@@ -148,6 +162,17 @@ public sealed class TaskEvaluator(
             }
         }
     }
+
+    /// Vendor-exception skill by reporting source — `opened_by` is
+    /// `auto:{source}` for feedback-raised conditions. mpex findings
+    /// are pricing/eligibility (underwriting); isppr findings are
+    /// document-package issues (processing); unknown sources fall back
+    /// to underwriting like other data_validation work.
+    private static IReadOnlyList<string> SkillsForSource(string openedBy)
+        => openedBy.StartsWith("auto:", StringComparison.Ordinal)
+            && openedBy["auto:".Length..] == "isppr"
+                ? [TaskSkills.Processing]
+                : [TaskSkills.Underwriting];
 
     private static IReadOnlyList<string> SkillsFor(Condition c)
         => c.Kind switch
