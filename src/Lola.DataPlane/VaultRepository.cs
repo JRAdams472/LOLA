@@ -94,7 +94,9 @@ public sealed class VaultRepository(TenantConnectionFactory factory,
         adapter AS Adapter, s3_key AS S3Key, status AS Status,
         error AS Error, uploaded_by AS Actor,
         created_utc AS CreatedUtc, scanned_utc AS ScannedUtc,
-        request_hash AS RequestHash
+        request_hash AS RequestHash,
+        classification_json AS ClassificationJson,
+        classified_utc AS ClassifiedUtc
         """;
 
     private sealed record CipherRow(
@@ -102,7 +104,8 @@ public sealed class VaultRepository(TenantConnectionFactory factory,
         string Filename, string ContentType, long SizeBytes,
         string Sha256, string WrappedDek, string Adapter, string S3Key,
         string Status, string? Error, string Actor,
-        string CreatedUtc, string? ScannedUtc, string RequestHash);
+        string CreatedUtc, string? ScannedUtc, string RequestHash,
+        string? ClassificationJson, string? ClassifiedUtc);
 
     private async Task<VaultDocRecord> DecryptAsync(
         CipherRow r, CancellationToken ct)
@@ -110,7 +113,10 @@ public sealed class VaultRepository(TenantConnectionFactory factory,
             await cipher.DecryptAsync(r.Filename, ct), r.ContentType,
             r.SizeBytes, r.Sha256, r.WrappedDek, r.Adapter, r.S3Key,
             r.Status, r.Error, r.Actor, r.CreatedUtc, r.ScannedUtc,
-            r.RequestHash);
+            r.RequestHash,
+            r.ClassificationJson is null ? null
+                : await cipher.DecryptAsync(r.ClassificationJson, ct),
+            r.ClassifiedUtc);
 
     public async Task<VaultDocRecord?> GetAsync(string vaultDocId,
         CancellationToken ct = default)
@@ -281,4 +287,27 @@ public sealed class VaultRepository(TenantConnectionFactory factory,
                 updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now')
             WHERE outbox_id=@outboxId
             """, new { outboxId, attempts, nextRetryUtc, error }, ct);
+
+    /// The classification JSON is PII-class in the aggregate
+    /// (extracted fields) — encrypted at the same boundary as
+    /// `filename`; plaintext exists only in memory.
+    public async Task SaveClassificationAsync(string vaultDocId,
+        string classificationJson, string classifiedUtc,
+        CancellationToken ct = default)
+    {
+        var jsonCipher = await cipher.EncryptAsync(
+            classificationJson, ct);
+        await ExecuteAsync(
+            """
+            UPDATE vault_docs
+            SET classification_json=@json, classified_utc=@utc
+            WHERE vault_doc_id=@docId
+            """,
+            new
+            {
+                docId = vaultDocId,
+                json = jsonCipher,
+                utc = classifiedUtc
+            }, ct);
+    }
 }

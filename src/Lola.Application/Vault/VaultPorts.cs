@@ -81,7 +81,8 @@ public sealed record VaultDocRecord(
     string Filename, string ContentType, long SizeBytes,
     string Sha256, string WrappedDek, string Adapter, string S3Key,
     string Status, string? Error, string Actor,
-    string CreatedUtc, string? ScannedUtc, string RequestHash);
+    string CreatedUtc, string? ScannedUtc, string RequestHash,
+    string? ClassificationJson = null, string? ClassifiedUtc = null);
 
 /// One queued scan (tenant-file `vault_scan_outbox`) — same semantics
 /// as doc_outbox/fee_outbox: dedupe by request_hash, bounded attempts
@@ -136,6 +137,13 @@ public interface IVaultDocRepository
 
     Task RescheduleScanAsync(string outboxId, long attempts,
         string nextRetryUtc, string error,
+        CancellationToken ct = default);
+
+    /// Persist the classifier result (M18 P2) — `classificationJson`
+    /// is plaintext at this boundary and `vault:` ciphertext at rest,
+    /// same encryption boundary as `filename`.
+    Task SaveClassificationAsync(string vaultDocId,
+        string classificationJson, string classifiedUtc,
         CancellationToken ct = default);
 }
 

@@ -159,6 +159,10 @@ public sealed class PortalLoanTests
         public Task RescheduleScanAsync(string outboxId, long attempts,
             string nextRetryUtc, string error, CancellationToken ct = default)
             => throw new NotImplementedException();
+        public Task SaveClassificationAsync(string vaultDocId,
+            string classificationJson, string classifiedUtc,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
     }
 
     private sealed class FakeAudit : ITenantAuditLog

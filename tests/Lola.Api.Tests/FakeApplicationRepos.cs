@@ -773,4 +773,16 @@ public sealed class FakeVaultDocRepository
         };
         return Task.CompletedTask;
     }
+
+    public Task SaveClassificationAsync(string vaultDocId,
+        string classificationJson, string classifiedUtc,
+        CancellationToken ct = default)
+    {
+        Docs[vaultDocId] = Docs[vaultDocId] with
+        {
+            ClassificationJson = classificationJson,
+            ClassifiedUtc = classifiedUtc
+        };
+        return Task.CompletedTask;
+    }
 }
