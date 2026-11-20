@@ -16,6 +16,7 @@ public static class LoanEventKind
     public const string ConditionClosed = "condition_closed";
     public const string ConditionWaived = "condition_waived";
     public const string ConditionReopened = "condition_reopened";
+    public const string ValidationReceived = "validation_received";
 }
 
 /// One append-only mutation event. `BeforeVal`/`AfterVal` carry

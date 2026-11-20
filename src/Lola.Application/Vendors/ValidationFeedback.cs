@@ -27,6 +27,15 @@ public static class FeedbackSeverity
         new HashSet<string> { Info, Warning, Error };
 }
 
+/// `conditions.linked_entity` value stamped on feedback-raised
+/// conditions (M17) — the marker the task evaluator reads to emit
+/// `validation_exception` tasks instead of plain `condition_blocking`,
+/// and the link back to the `vendor_feedback` ledger row.
+public static class FeedbackLink
+{
+    public const string VendorFeedback = "vendor_feedback";
+}
+
 /// Normalized validation feedback pushed by a signed source webhook
 /// (M17, ADR-0007) — the payload-minimal contract the PII firewall
 /// enforces member-for-member (invariant 2). Every field is a
