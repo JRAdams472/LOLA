@@ -250,11 +250,36 @@ console's **Queue** page adds a "Do next" flow that claims the top task
 and lands on its loan workspace. See
 [`docs/m16-plan.md`](docs/m16-plan.md).
 
+Validation feedback loop (M17) — downstream validators push structured
+findings back into LOLA over a signed sibling ingress:
+`POST /api/vendor-webhooks/{source}/validation` (`mpex`|`isppr` only —
+unknown sources 404 before the body is read). The M13 webhook
+discipline carries over: `X-Vendor-Signature` HMAC-SHA256 over the
+exact raw bytes keyed by a per-tenant-per-source `webhook_secret`
+(`vendors/{tenant}/{source}` in OpenBao KV), stream-bounded 64 KiB,
+`vendor-webhook` rate policy. The payload-minimal `ValidationFeedback`
+contract carries only references and enum tokens — the PII firewall
+verifies it member-for-member (invariant 2). Receipts dedupe on
+`(source, feedback_id)` in the tenant-side `vendor_feedback` ledger —
+a race-safe `INSERT OR IGNORE`, so a replay answers
+`200 {"status":"duplicate"}` with no second domain write. Findings map
+to domain outcomes: `cleared` auto-closes its linked open condition;
+`data_error`/`missing_field`/`exception` open `data_validation`
+conditions linked to the receipt; `exception` (or `error` severity)
+blocks and lands a high-priority `validation_exception` task on the
+officer queue (skill by source: mpex→underwriting, isppr→processing);
+advisory severities stay non-blocking. Every accepted receipt lands
+`validation_received` on both the audit spine and the hash-chained
+`loan_events`. Sibling teams implement against
+[`docs/vendor-feedback-contract.md`](docs/vendor-feedback-contract.md);
+see [`docs/m17-plan.md`](docs/m17-plan.md).
+
 Ops docs: [`docs/openbao-runbook.md`](docs/openbao-runbook.md) ·
 [`docs/identity-runbook.md`](docs/identity-runbook.md) ·
 [`docs/data-plane-runbook.md`](docs/data-plane-runbook.md) ·
 [`docs/threat-model.md`](docs/threat-model.md) ·
-[`docs/uat-matrix.md`](docs/uat-matrix.md)
+[`docs/uat-matrix.md`](docs/uat-matrix.md) ·
+[`docs/vendor-feedback-contract.md`](docs/vendor-feedback-contract.md)
 
 ## Observability
 
