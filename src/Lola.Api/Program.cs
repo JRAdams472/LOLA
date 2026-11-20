@@ -500,6 +500,12 @@ builder.Services.AddSingleton(
             out var vaultMax) ? vaultMax : 25L << 20));
 builder.Services.AddSingleton<Lola.Application.Vault.VaultCipher>();
 builder.Services.AddSingleton<Lola.Api.Vault.VaultScanProcessor>();
+// Doc intelligence seam (M18, ADR-0007): DOC_CLASSIFIER selects the
+// impl — `rule` (default, deterministic table) or `stub`. Runs inside
+// the scan drain; classification is additive, never a second gate.
+builder.Services.AddSingleton<Lola.Application.Vault.IDocClassifier>(
+    Lola.Infrastructure.Vault.DocClassifierCatalog.Select(
+        builder.Configuration["DOC_CLASSIFIER"], TimeProvider.System));
 // Download-URL signer (MPE-202): transit hmac under the tenant's
 // index key — a minted capability dies with the tenant's keys.
 builder.Services.AddSingleton<Lola.Application.Vault.IVaultUrlSigner,
