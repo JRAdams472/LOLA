@@ -25,4 +25,18 @@ internal static class AdminGuards
             throw DomainException.NotFound("group not found");
         return group;
     }
+
+    /// Groups confer human authority only (ADR-0005, MPE-271): Service
+    /// is machine authority minted by the token endpoint — a group that
+    /// could grant it would let a TenantAdmin widen any member into
+    /// Service-scoped surfaces (staff application scope, any-tenant
+    /// status reads). Enum.IsDefined also rejects numeric members that
+    /// TryParse would smuggle through as undefined values.
+    public static void RequireAssignableRoles(IReadOnlyList<LolaRole> roles)
+    {
+        foreach (var role in roles)
+            if (!Enum.IsDefined(role) || role == LolaRole.Service)
+                throw DomainException.BadRequest(
+                    $"role '{role}' is not assignable to a group");
+    }
 }

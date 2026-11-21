@@ -217,9 +217,12 @@ public static class AdminEndpoints
                 title: "tenant status requires a tenant or service scope");
     }
 
+    // Enum.IsDefined rejects members TryParse would otherwise smuggle
+    // through: numeric strings like "99" parse but name no role.
     private static IReadOnlyList<LolaRole> ParseRoles(IReadOnlyList<string>? roles)
         => (roles ?? [])
             .Select(r => Enum.TryParse<LolaRole>(r, ignoreCase: true, out var p)
+                    && Enum.IsDefined(p)
                 ? p
                 : throw new ArgumentException($"unknown role '{r}'"))
             .ToList();

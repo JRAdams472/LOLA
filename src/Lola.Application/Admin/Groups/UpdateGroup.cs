@@ -14,6 +14,8 @@ public static class UpdateGroupHandler
     {
         AdminGuards.RequireTenant(c.TenantId);
         await AdminGuards.RequireGroup(groups, c.TenantId, c.GroupId, ct);
+        if (c.Roles is not null)
+            AdminGuards.RequireAssignableRoles(c.Roles);
         if (c.Name is not null || c.Description is not null)
             await groups.UpdateAsync(c.GroupId, c.Name, c.Description, ct);
         if (c.Roles is not null)

@@ -36,10 +36,10 @@ public static class LolaPolicies
     /// invariant 8). Borrowers and service clients can never unmask.
     public const string RevealPii = "reveal-pii";
 
-    /// lola-ops + Service — the platform-operator surface (MPE-91):
-    /// global tenant-registry actions (list/create/erase, fleet jobs)
-    /// belong to the ops principal, not any tenant's admin. Service
-    /// keeps working so automation isn't split by identity kind.
+    /// Designated global clients only — the platform-operator surface
+    /// (MPE-91/MPE-271): global tenant-registry actions (list/create/
+    /// erase, fleet jobs) require the dedicated platform authority
+    /// claim; tenant-bound Service principals are denied.
     public const string PlatformOps = "platform-ops";
 
     public static void Register(AuthorizationOptions options)
@@ -76,7 +76,7 @@ public static class LolaPolicies
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer)));
         options.AddPolicy(PlatformOps, p => p.RequireAssertion(
-            ctx => HasRole(ctx.User, "lola-ops", "Service")));
+            ctx => PlatformAuthority.IsPlatformPrincipal(ctx.User)));
     }
 
     /// Row-scope discriminant fed to application-bound commands (M19).
