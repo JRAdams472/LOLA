@@ -145,7 +145,7 @@ public sealed class RetentionGateTests
         var (handler, _, _, audit, _, vault) = Fixture([], vault: new());
         (await handler(new EraseTenantCommand("t1", false, null, "ops")))
             .TenantId.ShouldBe("t1");
-        vault.Purged.ShouldBe(["t1"]);
+        vault!.Purged.ShouldBe(["t1"]);
         audit.Events.Select(e => e.Action)
             .ShouldBe(["vault_purged", "tenant_erased"]);
     }
@@ -157,7 +157,7 @@ public sealed class RetentionGateTests
             Fixture([], vault: new() { Fail = true });
         await Should.ThrowAsync<InvalidOperationException>(handler(
             new EraseTenantCommand("t1", false, null, "ops")));
-        vault.Purged.ShouldBeEmpty();
+        vault!.Purged.ShouldBeEmpty();
         erased.ShouldBeEmpty();
         audit.Events.ShouldBeEmpty();
     }

@@ -65,7 +65,7 @@ public sealed class VendorOrderSummaryTests
         summary.ShouldBe(expected);
         // Nothing beyond the normalized line — no correlation ids.
         summary!.ShouldNotContain("stub-credit-x");
-        summary.ShouldNotContain("externalId");
+        summary!.ShouldNotContain("externalId");
     }
 
     [Fact]

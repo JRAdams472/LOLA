@@ -127,7 +127,7 @@ public sealed class PricingRepositoryTests(OpenBaoFixture fixture)
                     "Unavailable: MPEx 503");
                 var failed = await repo.GetEvalAsync("eval-2");
                 failed!.Status.ShouldBe("failed");
-                failed.Error.ShouldContain("MPEx 503");
+                failed.Error!.ShouldContain("MPEx 503");
                 (await repo.ListDueOutboxAsync(
                     "2999-01-02T00:00:00.000Z", 10)).ShouldBeEmpty();
 
