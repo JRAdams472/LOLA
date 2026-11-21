@@ -12,7 +12,7 @@ namespace Lola.Application.Vendors;
 /// the outbox worker submits it asynchronously. Repeat submissions
 /// of the same kind+payload dedupe on `request_hash`.
 public sealed record PlaceVendorOrderCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string Kind);
 
 public sealed record VendorOrderAccepted(
@@ -27,12 +27,12 @@ public static class PlaceVendorOrderHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "vendor ordering is a staff action");
         var kind = VendorGuards.Parse(c.Kind);
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         if (!adapter.Kinds.Contains(kind))
             throw DomainException.BadRequest(
                 $"configured adapter '{adapter.Adapter}' does not " +

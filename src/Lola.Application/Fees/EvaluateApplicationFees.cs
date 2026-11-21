@@ -12,7 +12,7 @@ namespace Lola.Application.Fees;
 /// drains in parallel. Duplicate requests (same app + same variant
 /// payload) return the original eval id — dedup is per-variant.
 public sealed record EvaluateApplicationFeesCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     IReadOnlyList<string>? FeeCodes,
     IReadOnlyList<FeeVariant>? Variants = null);
 
@@ -28,11 +28,11 @@ public static class EvaluateApplicationFeesHandler
         ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw Errors.DomainException.Forbidden(
                 "fee evaluation is a staff action");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         var base_ = FeeScenarioMapper.Map(app.Doc);
         var options = new FeeRequestOptions(c.FeeCodes);
 

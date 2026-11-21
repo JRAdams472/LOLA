@@ -8,7 +8,7 @@ namespace Lola.Application.Documents;
 /// revealing it exists; borrowers reach only their own app's docs.
 public sealed record GetDocumentQuery(
     string TenantId, string AppId, string DocId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class GetDocumentHandler
 {
@@ -22,7 +22,7 @@ public static class GetDocumentHandler
             throw Errors.DomainException.NotFound(
                 "document not found");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, doc.ApplicationId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, doc.ApplicationId, q.ActorId, q.Scope, ct);
         return DocWire.ToDto(doc);
     }
 }

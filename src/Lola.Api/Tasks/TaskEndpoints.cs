@@ -27,7 +27,7 @@ public static class TaskEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<
                 IReadOnlyList<QueueTask>>(
-                new ListTasksQuery(id, Actor(user), IsBorrower(user),
+                new ListTasksQuery(id, Actor(user), LolaPolicies.ScopeFor(user),
                     ParseSkills(skills)), ct)));
 
         // Next-best-task — the single highest-priority row.
@@ -35,7 +35,7 @@ public static class TaskEndpoints
                 ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<QueueTask?>(
-                new GetNextTaskQuery(id, Actor(user), IsBorrower(user),
+                new GetNextTaskQuery(id, Actor(user), LolaPolicies.ScopeFor(user),
                     ParseSkills(skills)), ct)));
 
         // Claim/complete — audited, state-guarded transitions.
@@ -44,14 +44,14 @@ public static class TaskEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<QueueTask>(
                 new ClaimTaskCommand(id, taskId, Actor(user),
-                    IsBorrower(user)), ct)));
+                    LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPost("/{taskId}/complete", async (string id,
                 string taskId, ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<QueueTask>(
                 new CompleteTaskCommand(id, taskId, Actor(user),
-                    IsBorrower(user)), ct)));
+                    LolaPolicies.ScopeFor(user)), ct)));
     }
 
     private static IReadOnlyList<string>? ParseSkills(string? skills)
@@ -73,7 +73,4 @@ public static class TaskEndpoints
 
     private static string Actor(ClaimsPrincipal user)
         => user.FindFirst("sub")?.Value ?? "unknown";
-
-    private static bool IsBorrower(ClaimsPrincipal user)
-        => LolaPolicies.HasRole(user, LolaRole.Borrower);
 }

@@ -15,7 +15,8 @@ public sealed record AdminUserDto(
     [property: PiiClass(PiiClass.Name)] string DisplayName,
     string Status,
     IReadOnlyList<string> Roles,
-    [property: PiiClass(PiiClass.Account)] string? MfaSecretRef);
+    [property: PiiClass(PiiClass.Account)] string? MfaSecretRef,
+    string? OrgName = null);
 
 /// Tenant user list — shared by REST and the GraphQL resolver (MPE-86).
 public static class GetTenantUsersHandler
@@ -31,7 +32,8 @@ public static class GetTenantUsersHandler
             var roles = await users.RolesForUserAsync(u.Id, ct);
             result.Add(new AdminUserDto(u.Id, u.Email, u.DisplayName,
                 u.Status.ToString().ToLowerInvariant(),
-                roles.Select(r => r.ToString()).ToList(), u.MfaSecretRef));
+                roles.Select(r => r.ToString()).ToList(), u.MfaSecretRef,
+                u.OrgName));
         }
         // Control-plane audit (MPE-117): identity PII reads land in the
         // control-plane log — classes only, never values (invariant 3).

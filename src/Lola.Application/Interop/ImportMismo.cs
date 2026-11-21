@@ -1,5 +1,6 @@
 using Lola.Application.Admin;
 using Lola.Application.Applications;
+using Lola.Application.Errors;
 using Lola.Domain.Applications;
 
 namespace Lola.Application.Interop;
@@ -8,7 +9,7 @@ namespace Lola.Application.Interop;
 /// draft lifecycle; validation gates them at submit like any draft.
 /// Borrower actors get the draft attributed to themselves (M12 seam).
 public sealed record ImportMismoCommand(
-    string TenantId, string Xml, string ActorId, bool ActorIsBorrower);
+    string TenantId, string Xml, string ActorId, ActorScope Scope);
 
 public sealed record MismoImportResult(string Id, int ImportedFields);
 
@@ -19,9 +20,12 @@ public static class ImportMismoHandler
         Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
+        if (c.Scope == ActorScope.Partner)
+            throw DomainException.Forbidden(
+                "partners cannot import applications");
         var (doc, imported) = MismoXmlImporter.Import(c.Xml);
         var id = $"app-{Guid.NewGuid():N}"[..20];
-        var borrowerId = c.ActorIsBorrower ? c.ActorId : null;
+        var borrowerId = c.Scope == ActorScope.Borrower ? c.ActorId : null;
         await apps.InsertAsync(id, doc, "draft", borrowerId, c.ActorId, ct);
         if (TridClock.Complete(doc))
             await apps.EnsureTridClockStartAsync(id, ct);

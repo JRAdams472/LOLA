@@ -38,10 +38,10 @@ public class Query(IMessageBus bus)
     public async Task<ApplicationView?> Application(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;   // officer surface — portal uses portalLoan
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;   // officer surface — portal uses portalLoan
         var dto = await bus.InvokeAsync<ApplicationDto?>(
-            new GetApplicationQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationQuery(tenantId, appId, actor, scope), ct);
         return dto is null ? null : new ApplicationView(
             dto.Id, dto.Status, dto.PipelineStep, dto.BorrowerUserId,
             dto.CurrentVersion, dto.TridClockStart, dto.TridDeadlineUtc,
@@ -51,10 +51,10 @@ public class Query(IMessageBus bus)
     public Task<IReadOnlyList<ApplicationMeta>> Applications(
         string tenantId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<ApplicationMeta>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<ApplicationMeta>>([]);
         return bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
-            new ListApplicationsQuery(tenantId, actor, isBorrower), ct);
+            new ListApplicationsQuery(tenantId, actor, scope), ct);
     }
 
     /// Borrower-portal reads (M12) — own application only, borrower
@@ -64,8 +64,8 @@ public class Query(IMessageBus bus)
     public async Task<PortalLoanView?> PortalLoan(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (!isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Borrower) return null;
         var dto = await bus.InvokeAsync<PortalLoanDto?>(
             new GetPortalLoanQuery(tenantId, appId, actor), ct);
         return dto is null ? null : new PortalLoanView(
@@ -84,8 +84,8 @@ public class Query(IMessageBus bus)
     public Task<IReadOnlyList<PortalLoanMeta>> PortalLoans(
         string tenantId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (!isBorrower) return Task.FromResult<IReadOnlyList<PortalLoanMeta>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Borrower) return Task.FromResult<IReadOnlyList<PortalLoanMeta>>([]);
         return bus.InvokeAsync<IReadOnlyList<PortalLoanMeta>>(
             new ListPortalLoansQuery(tenantId, actor), ct);
     }
@@ -96,81 +96,81 @@ public class Query(IMessageBus bus)
         string tenantId, string field, string value,
         IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
+        var (actor, scope) = Actor(context);
         return bus.InvokeAsync<ApplicationSearchResult>(
-            new SearchApplicationsQuery(tenantId, field, value, actor, isBorrower), ct);
+            new SearchApplicationsQuery(tenantId, field, value, actor, scope), ct);
     }
 
     public Task<PricingEvalDto?> Pricing(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<PricingEvalDto?>(null);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<PricingEvalDto?>(null);
         return bus.InvokeAsync<PricingEvalDto?>(
-            new GetApplicationPricingQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationPricingQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<PricingEvalDto>> PricingHistory(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<PricingEvalDto>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<PricingEvalDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<PricingEvalDto>>(
-            new GetPricingHistoryQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetPricingHistoryQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<FeeComparisonDto?> Fees(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<FeeComparisonDto?>(null);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<FeeComparisonDto?>(null);
         return bus.InvokeAsync<FeeComparisonDto?>(
-            new GetApplicationFeesQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationFeesQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<FeeEvalDto>> FeeHistory(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<FeeEvalDto>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<FeeEvalDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<FeeEvalDto>>(
-            new GetFeeHistoryQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetFeeHistoryQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<RateLockDto?> RateLock(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<RateLockDto?>(null);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<RateLockDto?>(null);
         return bus.InvokeAsync<RateLockDto?>(
-            new GetRateLockQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetRateLockQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<DocDto>> Documents(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<DocDto>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<DocDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<DocDto>>(
-            new GetApplicationDocumentsQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationDocumentsQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<VaultDocDto>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<VaultDocDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<VaultDocDto>>(
-            new GetApplicationUploadsQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationUploadsQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<StepEventDto>> Steps(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return Task.FromResult<IReadOnlyList<StepEventDto>>([]);
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<StepEventDto>>([]);
         return bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
-            new GetApplicationStepsQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationStepsQuery(tenantId, appId, actor, scope), ct);
     }
 
     /// Mutation event spine (M15 P3) — staff-only; borrowers get null
@@ -180,11 +180,11 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context,
         CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;
         return await bus.InvokeAsync<IReadOnlyList<LoanEvent>>(
             new Lola.Application.Events.GetLoanEventsQuery(tenantId,
-                appId, actor, isBorrower), ct);
+                appId, actor, scope), ct);
     }
 
     /// Conditions detail (M15 P3) — staff-only; borrowers get null.
@@ -193,11 +193,11 @@ public class Query(IMessageBus bus)
         string tenantId, string appId, IResolverContext context,
         CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;
         return await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
             new Lola.Application.Events.ListConditionsQuery(tenantId,
-                appId, actor, isBorrower), ct);
+                appId, actor, scope), ct);
     }
 
     /// Officer work queue (M16 P3) — staff-only; borrowers get null
@@ -207,12 +207,12 @@ public class Query(IMessageBus bus)
         Tasks(string tenantId, IResolverContext context,
             CancellationToken ct, IReadOnlyList<string>? skills = null)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;
         return await bus.InvokeAsync<
             IReadOnlyList<Lola.Application.Tasks.QueueTask>>(
             new Lola.Application.Tasks.ListTasksQuery(tenantId, actor,
-                isBorrower, skills), ct);
+                scope, skills), ct);
     }
 
     /// Next-best-task (M16 P3) — staff-only; borrowers get null.
@@ -220,11 +220,11 @@ public class Query(IMessageBus bus)
         string tenantId, IResolverContext context,
         CancellationToken ct, IReadOnlyList<string>? skills = null)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;
         return await bus.InvokeAsync<Lola.Application.Tasks.QueueTask?>(
             new Lola.Application.Tasks.GetNextTaskQuery(tenantId, actor,
-                isBorrower, skills), ct);
+                scope, skills), ct);
     }
 
     /// Vendor order surface (MPE-229) — staff-only; borrowers get
@@ -233,10 +233,10 @@ public class Query(IMessageBus bus)
     public async Task<IReadOnlyList<VendorOrderView>?> VendorOrders(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
-        if (isBorrower) return null;
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff) return null;
         var dtos = await bus.InvokeAsync<IReadOnlyList<VendorOrderDto>>(
-            new ListVendorOrdersQuery(tenantId, appId, actor, isBorrower), ct);
+            new ListVendorOrdersQuery(tenantId, appId, actor, scope), ct);
         return dtos.Select(d => new VendorOrderView(
             d.OrderId, d.ApplicationId, d.Kind, d.Adapter,
             d.ExternalId, d.Status, d.Error, d.OrderedBy,
@@ -247,9 +247,9 @@ public class Query(IMessageBus bus)
     public Task<IReadOnlyList<AuditEvent>> ApplicationAudit(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
+        var (actor, scope) = Actor(context);
         return bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
-            new GetApplicationAuditQuery(tenantId, appId, actor, isBorrower), ct);
+            new GetApplicationAuditQuery(tenantId, appId, actor, scope), ct);
     }
 
     public Task<IReadOnlyList<AuditEvent>> TenantAudit(
@@ -257,9 +257,9 @@ public class Query(IMessageBus bus)
         string? actor = null, string? action = null,
         string? since = null, string? until = null)
     {
-        var (actorId, isBorrower) = Actor(context);
+        var (actorId, scope) = Actor(context);
         return bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
-            new GetTenantAuditQuery(tenantId, actorId, isBorrower,
+            new GetTenantAuditQuery(tenantId, actorId, scope,
                 actor, action, since, until), ct);
     }
 
@@ -285,16 +285,16 @@ public class Query(IMessageBus bus)
     public Task<TenantRetentionReport> Retention(
         string tenantId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, isBorrower) = Actor(context);
+        var (actor, scope) = Actor(context);
         return bus.InvokeAsync<TenantRetentionReport>(
-            new GetTenantRetentionQuery(tenantId, actor, isBorrower), ct);
+            new GetTenantRetentionQuery(tenantId, actor, scope), ct);
     }
 
-    private static (string ActorId, bool IsBorrower) Actor(IResolverContext context)
+    private static (string ActorId, ActorScope Scope) Actor(IResolverContext context)
     {
         var user = context.GetUser() ?? new ClaimsPrincipal();
         return (user.FindFirst("sub")?.Value ?? "unknown",
-            LolaPolicies.HasRole(user, LolaRole.Borrower));
+            LolaPolicies.ScopeFor(user));
     }
 }
 

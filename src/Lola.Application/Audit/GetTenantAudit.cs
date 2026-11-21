@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Errors;
 
 namespace Lola.Application.Audit;
@@ -7,7 +8,7 @@ namespace Lola.Application.Audit;
 /// the tenant file, filterable by actor / action / created_utc window.
 /// Staff-only; attribution metadata only, never values.
 public sealed record GetTenantAuditQuery(
-    string TenantId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string ActorId, ActorScope Scope,
     string? FilterActor = null, string? FilterAction = null,
     string? Since = null, string? Until = null);
 
@@ -17,7 +18,7 @@ public static class GetTenantAuditHandler
         GetTenantAuditQuery q, ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("audit reports are staff-only");
         return await audit.QueryAsync(new AuditFilter(
             Actor: q.FilterActor, Action: q.FilterAction,

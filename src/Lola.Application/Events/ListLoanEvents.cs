@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Errors;
 
 namespace Lola.Application.Events;
@@ -7,7 +8,7 @@ namespace Lola.Application.Events;
 /// override / transition / reveal / condition_* spine. Staff-only;
 /// the rows carry blind-index tokens for PII classes, never values.
 public sealed record GetLoanEventsQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     int Limit = 200);
 
 public static class GetLoanEventsHandler
@@ -17,7 +18,7 @@ public static class GetLoanEventsHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "mutation events are staff-only");
         return await events.QueryAsync(q.AppId, q.Limit, ct);
@@ -27,7 +28,7 @@ public static class GetLoanEventsHandler
 /// Tenant-level chain verification (M15) — mirrors audit/verify:
 /// clean or the first seq that fails recompute/link. Staff-only.
 public sealed record VerifyEventChainQuery(
-    string TenantId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string ActorId, ActorScope Scope);
 
 public static class VerifyEventChainHandler
 {
@@ -36,7 +37,7 @@ public static class VerifyEventChainHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "chain verification is staff-only");
         return await events.VerifyChainAsync(ct);

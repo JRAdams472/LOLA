@@ -24,7 +24,7 @@ public static class GetPortalLoanHandler
     {
         AdminGuards.RequireTenant(q.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, isBorrower: true, ct);
+            apps, q.AppId, q.ActorId, ActorScope.Borrower, ct);
         await audit.WriteAsync(q.ActorId, "read", "application", q.AppId,
             Audit.AuditFields.InDoc(app.Doc), "portal read", ct);
         DocMasker.MaskInPlace(app.Doc);

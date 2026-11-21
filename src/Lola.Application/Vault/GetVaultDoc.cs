@@ -9,7 +9,7 @@ namespace Lola.Application.Vault;
 /// borrower-own only.
 public sealed record GetVaultDocQuery(
     string TenantId, string AppId, string VaultDocId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class GetVaultDocHandler
 {
@@ -22,8 +22,11 @@ public static class GetVaultDocHandler
         if (doc is null || doc.ApplicationId != q.AppId)
             throw DomainException.NotFound("upload not found");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, doc.ApplicationId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, doc.ApplicationId, q.ActorId, q.Scope, ct);
+        if (q.Scope == ActorScope.Partner && doc.Actor != q.ActorId)
+            throw DomainException.Forbidden(
+                "partners see their own uploads only");
         return GetApplicationUploadsHandler.ToDto(doc,
-            includeIntel: !q.ActorIsBorrower);
+            includeIntel: q.Scope == ActorScope.Staff);
     }
 }

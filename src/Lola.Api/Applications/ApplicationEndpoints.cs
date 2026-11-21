@@ -33,50 +33,50 @@ public static class ApplicationEndpoints
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<DraftCreatedResult>(
                 new CreateDraftCommand(id, body?.BorrowerUserId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("", async (string id, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
-                new ListApplicationsQuery(id, Actor(user), IsBorrower(user)), ct)));
+                new ListApplicationsQuery(id, Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/search", async (string id, string field, string value,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ApplicationSearchResult>(
                 new SearchApplicationsQuery(id, field, value,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ApplicationDto?>(
-                new GetApplicationQuery(id, appId, Actor(user), IsBorrower(user)), ct)));
+                new GetApplicationQuery(id, appId, Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPatch("/{appId}", async (string id, string appId,
                 UpdateDraftRequest body, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<int>(
                 new UpdateDraftCommand(id, appId, body.Patch,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPost("/{appId}/submit", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<SubmitResult>(
                 new SubmitApplicationCommand(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPost("/{appId}/correct", async (string id, string appId,
                 UpdateDraftRequest body, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<SubmitResult>(
                 new CorrectApplicationCommand(id, appId, body.Patch,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPost("/{appId}/transition", async (string id, string appId,
                 TransitionRequest body, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<TransitionResult>(
                 new TransitionApplicationCommand(id, appId, body.Target,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Interop (MPE-111) — exports carry the real values (a masked
         // MISMO/ULDD file is useless); import always lands as a draft.
@@ -84,20 +84,20 @@ public static class ApplicationEndpoints
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<XmlResult>(
                 new ExportMismoQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapPost("/import-mismo", async (string id,
                 ImportMismoRequest body, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<MismoImportResult>(
                 new ImportMismoCommand(id, body.Xml,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}/export-uldd", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<XmlResult>(
                 new ExportUlddQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Pricing (MPE-130) — enqueue is 202; the outbox worker runs
         // the adapter call asynchronously. Latest eval + full history
@@ -108,7 +108,7 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<PriceResult>(
                 new PriceApplicationCommand(id, appId, Actor(user),
-                    IsBorrower(user), body?.Products, body?.Rate,
+                    LolaPolicies.ScopeFor(user), body?.Products, body?.Rate,
                     body?.LockTermDays, body?.AsOf,
                     body?.EligibilityOnly ?? false), ct)));
 
@@ -117,14 +117,14 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<PricingEvalDto?>(
                 new GetApplicationPricingQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}/pricing/history", async (string id,
                 string appId, ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<PricingEvalDto>>(
                 new GetPricingHistoryQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Fees (MPE-183) — same shape as pricing: enqueue is 202,
         // the fee outbox worker runs the Zara call asynchronously.
@@ -133,7 +133,7 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<FeeEvalAccepted>(
                 new EvaluateApplicationFeesCommand(id, appId,
-                    Actor(user), IsBorrower(user), body?.FeeCodes,
+                    Actor(user), LolaPolicies.ScopeFor(user), body?.FeeCodes,
                     body?.Variants), ct)));
 
         group.MapGet("/{appId}/fees", async (string id, string appId,
@@ -141,7 +141,7 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<FeeComparisonDto?>(
                 new GetApplicationFeesQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Override toggle (MPE-184) — {amount, reason} sets, a null
         // amount clears; reason is always required. itemId may name
@@ -152,14 +152,14 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<FeeOverrideResult>(
                 new OverrideFeeCommand(id, appId, itemId, Actor(user),
-                    IsBorrower(user), body.Amount, body.Reason), ct)));
+                    LolaPolicies.ScopeFor(user), body.Amount, body.Reason), ct)));
 
         group.MapGet("/{appId}/fees/history", async (string id,
                 string appId, ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<FeeEvalDto>>(
                 new GetFeeHistoryQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Documents (MPE-190) — POST enqueues a package generation;
         // the doc outbox worker submits + polls ISPPr. Registry list
@@ -171,7 +171,7 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<DocAccepted>(
                 new RequestDocumentPackageCommand(id, appId,
-                    Actor(user), IsBorrower(user), body.Kind,
+                    Actor(user), LolaPolicies.ScopeFor(user), body.Kind,
                     body.ReasonCodes), ct)));
 
         group.MapGet("/{appId}/documents", async (string id,
@@ -179,14 +179,14 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<DocDto>>(
                 new GetApplicationDocumentsQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}/documents/{docId}", async (string id,
                 string appId, string docId, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<DocDto>(
                 new GetDocumentQuery(id, appId, docId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}/documents/{docId}/download",
             async (string id, string appId, string docId,
@@ -194,7 +194,7 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<DocDownloadResult>(
                 new GetDocumentDownloadQuery(id, appId, docId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Document vault (MPE-200) — POST is a streamed multipart
         // upload (never model-bound — buffering would put plaintext
@@ -238,7 +238,7 @@ public static class ApplicationEndpoints
                     return await Guarded(id, async () =>
                         await bus.InvokeAsync<VaultUploadAccepted>(
                             new UploadVaultDocCommand(id, appId,
-                                Actor(user), IsBorrower(user),
+                                Actor(user), LolaPolicies.ScopeFor(user),
                                 classification ?? "",
                                 cd.FileNameStar.Value ?? cd.FileName.Value,
                                 section.ContentType, section.Body), ct));
@@ -253,14 +253,14 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<VaultDocDto>>(
                 new GetApplicationUploadsQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{appId}/uploads/{docId}", async (string id,
                 string appId, string docId, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<VaultDocDto>(
                 new GetVaultDocQuery(id, appId, docId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Download mint (MPE-202): the authorized, audited step —
         // 302s to a ≤15-min capability URL whose signature is itself
@@ -271,7 +271,7 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<VaultDownloadResult>(
                 new GetVaultDownloadQuery(id, appId, docId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Rate lock (MPE-131) — lock freezes the eval-determining
         // paths; unlock requires a reason and clears the freeze.
@@ -280,7 +280,7 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<LockResult>(
                 new LockRateCommand(id, appId, Actor(user),
-                    IsBorrower(user), body?.EvalId, body?.ProductCode ?? "",
+                    LolaPolicies.ScopeFor(user), body?.EvalId, body?.ProductCode ?? "",
                     body?.Rate ?? 0m, body?.LockTermDays), ct)));
 
         group.MapPost("/{appId}/unlock", async (string id, string appId,
@@ -288,28 +288,49 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<bool>(
                 new UnlockRateCommand(id, appId, Actor(user),
-                    IsBorrower(user), body?.Reason ?? ""), ct)));
+                    LolaPolicies.ScopeFor(user), body?.Reason ?? ""), ct)));
 
         group.MapGet("/{appId}/lock", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus,
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<RateLockDto?>(
                 new GetRateLockQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<StepEventDto>>(
                 new GetApplicationStepsQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        // TPO partner links (M19) — staff link/unlink an external
+        // Broker/Realtor user to one application; the partner's
+        // application_partners row is their whole reach into it.
+        group.MapPut("/{appId}/partners/{partnerUserId}", async (
+                string id, string appId, string partnerUserId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<PartnerLinkDto>(
+                new LinkPartnerCommand(id, appId, partnerUserId,
+                    Actor(user)), ct)))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
+
+        group.MapDelete("/{appId}/partners/{partnerUserId}", async (
+                string id, string appId, string partnerUserId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<bool>(
+                new UnlinkPartnerCommand(id, appId, partnerUserId,
+                    Actor(user)), ct)))
+            .RequireAuthorization(LolaPolicies.TenantStaff);
 
         // Audit chain verification (MPE-116) — staff-only.
         group.MapGet("/audit/verify", async (string id,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<AuditVerifyResult>(
                 new VerifyAuditQuery(id,
-                    Actor(user), IsBorrower(user)), ct)));
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Audited PII reveal (MPE-117, invariant 8) — the explicit
         // staff action returning the UNMASKED document with a required
@@ -319,7 +340,7 @@ public static class ApplicationEndpoints
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ApplicationDto?>(
                 new RevealApplicationQuery(id, appId,
-                    Actor(user), body.Reason, IsBorrower(user)), ct)))
+                    Actor(user), body.Reason, LolaPolicies.ScopeFor(user)), ct)))
             .RequireAuthorization(LolaPolicies.RevealPii);
 
         // Access-review reports (MPE-117) — staff-only; attribution
@@ -328,7 +349,7 @@ public static class ApplicationEndpoints
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
                 new GetApplicationAuditQuery(id, appId,
-                    Actor(user), IsBorrower(user)), ct)))
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
         // Reg B retention report (MPE-118) — per-app 25-month windows
@@ -337,14 +358,14 @@ public static class ApplicationEndpoints
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<TenantRetentionReport>(
                 new GetTenantRetentionQuery(id,
-                    Actor(user), IsBorrower(user)), ct)))
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
         app.MapGet("/api/tenants/{id}/audit", async (string id,
                 string? actor, string? action, string? since, string? until,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<AuditEvent>>(
-                new GetTenantAuditQuery(id, Actor(user), IsBorrower(user),
+                new GetTenantAuditQuery(id, Actor(user), LolaPolicies.ScopeFor(user),
                     actor, action, since, until), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
     }
@@ -379,9 +400,6 @@ public static class ApplicationEndpoints
 
     private static string Actor(ClaimsPrincipal user) =>
         user.FindFirst("sub")?.Value ?? "unknown";
-
-    private static bool IsBorrower(ClaimsPrincipal user) =>
-        LolaPolicies.HasRole(user, LolaRole.Borrower);
 
     public sealed record CreateDraftRequest(string? BorrowerUserId);
     public sealed record UpdateDraftRequest(IReadOnlyDictionary<string, string> Patch);

@@ -76,6 +76,45 @@ public interface IApplicationRepository
 
     Task<ApplicationRecord?> GetAsync(string id, CancellationToken ct = default);
     Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default);
+
+    /// M19 partner row-scope: is `partnerUserId` actively linked to
+    /// `id` via `application_partners` (revoked links don't count)?
+    /// `RequireAppAsync` consults this for Partner actors.
+    Task<bool> IsPartnerLinkedAsync(
+        string id, string partnerUserId, CancellationToken ct = default);
+
+    /// M19 partner list scope: app ids currently linked to
+    /// `partnerUserId` — the Partner branch of the applications list.
+    Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+        string partnerUserId, CancellationToken ct = default);
+}
+
+/// One application_partners link row (M19). `RevokedUtc` non-null marks
+/// a revoked link — the row stays for provenance; the scope guard and
+/// link admin treat revoked as absent.
+public sealed record PartnerLink(
+    string AppId, string PartnerUserId, string PartnerRole,
+    string LinkedBy, string LinkedUtc, string? RevokedUtc);
+
+/// Staff-side administration of application_partners (M19): link,
+/// revoke, and enumerate an app's partners. The reads a Partner
+/// actor's own scope needs live on IApplicationRepository — this port
+/// is the write/admin side only.
+public interface IApplicationPartnerRepository
+{
+    /// Re-link after revoke clears `revoked_utc` and refreshes
+    /// linked_by/linked_utc — the row is current-state, events/audit
+    /// carry the history.
+    Task LinkAsync(PartnerLink link, CancellationToken ct = default);
+
+    /// Returns false when no ACTIVE link exists — unlink is honest
+    /// 404, not silent no-op.
+    Task<bool> RevokeAsync(string appId, string partnerUserId,
+        string revokedUtc, CancellationToken ct = default);
+
+    /// Every link row for an app, newest first — including revoked.
+    Task<IReadOnlyList<PartnerLink>> ListForAppAsync(
+        string appId, CancellationToken ct = default);
 }
 
 /// Blind-index equality search — `field` is a catalog trailing key

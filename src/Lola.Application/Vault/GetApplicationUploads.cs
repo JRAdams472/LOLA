@@ -9,7 +9,7 @@ namespace Lola.Application.Vault;
 /// viewers; the access itself is what the audit spine tracks.
 public sealed record GetApplicationUploadsQuery(
     string TenantId, string AppId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class GetApplicationUploadsHandler
 {
@@ -19,10 +19,14 @@ public static class GetApplicationUploadsHandler
     {
         AdminGuards.RequireTenant(q.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
-        var staff = !q.ActorIsBorrower;
-        return (await vault.ListAsync(q.AppId, ct))
-            .Select(d => ToDto(d, staff)).ToList();
+            apps, q.AppId, q.ActorId, q.Scope, ct);
+        var staff = q.Scope == ActorScope.Staff;
+        var docs = await vault.ListAsync(q.AppId, ct);
+        // Own-uploads-only (M19): a partner sees the uploads they
+        // pushed, never the borrower's or staff's.
+        if (q.Scope == ActorScope.Partner)
+            docs = docs.Where(d => d.Actor == q.ActorId).ToList();
+        return docs.Select(d => ToDto(d, staff)).ToList();
     }
 
     internal static VaultDocDto ToDto(VaultDocRecord d,

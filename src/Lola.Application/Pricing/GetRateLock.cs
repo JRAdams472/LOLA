@@ -7,7 +7,7 @@ namespace Lola.Application.Pricing;
 /// GET …/applications/{id}/lock (MPE-131) — the active lock, or null
 /// (→ 404) when none is held. `GET …/locks` history is `ListAsync`.
 public sealed record GetRateLockQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public static class GetRateLockHandler
 {
@@ -16,10 +16,10 @@ public static class GetRateLockHandler
         IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("rate locks are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         var active = await locks.GetActiveAsync(q.AppId, ct);
         return active is null ? null : RateLockDtos.ToDto(active);
     }

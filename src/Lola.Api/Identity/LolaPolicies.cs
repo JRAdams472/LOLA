@@ -22,9 +22,15 @@ public static class LolaPolicies
     /// (borrower invites).
     public const string TenantStaff = "tenant-staff";
 
-    /// All four roles — the intake surface. Borrower reach is
-    /// structurally own-draft-only via handler guards (MPE-110).
+    /// All six roles — the intake surface. Borrower reach is
+    /// structurally own-draft-only and partner reach linked-only via
+    /// handler guards (MPE-110, M19 row scope).
     public const string Applications = "applications";
+
+    /// Broker + Realtor — the M19 TPO partner surface. Partners are
+    /// NEVER in TenantStaff/AdminRead/RevealPii: their only reach is
+    /// link-scoped application data through this policy's routes.
+    public const string PartnerAccess = "partner-access";
 
     /// TenantAdmin + LoanOfficer — the audited PII reveal (MPE-117,
     /// invariant 8). Borrowers and service clients can never unmask.
@@ -58,13 +64,40 @@ public static class LolaPolicies
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer,
                 Domain.Identity.LolaRole.Borrower,
-                Domain.Identity.LolaRole.Service)));
+                Domain.Identity.LolaRole.Service,
+                Domain.Identity.LolaRole.Broker,
+                Domain.Identity.LolaRole.Realtor)));
+        options.AddPolicy(PartnerAccess, p => p.RequireAssertion(
+            ctx => HasRole(ctx.User,
+                Domain.Identity.LolaRole.Broker,
+                Domain.Identity.LolaRole.Realtor)));
         options.AddPolicy(RevealPii, p => p.RequireAssertion(
             ctx => HasRole(ctx.User,
                 Domain.Identity.LolaRole.TenantAdmin,
                 Domain.Identity.LolaRole.LoanOfficer)));
         options.AddPolicy(PlatformOps, p => p.RequireAssertion(
             ctx => HasRole(ctx.User, "lola-ops", "Service")));
+    }
+
+    /// Row-scope discriminant fed to application-bound commands (M19).
+    /// Widest scope wins for multi-role principals: a staff role
+    /// outranks a partner link, a partner link outranks borrower-owns.
+    /// Policy admission already guarantees one of these claims, so the
+    /// trailing default is unreachable in practice.
+    public static Application.Applications.ActorScope ScopeFor(ClaimsPrincipal user)
+    {
+        if (HasRole(user,
+                Domain.Identity.LolaRole.TenantAdmin,
+                Domain.Identity.LolaRole.LoanOfficer,
+                Domain.Identity.LolaRole.Service))
+            return Application.Applications.ActorScope.Staff;
+        if (HasRole(user,
+                Domain.Identity.LolaRole.Broker,
+                Domain.Identity.LolaRole.Realtor))
+            return Application.Applications.ActorScope.Partner;
+        if (HasRole(user, Domain.Identity.LolaRole.Borrower))
+            return Application.Applications.ActorScope.Borrower;
+        return Application.Applications.ActorScope.Staff;
     }
 
     public static bool HasRole(ClaimsPrincipal user, params Domain.Identity.LolaRole[] roles)

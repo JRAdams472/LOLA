@@ -38,8 +38,8 @@ public sealed class FeeEvaluationTests
     }
 
     private static EvaluateApplicationFeesCommand Cmd(
-        bool borrower = false) =>
-        new("t1", "app-1", "officer-1", borrower, null);
+        ActorScope scope = ActorScope.Staff) =>
+        new("t1", "app-1", "officer-1", scope, null);
 
     private static IDisposable Scope()
         => TenantContext.Use(new TenantScope("t1", "x.db", "k"));
@@ -94,7 +94,7 @@ public sealed class FeeEvaluationTests
         var (apps, fees, audit, adapter) = Sut();
         using var _ = Scope();
         await Should.ThrowAsync<DomainException>(() =>
-            EvaluateApplicationFeesHandler.Handle(Cmd(borrower: true),
+            EvaluateApplicationFeesHandler.Handle(Cmd(ActorScope.Borrower),
                 apps, fees, adapter, audit, default));
         fees.Evals.ShouldBeEmpty();
     }
@@ -113,7 +113,7 @@ public sealed class FeeEvaluationTests
         second.EvalIds[0].ShouldNotBe(first.EvalIds[0]);
 
         var latest = await GetApplicationFeesHandler.Handle(
-            new GetApplicationFeesQuery("t1", "app-1", "officer-1", false),
+            new GetApplicationFeesQuery("t1", "app-1", "officer-1", ActorScope.Staff),
             apps, fees, default);
         latest.ShouldNotBeNull();
         latest!.Evals[0].EvalId.ShouldBe(second.EvalIds[0]);
@@ -121,7 +121,7 @@ public sealed class FeeEvaluationTests
         latest.Evals[0].Adapter.ShouldBe("fake");
 
         var history = await GetFeeHistoryHandler.Handle(
-            new GetFeeHistoryQuery("t1", "app-1", "officer-1", false),
+            new GetFeeHistoryQuery("t1", "app-1", "officer-1", ActorScope.Staff),
             apps, fees, default);
         history.Count.ShouldBe(2);
         history[0].EvalId.ShouldBe(first.EvalIds[0]);
@@ -153,7 +153,7 @@ public sealed class FeeEvaluationTests
     private static OverrideFeeCommand OverrideCmd(
         string itemId = "item-1", decimal? amount = 500m,
         string? reason = "LO corrections") =>
-        new("t1", "app-1", itemId, "officer-1", false, amount, reason);
+        new("t1", "app-1", itemId, "officer-1", ActorScope.Staff, amount, reason);
 
     [Fact]
     public async Task Set_override_persists_and_audits()
@@ -225,7 +225,7 @@ public sealed class FeeEvaluationTests
         using var _ = Scope();
         await Should.ThrowAsync<DomainException>(() =>
             OverrideFeeHandler.Handle(
-                OverrideCmd() with { ActorIsBorrower = true },
+                OverrideCmd() with { Scope = ActorScope.Borrower },
                 apps, fees, audit, new FakeEventLog(), default));
     }
 
@@ -270,6 +270,12 @@ public sealed class FeeEvaluationTests
     private sealed class FakeApps(ApplicationDocument doc)
         : IApplicationRepository
     {
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
             => Task.FromResult<ApplicationRecord?>(id == "app-1"

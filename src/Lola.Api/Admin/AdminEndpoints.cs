@@ -105,6 +105,20 @@ public static class AdminEndpoints
                     id, body.Email, ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct))))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
+        // TPO partner invite (M19) — TenantAdmin-only: brokers and
+        // realtors are external actors inside the lender's tenant,
+        // so inviting them is the strongest invite privilege. Role +
+        // organization attribution ride the invite onto the user.
+        admin.MapPost("/tenants/{id}/partner-invites", async (
+                string id, PartnerInviteRequest body, HttpContext ctx,
+                IMessageBus bus, CancellationToken ct) =>
+            await Guarded(id, async () => Results.Created($"/api/admin/tenants/{id}",
+                await bus.InvokeMaskedAsync<InviteCreatedResult>(
+                    new CreateInviteCommand(id, body.Email,
+                        ctx.User.FindFirst("sub")?.Value ?? "unknown",
+                        ParsePartnerRole(body.Role), body.Org), ct))))
+            .RequireAuthorization(LolaPolicies.TenantAdmin);
+
         admin.MapGet("/tenants/{id}/users", async (
                 string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await Guarded(id, async () => Results.Ok(
@@ -210,6 +224,15 @@ public static class AdminEndpoints
                 : throw new ArgumentException($"unknown role '{r}'"))
             .ToList();
 
+    /// Partner-invite role — the two external kinds only; anything
+    /// else is a 400, so this route can never mint staff or borrowers.
+    private static LolaRole ParsePartnerRole(string role)
+        => Enum.TryParse<LolaRole>(role, ignoreCase: true, out var p)
+            && p is LolaRole.Broker or LolaRole.Realtor
+            ? p
+            : throw new ArgumentException(
+                "partner role must be Broker or Realtor");
+
     public sealed record CreateUserRequest(
         string Email, string DisplayName, string? Password);
 
@@ -221,6 +244,9 @@ public static class AdminEndpoints
     public sealed record ProvisionTenantRequest(string TenantId, string Slug, string DisplayName);
 
     public sealed record InviteRequest(string Email);
+
+    public sealed record PartnerInviteRequest(
+        string Email, string Role, string? Org);
 
     public sealed record RestoreRequest(string Name);
 }

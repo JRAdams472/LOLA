@@ -11,7 +11,7 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
         "id, tenant_id AS TenantId, email, display_name AS DisplayName, " +
         "password_hash AS PasswordHash, status, " +
         "mfa_enabled AS MfaEnabled, created_utc AS CreatedUtc, " +
-        "mfa_secret_ref AS MfaSecretRef";
+        "mfa_secret_ref AS MfaSecretRef, org_name AS OrgName";
 
     public async Task<LolaUser?> FindByIdAsync(string id, CancellationToken ct = default)
     {
@@ -71,9 +71,9 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
         using var conn = db.Open();
         await conn.ExecuteAsync(new CommandDefinition("""
             INSERT INTO users (id, tenant_id, email, display_name, password_hash,
-                               status, mfa_enabled, mfa_secret_ref)
+                               status, mfa_enabled, mfa_secret_ref, org_name)
             VALUES (@Id, @TenantId, @Email, @DisplayName, @PasswordHash,
-                    @Status, @MfaEnabled, @MfaSecretRef)
+                    @Status, @MfaEnabled, @MfaSecretRef, @OrgName)
             """, new
         {
             user.Id,
@@ -83,7 +83,8 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
             user.PasswordHash,
             Status = user.Status.ToString().ToLowerInvariant(),
             MfaEnabled = user.MfaEnabled ? 1 : 0,
-            user.MfaSecretRef
+            user.MfaSecretRef,
+            user.OrgName
         }, cancellationToken: ct));
     }
 
@@ -110,10 +111,10 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
     private sealed record UserRow(
         string Id, string TenantId, string Email, string DisplayName,
         string? PasswordHash, string Status, long MfaEnabled, string CreatedUtc,
-        string? MfaSecretRef)
+        string? MfaSecretRef, string? OrgName)
     {
         public LolaUser ToUser() => new(Id, TenantId, Email, DisplayName, PasswordHash,
             Enum.Parse<UserStatus>(Status, ignoreCase: true), MfaEnabled != 0, CreatedUtc,
-            MfaSecretRef);
+            MfaSecretRef, OrgName);
     }
 }

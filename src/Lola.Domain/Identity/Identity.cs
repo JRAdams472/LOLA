@@ -2,12 +2,18 @@ namespace Lola.Domain.Identity;
 
 /// Fixed role set (ADR-0005). Stored as names in the control plane;
 /// parsed at the repository boundary so code always sees the enum.
+/// Broker/Realtor are the M19 TPO partner roles — external actors
+/// inside the lender's tenant boundary, link-scoped to applications
+/// via `application_partners` and never granted `role_visibility`
+/// rows (masked-by-construction).
 public enum LolaRole
 {
     TenantAdmin,
     LoanOfficer,
     Borrower,
-    Service
+    Service,
+    Broker,
+    Realtor
 }
 
 /// Role→field-class outcome: the only two states the visibility map
@@ -49,7 +55,8 @@ public sealed record LolaUser(
     UserStatus Status,
     bool MfaEnabled,
     string CreatedUtc,
-    string? MfaSecretRef = null);
+    string? MfaSecretRef = null,
+    string? OrgName = null);
 
 public sealed record LolaGroup(
     string Id,
@@ -66,4 +73,5 @@ public sealed record InviteRecord(
     string TokenHash,
     string ExpiresUtc,
     string? UsedUtc,
-    string CreatedBy);
+    string CreatedBy,
+    string? OrgName = null);

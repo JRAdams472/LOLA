@@ -15,7 +15,7 @@ namespace Lola.Application.Fees;
 /// sensible action there).
 public sealed record OverrideFeeCommand(
     string TenantId, string AppId, string ItemId, string ActorId,
-    bool ActorIsBorrower, decimal? Amount, string? Reason);
+    ActorScope Scope, decimal? Amount, string? Reason);
 
 public sealed record FeeOverrideResult(
     string OverrideId, decimal? Amount, bool Cleared);
@@ -28,7 +28,7 @@ public static class OverrideFeeHandler
         Events.ILoanEventLog events, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "fee overrides are a staff action");
         if (string.IsNullOrWhiteSpace(c.Reason))
@@ -36,7 +36,7 @@ public static class OverrideFeeHandler
                 "reason is required for a fee override");
 
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
 
         // Resolve the id against items first, then overrides — a
         // stale override's line id stays addressable for clear.

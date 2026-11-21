@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Errors;
 
 namespace Lola.Application.Audit;
@@ -7,7 +8,7 @@ namespace Lola.Application.Audit;
 /// application, what action, which PII classes, when. Staff-only; the
 /// report exposes attribution metadata, never field values.
 public sealed record GetApplicationAuditQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public static class GetApplicationAuditHandler
 {
@@ -16,7 +17,7 @@ public static class GetApplicationAuditHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("audit reports are staff-only");
         return await audit.QueryAsync(
             new AuditFilter(Entity: "application", EntityId: q.AppId), ct);

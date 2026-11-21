@@ -7,7 +7,7 @@ namespace Lola.Application.Interop;
 /// carries the real field values (masking it would break the format),
 /// so authorization is the policy + own-draft guard, not DocMasker.
 public sealed record ExportMismoQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public sealed record XmlResult(string Xml);
 
@@ -19,7 +19,7 @@ public static class ExportMismoHandler
     {
         AdminGuards.RequireTenant(c.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
+            apps, c.AppId, c.ActorId, c.Scope, ct);
         await audit.WriteAsync(c.ActorId, "export", "application", c.AppId,
             Audit.AuditFields.InDoc(app.Doc), "mismo xml", ct);
         return new XmlResult(MismoXmlExporter.Export(app.Doc));

@@ -61,6 +61,12 @@ public sealed class TaskEvaluatorTests
         public Task<IReadOnlyList<ApplicationRetentionRow>>
             RetentionWindowsAsync(CancellationToken ct = default)
             => throw new NotImplementedException();
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
             => throw new NotImplementedException();

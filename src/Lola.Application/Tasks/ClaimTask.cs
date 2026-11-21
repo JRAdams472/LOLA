@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Errors;
 
@@ -10,7 +11,7 @@ namespace Lola.Application.Tasks;
 /// tenant is a 404, not a cross-tenant read. Every successful claim
 /// lands on the control-plane audit spine (invariant 4).
 public sealed record ClaimTaskCommand(string TenantId, string TaskId,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public static class ClaimTaskHandler
 {
@@ -19,7 +20,7 @@ public static class ClaimTaskHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "claiming tasks is staff-only");
         var existing = await tasks.GetAsync(c.TaskId, ct);

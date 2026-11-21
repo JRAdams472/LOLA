@@ -12,7 +12,7 @@ namespace Lola.Application.Audit;
 /// this is the only endpoint that skips DocMasker.
 public sealed record RevealApplicationQuery(
     string TenantId, string AppId, string ActorId, string Reason,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class RevealApplicationHandler
 {
@@ -22,12 +22,12 @@ public static class RevealApplicationHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("PII reveal is staff-only");
         if (string.IsNullOrWhiteSpace(q.Reason))
             throw new ArgumentException("a reveal reason is required");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, isBorrower: false, ct);
+            apps, q.AppId, q.ActorId, ActorScope.Staff, ct);
         await audit.WriteAsync(q.ActorId, "reveal", "application",
             q.AppId, AuditFields.InDoc(app.Doc), q.Reason, ct);
         // Mutation log mirrors the audit's class set — one event per

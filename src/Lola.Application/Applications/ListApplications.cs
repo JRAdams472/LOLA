@@ -12,7 +12,7 @@ namespace Lola.Application.Applications;
 /// it is masked here unless the caller's role grants the Name class
 /// (ADR-0008); the TRID deadline derives from the clock stamp.
 public sealed record ListApplicationsQuery(
-    string TenantId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string ActorId, ActorScope Scope);
 
 public static class ListApplicationsHandler
 {
@@ -29,7 +29,15 @@ public static class ListApplicationsHandler
                 : DocMasker.Mask(a.BorrowerName),
             TridDeadlineUtc = TridClock.DeadlineUtc(a.TridClockStart)
         }).ToList();
-        return q.ActorIsBorrower
+        // Linked-only visibility (M19): a partner sees exactly the
+        // apps an active application_partners row names — nothing
+        // else in the tenant.
+        if (q.Scope == ActorScope.Partner)
+        {
+            var linked = await apps.LinkedAppIdsForPartnerAsync(q.ActorId, ct);
+            return enriched.Where(a => linked.Contains(a.Id)).ToList();
+        }
+        return q.Scope == ActorScope.Borrower
             ? enriched.Where(a => a.BorrowerUserId == q.ActorId).ToList()
             : enriched;
     }

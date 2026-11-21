@@ -9,7 +9,7 @@ namespace Lola.Application.Applications;
 /// own-draft seam M12 rides); staff may attribute a borrower or none.
 public sealed record CreateDraftCommand(
     string TenantId, string? BorrowerUserId,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public sealed record DraftCreatedResult(string Id, string Status);
 
@@ -19,7 +19,11 @@ public static class CreateDraftHandler
         CreateDraftCommand c, IApplicationRepository apps, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        var borrowerId = c.ActorIsBorrower ? c.ActorId : c.BorrowerUserId;
+        if (c.Scope == ActorScope.Partner)
+            throw DomainException.Forbidden(
+                "partners cannot originate drafts");
+        var borrowerId = c.Scope == ActorScope.Borrower
+            ? c.ActorId : c.BorrowerUserId;
         var id = $"app-{Guid.NewGuid():N}"[..20];
         await apps.InsertAsync(id, ApplicationDocument.Empty(),
             "draft", borrowerId, c.ActorId, ct);
