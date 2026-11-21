@@ -127,4 +127,51 @@ public sealed class InteropEndpointTests(LolaApiFactory factory)
         (await own.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("borrowerUserId").GetString().ShouldBe(user.Id);
     }
+
+    /// MPE-272 — a user carrying BOTH a staff and a partner role is an
+    /// ambiguous identity: ScopeFor must fail closed end-to-end, never
+    /// resolve to the wider grant. Roles come from live group
+    /// membership, the same place a real misconfiguration would.
+    [Fact]
+    public async Task Mixed_staff_and_partner_roles_fail_closed()
+    {
+        var (tenant, officer, appId) = await ProvisionDraftAsync();
+        var admin = factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin));
+
+        var user = await factory.SeedUserAsync(tenant,
+            $"mixed-{tenant}@t.dev", PkceLogin.Password,
+            LolaRole.LoanOfficer);
+        var group = await admin.PostAsJsonAsync(
+            $"/api/admin/tenants/{tenant}/groups",
+            new { name = $"partner-side-{tenant}", roles = new[] { "Broker" } });
+        group.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var gid = (await group.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetString()!;
+        (await admin.PostAsJsonAsync(
+                $"/api/admin/tenants/{tenant}/groups/{gid}/members",
+                new { userId = user.Id }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var mixed = factory.CreateClient();
+        mixed.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.LoanOfficer,
+                email: $"mixed-{tenant}@t.dev", seed: false));
+        // The token really carries both kinds — then every guarded
+        // surface denies: export, app detail, directory.
+        var info = await mixed.GetFromJsonAsync<JsonElement>(
+            "/connect/userinfo");
+        info.GetProperty("roles").EnumerateArray()
+            .Select(r => r.GetString())
+            .ShouldBe(["Broker", "LoanOfficer"], ignoreOrder: true);
+        (await mixed.GetAsync(
+                $"/api/tenants/{tenant}/applications/{appId}/export-mismo"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await mixed.GetAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await mixed.GetAsync($"/api/admin/tenants/{tenant}/users"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
 }

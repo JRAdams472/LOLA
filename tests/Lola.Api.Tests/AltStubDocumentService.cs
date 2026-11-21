@@ -31,8 +31,17 @@ public sealed class AltStubDocumentService : IDocumentService
         => Task.FromResult(new DocGeneration(
             requestId, "completed", $"{requestId}.zip"));
 
+    /// Captured download-url requests — denial tests assert the signer
+    /// is never reached for an unauthorized caller (MPE-272).
+    public System.Collections.Concurrent.ConcurrentQueue<string>
+        DownloadRequests
+    { get; } = new();
+
     public Task<string> GetDownloadUrlAsync(string requestId,
         CancellationToken ct = default)
-        => Task.FromResult(
+    {
+        DownloadRequests.Enqueue(requestId);
+        return Task.FromResult(
             $"https://alt-stub.local/dl/{requestId}?sig=test");
+    }
 }

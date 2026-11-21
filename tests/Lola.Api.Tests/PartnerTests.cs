@@ -1,7 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Lola.Application.Documents;
+using Lola.Application.Identity;
 using Lola.Domain.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
 namespace Lola.Api.Tests;
@@ -160,6 +164,137 @@ public sealed class PartnerTests(LolaApiFactory factory)
         (await broker.GetAsync(
                 $"/api/tenants/{tenant}/applications/{app1}"))
             .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    /// MPE-272 operation matrix — an active application link does NOT
+    /// extend a partner's reach to privileged outputs. On the same
+    /// LINKED app (with a populated synthetic package): no plaintext
+    /// MISMO/ULDD, no package list/detail/download, no signer call —
+    /// and the detail read is the narrow metadata projection, never
+    /// the staff document.
+    [Fact]
+    public async Task Linked_partner_denied_privileged_outputs()
+    {
+        var tenant = $"tpo-{Guid.NewGuid():N}";
+        var svc = factory.CreateClient();
+        svc.DefaultRequestHeaders.Authorization =
+            new("Bearer", await ServiceTokenAsync(
+                svc, "lola-svc", "svc-secret-value"));
+        (await svc.PostAsJsonAsync("/api/admin/tenants",
+            new { tenantId = tenant, slug = tenant, displayName = "T" }))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+        // Vendor binding the provisioning step would normally write —
+        // required for the completed-package fixture below.
+        await factory.Services.GetRequiredService<ITenantRegistry>()
+            .SetIspprIdsAsync(tenant, $"cli-{tenant}", $"cust-{tenant}");
+
+        var admin = factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin));
+        var officer = factory.CreateClient();
+        officer.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.LoanOfficer));
+
+        // Partner through the real invite → accept → link flow.
+        var invite = await admin.PostAsJsonAsync(
+            $"/api/admin/tenants/{tenant}/partner-invites",
+            new
+            {
+                email = $"r-{tenant}@t.dev",
+                role = "Realtor",
+                org = "R"
+            });
+        invite.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var token = Uri.UnescapeDataString(
+            (await invite.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("inviteUrl").GetString()!.Split("token=")[1]);
+        (await factory.CreateClient().PostAsJsonAsync(
+                "/api/invites/accept",
+                new
+                {
+                    token,
+                    displayName = "R One",
+                    password = PkceLogin.Password
+                }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        var partner = factory.CreateClient();
+        partner.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.Realtor,
+                seed: false, email: $"r-{tenant}@t.dev"));
+        var partnerId = (await admin.GetFromJsonAsync<JsonElement>(
+                $"/api/admin/tenants/{tenant}/users"))
+            .EnumerateArray().Single(u => u.GetProperty("email").GetString()
+                == $"r-{tenant}@t.dev").GetProperty("id").GetString()!;
+
+        var appId = (await (await officer.PostAsJsonAsync(
+                $"/api/tenants/{tenant}/applications", new { }))
+            .Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetString()!;
+        (await officer.PutAsJsonAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"
+                + $"/partners/{partnerId}", new { }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // A completed package exists on the linked app — denial must
+        // not depend on the package being absent.
+        var pkg = await officer.PostAsJsonAsync(
+            $"/api/tenants/{tenant}/applications/{appId}/packages",
+            new
+            {
+                kind = "adverse-action",
+                reasonCodes = new[] { "credit-history" }
+            });
+        pkg.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var docId = (await pkg.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("docId").GetString()!;
+        var rec = await factory.Services
+            .GetRequiredService<ITenantRegistry>().FindByIdAsync(tenant);
+        (await factory.Services
+            .GetRequiredService<Lola.Api.Documents.DocOutboxProcessor>()
+            .DrainTenantAsync(rec!)).ShouldBe(1);
+
+        var base_ = $"/api/tenants/{tenant}/applications/{appId}";
+
+        // Linked detail = the narrow projection only.
+        var detail = await partner.GetFromJsonAsync<JsonElement>(base_);
+        detail.GetProperty("id").GetString().ShouldBe(appId);
+        detail.GetProperty("status").GetString().ShouldNotBeNull();
+        detail.TryGetProperty("doc", out _).ShouldBeFalse();
+        detail.TryGetProperty("borrowerUserId", out _).ShouldBeFalse();
+        detail.TryGetProperty("borrowerName", out _).ShouldBeFalse();
+
+        // Privileged outputs on the linked app — all denied, none
+        // returning protected content.
+        var mismo = await partner.GetAsync($"{base_}/export-mismo");
+        mismo.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await mismo.Content.ReadAsStringAsync())
+            .TrimStart().ShouldStartWith("{");
+        (await partner.GetAsync($"{base_}/export-uldd"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await partner.GetAsync($"{base_}/documents"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await partner.GetAsync($"{base_}/documents/{docId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        var noRedirect = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            { AllowAutoRedirect = false });
+        noRedirect.DefaultRequestHeaders.Authorization =
+            partner.DefaultRequestHeaders.Authorization;
+        (await noRedirect.GetAsync(
+                $"{base_}/documents/{docId}/download"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        // The signer was never reached — no presigned URL was minted.
+        ((AltStubDocumentService)factory.Services
+            .GetRequiredService<IDocumentService>())
+            .DownloadRequests.IsEmpty.ShouldBeTrue();
+
+        // Staff keeps the package surface on the same app.
+        (await officer.GetAsync($"{base_}/documents"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await officer.GetAsync($"{base_}/documents/{docId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private static async Task<string> ServiceTokenAsync(

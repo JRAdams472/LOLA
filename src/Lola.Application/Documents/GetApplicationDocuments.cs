@@ -19,6 +19,7 @@ public static class GetApplicationDocumentsHandler
         IDocumentRepository docs, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        ApplicationOperations.Require(q.Scope, AppOperation.PackageAccess);
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.Scope, ct);
         var rows = await docs.ListDocsAsync(q.AppId, ct);

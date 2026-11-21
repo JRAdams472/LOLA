@@ -3,7 +3,8 @@ using Lola.Domain.Classification;
 
 namespace Lola.Application.Admin.Users;
 
-public sealed record GetTenantUsersQuery(string TenantId, string ActorId);
+public sealed record GetTenantUsersQuery(
+    string TenantId, string ActorId, Applications.ActorScope Scope);
 
 /// Admin user view. Email/name are Contact/Name-class PII; the MFA
 /// secret reference is Account-class credential material — all masked
@@ -26,6 +27,7 @@ public static class GetTenantUsersHandler
         Audit.IControlPlaneAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        AdminGuards.RequireStaffScope(q.Scope);
         var result = new List<AdminUserDto>();
         foreach (var u in await users.ListByTenantAsync(q.TenantId, ct))
         {

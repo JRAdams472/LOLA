@@ -158,6 +158,70 @@ public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory
             .EnumerateArray().Select(m => m.GetString()).ShouldBe([uid]);
     }
 
+    /// MPE-272 — the directory resolvers share the REST AdminRead
+    /// decision through the handler, not masking: a non-staff caller
+    /// gets a configured GraphQL error and NO directory data; staff
+    /// still resolves the same list REST returns.
+    [Fact]
+    public async Task Directory_resolvers_deny_non_staff()
+    {
+        var tenant = $"t{Guid.NewGuid():N}"[..12];
+        var officer = factory.CreateClient();
+        officer.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.LoanOfficer));
+
+        // Staff baseline — the resolvers return real directory data.
+        var staffBody = await PostAsync(officer,
+            $$"""{ tenantUsers(tenantId: "{{tenant}}") { id roles } tenantGroups(tenantId: "{{tenant}}") { id name } }""");
+        staffBody.GetProperty("data").GetProperty("tenantUsers")
+            .EnumerateArray().ShouldNotBeEmpty();
+
+        var borrower = factory.CreateClient();
+        borrower.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant, LolaRole.Borrower));
+
+        // Every directory resolver denies non-staff — error present,
+        // the protected field carries no data.
+        foreach (var (query, field) in new (string, string)[]
+        {
+            ($$"""{ tenantUsers(tenantId: "{{tenant}}") { id roles email } }""",
+                "tenantUsers"),
+            ($$"""{ tenantGroups(tenantId: "{{tenant}}") { id name roles } }""",
+                "tenantGroups"),
+            ($$"""{ groupMembers(tenantId: "{{tenant}}", groupId: "g-any") }""",
+                "groupMembers"),
+        })
+        {
+            var body = await PostAsync(borrower, query);
+            AssertForbiddenGraphQl(body, field);
+        }
+
+        // Anonymous — no subject claim — is denied the same way.
+        var anon = factory.CreateClient();
+        var anonBody = await PostAsync(anon,
+            $$"""{ tenantUsers(tenantId: "{{tenant}}") { id email } }""");
+        AssertForbiddenGraphQl(anonBody, "tenantUsers");
+    }
+
+    private static async Task<JsonElement> PostAsync(
+        HttpClient client, string query)
+    {
+        var resp = await client.PostAsJsonAsync("/graphql", new { query });
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        return await resp.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    private static void AssertForbiddenGraphQl(JsonElement body, string field)
+    {
+        body.TryGetProperty("errors", out var errors).ShouldBeTrue();
+        errors.GetArrayLength().ShouldBeGreaterThan(0);
+        // Error propagation leaves data null or the field null — never
+        // a populated directory payload alongside the error.
+        var data = body.GetProperty("data");
+        if (data.ValueKind != JsonValueKind.Null)
+            data.GetProperty(field).ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
     private static async Task<string> SeedNamedDraftAsync(HttpClient client, string tenant)
     {
         var created = await client.PostAsJsonAsync(

@@ -17,6 +17,7 @@ public static class GetDocumentHandler
         IDocumentRepository docs, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        ApplicationOperations.Require(q.Scope, AppOperation.PackageAccess);
         var doc = await docs.GetDocAsync(q.DocId, ct);
         if (doc is null || doc.ApplicationId != q.AppId)
             throw Errors.DomainException.NotFound(

@@ -23,6 +23,7 @@ public static class GetDocumentDownloadHandler
         ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        ApplicationOperations.Require(q.Scope, AppOperation.PackageAccess);
         var doc = await docs.GetDocAsync(q.DocId, ct);
         // A doc id from another application is a 404, never a leak.
         if (doc is null || doc.ApplicationId != q.AppId)

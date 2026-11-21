@@ -18,6 +18,7 @@ public static class ExportMismoHandler
         Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
+        ApplicationOperations.Require(c.Scope, AppOperation.Export);
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, c.AppId, c.ActorId, c.Scope, ct);
         await audit.WriteAsync(c.ActorId, "export", "application", c.AppId,

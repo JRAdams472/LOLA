@@ -124,14 +124,16 @@ public static class AdminEndpoints
             await Guarded(id, async () => Results.Ok(
                 await bus.InvokeMaskedAsync<IReadOnlyList<AdminUserDto>>(
                     new GetTenantUsersQuery(id,
-                        ctx.User.FindFirst("sub")?.Value ?? "unknown"), ct))))
+                        ctx.User.FindFirst("sub")?.Value ?? "unknown",
+                        LolaPolicies.ScopeFor(ctx.User)), ct))))
             .RequireAuthorization(LolaPolicies.AdminRead);
 
         admin.MapGet("/tenants/{id}/groups", async (
-                string id, IMessageBus bus, CancellationToken ct) =>
+                string id, HttpContext ctx, IMessageBus bus, CancellationToken ct) =>
             await Guarded(id, async () => Results.Ok(
                 await bus.InvokeMaskedAsync<IReadOnlyList<GroupDto>>(
-                    new ListGroupsQuery(id), ct))))
+                    new ListGroupsQuery(id,
+                        LolaPolicies.ScopeFor(ctx.User)), ct))))
             .RequireAuthorization(LolaPolicies.AdminRead);
 
         admin.MapPost("/tenants/{id}/users", async (
@@ -166,10 +168,12 @@ public static class AdminEndpoints
             .RequireAuthorization(LolaPolicies.TenantAdmin);
 
         admin.MapGet("/tenants/{id}/groups/{gid}/members", async (
-                string id, string gid, IMessageBus bus, CancellationToken ct) =>
+                string id, string gid, HttpContext ctx, IMessageBus bus,
+                CancellationToken ct) =>
             await Guarded(id, async () => Results.Ok(
                 await bus.InvokeAsync<IReadOnlyList<string>>(
-                    new ListGroupMembersQuery(id, gid), ct))))
+                    new ListGroupMembersQuery(id, gid,
+                        LolaPolicies.ScopeFor(ctx.User)), ct))))
             .RequireAuthorization(LolaPolicies.AdminRead);
 
         admin.MapPost("/tenants/{id}/groups/{gid}/members", async (
