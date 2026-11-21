@@ -135,7 +135,7 @@ public sealed class DocRepositoryTests(OpenBaoFixture fixture)
                 "Contract: bad payload");
             var failed = await repo.GetDocAsync("doc-2");
             failed!.Status.ShouldBe("failed");
-            failed.Error.ShouldContain("Contract");
+            failed.Error!.ShouldContain("Contract");
 
             var list = await repo.ListDocsAsync("app-1");
             list.Count.ShouldBe(2);

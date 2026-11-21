@@ -166,7 +166,7 @@ public sealed class FeeRepositoryTests(OpenBaoFixture fixture)
                     "Unavailable: Zara 503");
                 var failed = await repo.GetEvalAsync("eval-1");
                 failed!.Status.ShouldBe("failed");
-                failed.Error.ShouldContain("Zara 503");
+                failed.Error!.ShouldContain("Zara 503");
                 (await repo.ListDueOutboxAsync(
                     "2999-01-02T00:00:00.000Z", 10)).ShouldBeEmpty();
 
