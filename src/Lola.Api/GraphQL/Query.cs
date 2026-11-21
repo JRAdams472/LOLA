@@ -28,8 +28,11 @@ public class Query(IMessageBus bus)
     /// masking is identical by construction (ADR-0011).
     public Task<IReadOnlyList<AdminUserDto>> TenantUsers(
         string tenantId, IResolverContext context, CancellationToken cancellationToken)
-        => bus.InvokeMaskedAsync<IReadOnlyList<AdminUserDto>>(
-            new GetTenantUsersQuery(tenantId, Actor(context).ActorId), cancellationToken);
+    {
+        var (actor, scope) = Actor(context);
+        return bus.InvokeMaskedAsync<IReadOnlyList<AdminUserDto>>(
+            new GetTenantUsersQuery(tenantId, actor, scope), cancellationToken);
+    }
 
     /// Intake reads (MPE-110) — same handlers as REST; the doc's PII
     /// is masked inside the handler per VisibilityContext. `docJson`
@@ -266,9 +269,9 @@ public class Query(IMessageBus bus)
     public Task<IReadOnlyList<GroupDto>> TenantGroups(
         string tenantId, IResolverContext context, CancellationToken ct)
     {
-        var (actor, _) = Actor(context);
+        var (_, scope) = Actor(context);
         return bus.InvokeAsync<IReadOnlyList<GroupDto>>(
-            new ListGroupsQuery(tenantId), ct);
+            new ListGroupsQuery(tenantId, scope), ct);
     }
 
     /// Member ids of one group — the admin membership dialog joins
@@ -277,9 +280,9 @@ public class Query(IMessageBus bus)
         string tenantId, string groupId, IResolverContext context,
         CancellationToken ct)
     {
-        var (actor, _) = Actor(context);
+        var (_, scope) = Actor(context);
         return bus.InvokeAsync<IReadOnlyList<string>>(
-            new ListGroupMembersQuery(tenantId, groupId), ct);
+            new ListGroupMembersQuery(tenantId, groupId, scope), ct);
     }
 
     public Task<TenantRetentionReport> Retention(

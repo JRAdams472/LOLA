@@ -46,10 +46,19 @@ public static class ApplicationEndpoints
                 new SearchApplicationsQuery(id, field, value,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
+        // Partner detail routes to the narrow projection (MPE-272):
+        // a linked partner sees loan metadata, never the staff document.
         group.MapGet("/{appId}", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
-            Guarded(id, async () => await bus.InvokeAsync<ApplicationDto?>(
-                new GetApplicationQuery(id, appId, Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+            Guarded(id, async () =>
+            {
+                var scope = LolaPolicies.ScopeFor(user);
+                if (scope == ActorScope.Partner)
+                    return await bus.InvokeAsync<PartnerApplicationDto?>(
+                        new GetPartnerApplicationQuery(id, appId, Actor(user)), ct);
+                return (object?)await bus.InvokeAsync<ApplicationDto?>(
+                    new GetApplicationQuery(id, appId, Actor(user), scope), ct);
+            }));
 
         group.MapPatch("/{appId}", async (string id, string appId,
                 UpdateDraftRequest body, ClaimsPrincipal user,

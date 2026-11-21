@@ -79,25 +79,36 @@ public static class LolaPolicies
             ctx => PlatformAuthority.IsPlatformPrincipal(ctx.User)));
     }
 
-    /// Row-scope discriminant fed to application-bound commands (M19).
-    /// Widest scope wins for multi-role principals: a staff role
-    /// outranks a partner link, a partner link outranks borrower-owns.
-    /// Policy admission already guarantees one of these claims, so the
-    /// trailing default is unreachable in practice.
+    /// Row-scope discriminant fed to application-bound commands (M19)
+    /// — fail closed (MPE-272): exactly one scope kind must be present.
+    /// A missing subject, no recognized role, or a mixed staff/external
+    /// role set is a denied identity — never the old Staff default.
+    /// Non-interactive workers never reach this path: outbox drains
+    /// call adapters/repositories directly, not actor-scoped commands.
     public static Application.Applications.ActorScope ScopeFor(ClaimsPrincipal user)
     {
-        if (HasRole(user,
-                Domain.Identity.LolaRole.TenantAdmin,
-                Domain.Identity.LolaRole.LoanOfficer,
-                Domain.Identity.LolaRole.Service))
-            return Application.Applications.ActorScope.Staff;
-        if (HasRole(user,
-                Domain.Identity.LolaRole.Broker,
-                Domain.Identity.LolaRole.Realtor))
-            return Application.Applications.ActorScope.Partner;
-        if (HasRole(user, Domain.Identity.LolaRole.Borrower))
-            return Application.Applications.ActorScope.Borrower;
-        return Application.Applications.ActorScope.Staff;
+        if (user.FindFirst("sub") is null)
+            throw Application.Errors.DomainException.Forbidden(
+                "missing subject claim");
+        var staff = HasRole(user,
+            Domain.Identity.LolaRole.TenantAdmin,
+            Domain.Identity.LolaRole.LoanOfficer,
+            Domain.Identity.LolaRole.Service);
+        var partner = HasRole(user,
+            Domain.Identity.LolaRole.Broker,
+            Domain.Identity.LolaRole.Realtor);
+        var borrower = HasRole(user, Domain.Identity.LolaRole.Borrower);
+        var kinds = (staff ? 1 : 0) + (partner ? 1 : 0) + (borrower ? 1 : 0);
+        return kinds switch
+        {
+            1 when staff => Application.Applications.ActorScope.Staff,
+            1 when partner => Application.Applications.ActorScope.Partner,
+            1 => Application.Applications.ActorScope.Borrower,
+            _ => throw Application.Errors.DomainException.Forbidden(
+                kinds == 0
+                    ? "no recognized role"
+                    : "conflicting role set"),
+        };
     }
 
     public static bool HasRole(ClaimsPrincipal user, params Domain.Identity.LolaRole[] roles)

@@ -39,4 +39,16 @@ internal static class AdminGuards
                 throw DomainException.BadRequest(
                     $"role '{role}' is not assignable to a group");
     }
+
+    /// The AdminRead decision enforced in-handler (MPE-272): REST's
+    /// AdminRead policy and the GraphQL resolvers share exactly this
+    /// check, so a directory read can never rely on masking alone.
+    /// Staff scope == the AdminRead role set (TenantAdmin/LoanOfficer/
+    /// Service) via LolaPolicies.ScopeFor.
+    public static void RequireStaffScope(Applications.ActorScope scope)
+    {
+        if (scope != Applications.ActorScope.Staff)
+            throw DomainException.Forbidden(
+                "directory reads require staff scope");
+    }
 }
