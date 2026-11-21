@@ -13,6 +13,7 @@ public static class CreateGroupHandler
     {
         AdminGuards.RequireTenant(c.TenantId);
         AdminGuards.RequireAssignableRoles(c.Roles);
+        AdminGuards.RequireUnreservedName(c.Name);
         var group = new LolaGroup($"g-{Guid.NewGuid():N}", c.TenantId,
             c.Name, c.Description, c.Roles);
         await groups.InsertAsync(group, ct);

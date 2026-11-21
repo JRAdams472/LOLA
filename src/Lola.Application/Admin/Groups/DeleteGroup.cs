@@ -11,6 +11,7 @@ public static class DeleteGroupHandler
     {
         AdminGuards.RequireTenant(c.TenantId);
         var group = await AdminGuards.RequireGroup(groups, c.TenantId, c.GroupId, ct);
+        AdminGuards.RequireMutableGroup(group);
         await groups.DeleteAsync(group.Id, ct);
         return GroupDto.From(group, 0);
     }

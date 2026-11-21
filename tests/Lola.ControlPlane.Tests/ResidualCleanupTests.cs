@@ -34,8 +34,14 @@ public class ResidualCleanupTests
                 """
                 INSERT INTO users (id, tenant_id, email, display_name, password_hash, status)
                 VALUES ('u1', @tid, 'a@x.dev', 'Alice', 'phc$argon2', 'active'),
-                       ('u2', @tid, 'b@x.dev', 'Bob', NULL, 'invited')
+                       ('u2', @tid, 'b@x.dev', 'Bob', NULL, 'invited'),
+                       ('u3', @tid, 'p@x.dev', 'Partner', 'phc$argon2', 'active')
                 """, new { tid });
+            // Invited partner carries a synthetic org attribution
+            // (M19) — erasure must drop it like every other
+            // PII-class field (MPE-273).
+            conn.Execute(
+                "UPDATE users SET org_name = 'TPO Org LLC' WHERE id = 'u3'");
             conn.Execute(
                 "INSERT INTO groups (id, tenant_id, name) VALUES ('g1', @tid, 'staff')",
                 new { tid });
@@ -77,7 +83,7 @@ public class ResidualCleanupTests
         }
 
         var result = await new ControlPlaneResiduals(db).CleanAsync(tid);
-        result.ShouldBe(new ResidualCleanup(3, 2, 1, 1, 1, 2));
+        result.ShouldBe(new ResidualCleanup(3, 2, 1, 1, 1, 3));
 
         using (var conn = db.Open())
         {
@@ -102,14 +108,15 @@ public class ResidualCleanupTests
             // Users are tombstones: no credential, no PII-class field.
             var users = conn.Query<(
                 string Id, string Email, string Display, string? Hash, string Status,
-                long Mfa, string? MfaRef)>(
+                long Mfa, string? MfaRef, string? Org)>(
                 """
                 SELECT id AS Id, email AS Email, display_name AS Display,
                        password_hash AS Hash, status AS Status,
-                       mfa_enabled AS Mfa, mfa_secret_ref AS MfaRef
+                       mfa_enabled AS Mfa, mfa_secret_ref AS MfaRef,
+                       org_name AS Org
                 FROM users WHERE tenant_id = @tid ORDER BY id
                 """, new { tid }).ToList();
-            users.Count.ShouldBe(2);
+            users.Count.ShouldBe(3);
             foreach (var u in users)
             {
                 u.Email.ShouldBe($"erased-{u.Id}@erased");
@@ -118,6 +125,7 @@ public class ResidualCleanupTests
                 u.Status.ShouldBe("disabled");
                 u.Mfa.ShouldBe(0);
                 u.MfaRef.ShouldBeNull();
+                u.Org.ShouldBeNull();
             }
 
             // The audit spine survives untouched.
@@ -134,6 +142,6 @@ public class ResidualCleanupTests
 
         // Idempotent: a retried erase's second pass finds nothing.
         var again = await new ControlPlaneResiduals(db).CleanAsync(tid);
-        again.ShouldBe(new ResidualCleanup(0, 0, 0, 0, 0, 2));
+        again.ShouldBe(new ResidualCleanup(0, 0, 0, 0, 0, 3));
     }
 }

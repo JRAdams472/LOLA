@@ -84,6 +84,7 @@ public sealed class ControlPlaneResiduals(ControlPlaneDb db) : IControlPlaneResi
                 password_hash  = NULL,
                 mfa_enabled    = 0,
                 mfa_secret_ref = NULL,
+                org_name       = NULL,
                 status         = 'disabled',
                 updated_utc    = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE tenant_id = @tenantId

@@ -119,6 +119,22 @@ public interface IInviteDelivery
     Task<Uri> DeliverAsync(string email, string tenantId, string token, CancellationToken ct = default);
 }
 
+/// Transactional invite acceptance (MPE-273): everything the accept
+/// writes — protected group resolve/create, user insert, membership,
+/// single-use consume — commits or rolls back together on ONE
+/// control-plane transaction. The caller hashes the token and password
+/// BEFORE calling so no expensive work runs under the write lock.
+public interface IInviteAcceptance
+{
+    Task<InviteAcceptanceOutcome> AcceptAsync(
+        InviteAcceptanceRequest request, CancellationToken ct = default);
+}
+
+public sealed record InviteAcceptanceRequest(
+    string TokenHash, string DisplayName, string PasswordHash);
+
+public sealed record InviteAcceptanceOutcome(string UserId, string TenantId);
+
 /// Per-tenant downstream service credentials (MPE-87): creates the
 /// `svc-{tenant}` client_credentials OIDC client. Idempotent — an
 /// existing client yields a null secret (it is only plaintext once).
@@ -192,8 +208,8 @@ public interface IControlPlaneResiduals
     /// Deletes invites, OIDC tokens/authorizations, the `svc-{tenant}`
     /// client, and groups/user_groups/group_roles; anonymizes `users`
     /// (email→`erased-{id}@erased`, display_name→`erased`,
-    /// password_hash→NULL, status→`disabled`). Idempotent — a retried
-    /// erase finds nothing left to delete.
+    /// password_hash→NULL, org_name→NULL, status→`disabled`).
+    /// Idempotent — a retried erase finds nothing left to delete.
     Task<ResidualCleanup> CleanAsync(string tenantId, CancellationToken ct = default);
 }
 

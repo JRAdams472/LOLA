@@ -1,4 +1,5 @@
 using Dapper;
+using Lola.Application.Errors;
 using Lola.Application.Identity;
 using Lola.Domain.Identity;
 
@@ -18,7 +19,7 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         // group-less tenant, MPE-90).
         var rows = await conn.QueryAsync<GroupRoleRow>(new CommandDefinition("""
             SELECT g.id, g.tenant_id AS TenantId, g.name, g.description,
-                   gr.role AS Role
+                   g.system_kind AS SystemKind, gr.role AS Role
             FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
             WHERE g.tenant_id = @tenantId ORDER BY g.name
             """, new { tenantId }, cancellationToken: ct));
@@ -30,7 +31,7 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         using var conn = db.Open();
         var rows = await conn.QueryAsync<GroupRoleRow>(new CommandDefinition("""
             SELECT g.id, g.tenant_id AS TenantId, g.name, g.description,
-                   gr.role AS Role
+                   g.system_kind AS SystemKind, gr.role AS Role
             FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
             WHERE g.id = @id
             """, new { id }, cancellationToken: ct));
@@ -66,6 +67,7 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         string id, string? name, string? description, CancellationToken ct = default)
     {
         using var conn = db.Open();
+        await RequireMutableAsync(conn, id, ct);
         await conn.ExecuteAsync(new CommandDefinition("""
             UPDATE groups SET
                 name = COALESCE(@name, name),
@@ -78,6 +80,7 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         string groupId, IReadOnlyCollection<LolaRole> roles, CancellationToken ct = default)
     {
         using var conn = db.Open();
+        await RequireMutableAsync(conn, groupId, ct);
         using var tx = conn.BeginTransaction();
         await conn.ExecuteAsync(new CommandDefinition(
             "DELETE FROM group_roles WHERE group_id = @groupId",
@@ -93,8 +96,25 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
         using var conn = db.Open();
+        await RequireMutableAsync(conn, id, ct);
         await conn.ExecuteAsync(new CommandDefinition(
             "DELETE FROM groups WHERE id = @id", new { id }, cancellationToken: ct));
+    }
+
+    /// Shared mutation boundary (MPE-273): a group carrying a
+    /// system_kind is a protected invite target — never mutable
+    /// through the admin directory no matter which caller got here.
+    private static async Task RequireMutableAsync(
+        Microsoft.Data.Sqlite.SqliteConnection conn, string groupId,
+        CancellationToken ct)
+    {
+        var kind = await conn.ExecuteScalarAsync<string?>(
+            new CommandDefinition(
+                "SELECT system_kind FROM groups WHERE id = @groupId",
+                new { groupId }, cancellationToken: ct));
+        if (kind is not null)
+            throw DomainException.Forbidden(
+                "system groups are protected from structural edits");
     }
 
     public async Task AddMemberAsync(
@@ -127,7 +147,8 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
     }
 
     private sealed record GroupRoleRow(
-        string Id, string TenantId, string Name, string? Description, string? Role);
+        string Id, string TenantId, string Name, string? Description,
+        string? SystemKind, string? Role);
 
     private static IReadOnlyList<LolaGroup> ToGroups(IEnumerable<GroupRoleRow> rows)
         => rows.GroupBy(r => r.Id).Select(g =>
@@ -136,6 +157,6 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
                 var roles = g.Where(r => r.Role is not null)
                     .Select(r => Enum.Parse<LolaRole>(r.Role!)).ToList();
                 return new LolaGroup(first.Id, first.TenantId, first.Name,
-                    first.Description, roles);
+                    first.Description, roles, first.SystemKind);
             }).ToList();
 }
