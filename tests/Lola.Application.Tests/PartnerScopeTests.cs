@@ -240,24 +240,36 @@ public sealed class PartnerScopeTests
         LolaRole role, string groupName)
     {
         using var _ = Scope();
-        var invites = new FakeInvites();
-        var groups = new FakeGroups();
-        var users = new FakeUsers(groups);
-        var token = "tok-" + Guid.NewGuid().ToString("N");
-        invites.Seed(role, token, "TPO Org");
+        var acceptance = new FakeInviteAcceptance();
+        acceptance.Seed(role, "tok-1", "TPO Org");
 
         var result = await AcceptInviteHandler.Handle(
-            new AcceptInviteCommand(token, "Partner One",
+            new AcceptInviteCommand("tok-1", "Partner One",
                 "correct horse battery staple"),
-            invites, users, groups, new FakeHasher(), default);
+            acceptance, new FakeHasher(), default);
         result.Status.ShouldBe("active");
-        var grp = groups.Store.ShouldHaveSingleItem();
+        var grp = acceptance.Groups.ShouldHaveSingleItem();
         grp.Name.ShouldBe(groupName);
         grp.Roles.ShouldBe([role]);
-        groups.Members.ShouldContain((grp.Id, result.UserId));
-        var user = users.Store.ShouldHaveSingleItem();
+        grp.SystemKind.ShouldNotBeNull();
+        acceptance.Members.ShouldContain((grp.Id, result.UserId));
+        var user = acceptance.Users.ShouldHaveSingleItem();
         user.OrgName.ShouldBe("TPO Org");
-        users.RolesFor(result.UserId).ShouldBe([role]);
+        acceptance.Used.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Accept_hashes_password_before_acceptance_call()
+    {
+        // Argon2 must never run under the SQLite write lock — the
+        // handler hands the port a ready-made hash (MPE-273).
+        var acceptance = new FakeInviteAcceptance();
+        acceptance.Seed(LolaRole.Broker, "tok-1", null);
+        await AcceptInviteHandler.Handle(
+            new AcceptInviteCommand("tok-1", "P", "the-password"),
+            acceptance, new FakeHasher(), default);
+        acceptance.LastRequest!.PasswordHash.ShouldBe("h:the-password");
+        acceptance.LastRequest.DisplayName.ShouldBe("P");
     }
 
     // ---- fakes ----
@@ -459,6 +471,60 @@ public sealed class PartnerScopeTests
         public Task<bool> MarkUsedAsync(string inviteId, string usedUtc,
             CancellationToken ct = default)
             => Task.FromResult(true);
+    }
+
+    /// Mirrors the transactional acceptance port (MPE-273): the real
+    /// impl's atomicity/concurrency proofs live in ControlPlane.Tests
+    /// against migrated SQLite — this fake only models the outcome.
+    private sealed class FakeInviteAcceptance : IInviteAcceptance
+    {
+        public List<LolaGroup> Groups { get; } = [];
+        public List<(string GroupId, string UserId)> Members { get; } = [];
+        public List<LolaUser> Users { get; } = [];
+        public List<InviteRecord> Invites { get; } = [];
+        public InviteAcceptanceRequest? LastRequest { get; private set; }
+        public bool Used { get; private set; }
+
+        public void Seed(LolaRole role, string token, string? org)
+        {
+            var hash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.ASCII.GetBytes(token)))
+                .ToLowerInvariant();
+            Invites.Add(new InviteRecord("i-1", "t1", "p@x", role, hash,
+                DateTimeOffset.UtcNow.AddHours(1).ToString("O"), null,
+                "u-admin", org));
+        }
+
+        public Task<InviteAcceptanceOutcome> AcceptAsync(
+            InviteAcceptanceRequest r, CancellationToken ct = default)
+        {
+            LastRequest = r;
+            var invite = Invites.FirstOrDefault(
+                i => i.TokenHash == r.TokenHash)
+                ?? throw DomainException.BadRequest("invite is invalid");
+            var kind = SystemGroups.ForRole(invite.Role)
+                ?? throw DomainException.BadRequest(
+                    "invite role is not acceptable through this flow");
+            var grp = Groups.FirstOrDefault(
+                g => g.SystemKind == kind.SystemKind);
+            if (grp is null)
+            {
+                grp = new LolaGroup($"g-{Guid.NewGuid():N}",
+                    invite.TenantId, kind.Name, kind.Description,
+                    [invite.Role], kind.SystemKind);
+                Groups.Add(grp);
+            }
+            var user = new LolaUser($"u-{Guid.NewGuid():N}",
+                invite.TenantId, invite.Email, r.DisplayName,
+                r.PasswordHash, UserStatus.Active, false, "now",
+                OrgName: invite.OrgName);
+            Users.Add(user);
+            Members.Add((grp.Id, user.Id));
+            Used = true;
+            return Task.FromResult(
+                new InviteAcceptanceOutcome(user.Id, invite.TenantId));
+        }
     }
 
     private sealed class FakeHasher : IPasswordHasher

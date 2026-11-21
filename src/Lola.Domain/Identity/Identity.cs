@@ -63,7 +63,8 @@ public sealed record LolaGroup(
     string TenantId,
     string Name,
     string? Description,
-    IReadOnlyList<LolaRole> Roles);
+    IReadOnlyList<LolaRole> Roles,
+    string? SystemKind = null);
 
 public sealed record InviteRecord(
     string Id,

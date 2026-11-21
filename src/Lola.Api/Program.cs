@@ -146,6 +146,7 @@ builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();
 builder.Services.AddSingleton<IUserDirectory, UserDirectory>();
 builder.Services.AddSingleton<IGroupDirectory, GroupDirectory>();
 builder.Services.AddSingleton<IInviteDirectory, InviteDirectory>();
+builder.Services.AddSingleton<IInviteAcceptance, InviteAcceptance>();
 builder.Services.AddSingleton<IInviteDelivery, DevInviteDelivery>();
 builder.Services.AddSingleton<IServiceClientProvisioner, TenantServiceClientProvisioner>();
 builder.Services.AddSingleton<IRoleVisibilityMap, RoleVisibilityMap>();

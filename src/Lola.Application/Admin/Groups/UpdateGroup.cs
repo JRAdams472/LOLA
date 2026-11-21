@@ -13,7 +13,10 @@ public static class UpdateGroupHandler
         UpdateGroupCommand c, IGroupDirectory groups, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        await AdminGuards.RequireGroup(groups, c.TenantId, c.GroupId, ct);
+        var group = await AdminGuards.RequireGroup(groups, c.TenantId, c.GroupId, ct);
+        AdminGuards.RequireMutableGroup(group);
+        if (c.Name is not null)
+            AdminGuards.RequireUnreservedName(c.Name);
         if (c.Roles is not null)
             AdminGuards.RequireAssignableRoles(c.Roles);
         if (c.Name is not null || c.Description is not null)
