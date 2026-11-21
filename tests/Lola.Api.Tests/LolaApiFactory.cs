@@ -55,6 +55,9 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         // hermetic. OIDC client provisioning stays real (control-plane).
         builder.ConfigureServices(services =>
         {
+            // Weak work factor everywhere — hashing is a fixed cost
+            // the suite pays ~124x and asserts nothing about (MPE-269).
+            services.AddSingleton<IPasswordHasher>(new TestPasswordHasher());
             services.AddSingleton<ITenantKeyManager>(new FakeKeyManager());
             services.AddSingleton<ITenantMigrationRunner>(new FakeMigrationRunner());
             services.AddSingleton<ITenantBackup>(new FakeTenantBackup());
@@ -190,7 +193,7 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             tenantId, tenantId, $"Tenant {tenantId}", $"data/tenants/{tenantId}.db");
         await registry.SetStatusAsync(tenantId, tenantStatus);
 
-        var hasher = new Argon2PasswordHasher();
+        var hasher = new TestPasswordHasher();
         var user = new LolaUser(
             $"u-{Guid.NewGuid():N}", tenantId, email, "Test User",
             hasher.Hash(password), UserStatus.Active, MfaEnabled: false,

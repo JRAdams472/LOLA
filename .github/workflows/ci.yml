@@ -75,43 +75,6 @@ jobs:
             echo "::error::Vulnerable NuGet packages found"
             exit 1
           fi
-      - name: Start OpenBao (dev mode — ephemeral test backend)
-        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
-        # Detached container, same pattern as the SonarQube job. Dev mode
-        # is correct here: ephemeral test infra, root token only, no data.
-        # Lola.Infrastructure.Tests hard-requires a real transit engine.
-        run: |
-          docker run -d --name openbao -p 8200:8200 \
-            openbao/openbao:latest \
-            server -dev -dev-root-token-id=devroot -dev-listen-address=0.0.0.0:8200
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:8200/v1/sys/seal-status >/dev/null && exit 0
-            sleep 1
-          done
-          echo "openbao did not come up"; docker logs openbao --tail 30; exit 1
-      - name: Start MinIO + ClamAV (vault scan pipeline)
-        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
-        # Same detached-container pattern as OpenBao. VaultLive* hard-
-        # requires both: the ciphertext round-trip + bucket lifecycle
-        # run against real MinIO, the EICAR verdict against real clamd.
-        # Dev creds — ephemeral job infra only.
-        run: |
-          docker run -d --name minio -p 9200:9000 \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin \
-            ghcr.io/coollabsio/minio:latest server /data
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:9200/minio/health/live >/dev/null && break
-            sleep 1
-          done
-          docker run -d --name clamav -p 3310:3310 clamav/clamav:stable
-          # clamd loads its signature DB before accepting INSTREAM —
-          # the PING gate is the honest "scanner ready" signal.
-          for i in $(seq 1 180); do
-            (exec 3<>/dev/tcp/localhost/3310 && printf 'PING\n' >&3 \
-              && head -1 <&3 | grep -q PONG) && exit 0 || sleep 1
-          done
-          echo "clamav did not come up"; docker logs clamav --tail 30; exit 1
       - name: Checkout MPEx (live eval backend)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -138,22 +101,43 @@ jobs:
           workspaces: |
             mpex-srv
             zara-srv
-      - name: Build MPEx + start Dex & api
+      - name: Launch backing services (parallel — MPE-269)
+        if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
+        # All detached/backgrounded so image pulls and the ISPPr image
+        # build overlap the cargo builds below; the "Wait for backing
+        # services" step is the real readiness gate before dotnet test.
+        # Dev creds — ephemeral job infra only.
+        run: |
+          SVC_SECRET=$(openssl rand -hex 16)
+          CI_SECRET=$(openssl rand -hex 16)
+          echo "MPEX_CLIENT_SECRET=$SVC_SECRET" >> "$GITHUB_ENV"
+          echo "MPEX_SEED_CLIENT_SECRET=$CI_SECRET" >> "$GITHUB_ENV"
+          docker run -d --name openbao -p 8200:8200 \
+            openbao/openbao:latest \
+            server -dev -dev-root-token-id=devroot -dev-listen-address=0.0.0.0:8200
+          docker run -d --name minio -p 9200:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            ghcr.io/coollabsio/minio:latest server /data
+          docker run -d --name clamav -p 3310:3310 clamav/clamav:stable
+          docker run -d --name dex -p 5556:5556 \
+            -v "$PWD/mpex-srv/dex/config.dev.yaml:/etc/dex/config.yaml" \
+            -e "DEX_MPEX_SVC_SECRET=$SVC_SECRET" \
+            -e "DEX_MPEX_CI_SECRET=$CI_SECRET" \
+            dexidp/dex:v2.46.0 dex serve /etc/dex/config.yaml
+          cp isppr-srv/.env.example isppr-srv/.env
+          (docker compose \
+            -f isppr-srv/docker-compose.yml \
+            -f tests/isppr-compose.ci.yml \
+            -p isppr up -d --build db minio gotenberg api \
+            > /tmp/isppr-up.log 2>&1 &)
+      - name: Build MPEx + start api
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         # Same recipe as MPEx's own CI e2e job: generated Dex secrets,
         # seeded binary, draft artifacts. Lola.Infrastructure.Tests
         # MpexLive* hard-requires this stack (never-skip).
         run: |
           cargo build --manifest-path mpex-srv/Cargo.toml
-          SVC_SECRET=$(openssl rand -hex 16)
-          CI_SECRET=$(openssl rand -hex 16)
-          echo "MPEX_CLIENT_SECRET=$SVC_SECRET" >> "$GITHUB_ENV"
-          echo "MPEX_SEED_CLIENT_SECRET=$CI_SECRET" >> "$GITHUB_ENV"
-          docker run -d --name dex -p 5556:5556 \
-            -v "$PWD/mpex-srv/dex/config.dev.yaml:/etc/dex/config.yaml" \
-            -e "DEX_MPEX_SVC_SECRET=$SVC_SECRET" \
-            -e "DEX_MPEX_CI_SECRET=$CI_SECRET" \
-            dexidp/dex:v2.46.0 dex serve /etc/dex/config.yaml
           for i in $(seq 1 30); do
             curl -sf http://localhost:5556/dex/.well-known/openid-configuration >/dev/null && break
             sleep 1
@@ -210,32 +194,49 @@ jobs:
             curl -sf http://localhost:8400/healthz && exit 0 || sleep 1
           done
           echo "zara did not come up"; exit 1
-      - name: Start ISPPr stack (db + minio + gotenberg + api)
+      - name: Wait for backing services (MPE-269)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
-        # Compose bring-up straight from the checked-out vendor repo;
-        # the CI override drops host ports that clash with the job's
-        # postgres services. RUN_SEED=1 seeds cli_demo/cust_demo,
-        # the generate-scoped demo key, and the admin login that the
-        # provisioning tests exercise. IspprLive* hard-requires this
-        # stack (never-skip).
+        # Readiness gate for the detached launches above — most checks
+        # pass instantly because startup overlapped the cargo builds.
         run: |
-          cp isppr-srv/.env.example isppr-srv/.env
-          docker compose \
-            -f isppr-srv/docker-compose.yml \
-            -f tests/isppr-compose.ci.yml \
-            -p isppr up -d --build db minio gotenberg api
-          for i in $(seq 1 120); do
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8200/v1/sys/seal-status >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8200/v1/sys/seal-status >/dev/null \
+            || { echo "openbao did not come up"; docker logs openbao --tail 30; exit 1; }
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9200/minio/health/live >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:9200/minio/health/live >/dev/null \
+            || { echo "minio did not come up"; docker logs minio --tail 30; exit 1; }
+          # clamd loads its signature DB before accepting INSTREAM —
+          # the PING gate is the honest "scanner ready" signal.
+          for i in $(seq 1 180); do
+            (exec 3<>/dev/tcp/localhost/3310 && printf 'PING\n' >&3 \
+              && head -1 <&3 | grep -q PONG) && break || sleep 1
+          done
+          (exec 3<>/dev/tcp/localhost/3310 && printf 'PING\n' >&3 \
+            && head -1 <&3 | grep -q PONG) \
+            || { echo "clamav did not come up"; docker logs clamav --tail 30; exit 1; }
+          # ISPPr — compose bring-up ran in the background; RUN_SEED=1
+          # seeds cli_demo/cust_demo, the generate key, and the admin
+          # login that the provisioning tests exercise. Boot ≠ seeded,
+          # so the gate is a real admin login, not just /healthz.
+          for i in $(seq 1 150); do
             curl -sf http://localhost:8090/healthz && break || sleep 1
           done
-          # Boot ≠ seeded — gate on a real admin login so the
-          # provisioning tests never race the seed.
+          curl -sf http://localhost:8090/healthz >/dev/null \
+            || { echo "isppr did not come up"; cat /tmp/isppr-up.log; \
+                 docker compose -p isppr logs --tail 30; exit 1; }
           for i in $(seq 1 30); do
             curl -sf -X POST http://localhost:8090/api/v1/admin/login \
               -H 'Content-Type: application/json' \
               -d '{"email":"admin@isppr.local","password":"isppr-admin"}' \
               | grep -q '"token"' && exit 0 || sleep 1
           done
-          echo "isppr did not come up"; exit 1
+          echo "isppr admin login never seeded"; exit 1
       - name: dotnet test (coverage)
         if: ${{ hashFiles('**/*.slnx', '**/*.sln') != '' }}
         env:
