@@ -28,6 +28,20 @@ public sealed class TaskEvaluatorTests
     private sealed class FakeApps(IReadOnlyList<ApplicationMeta> metas,
         IReadOnlyList<StepEventDto> steps) : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<IReadOnlyList<ApplicationMeta>> ListAsync(
             CancellationToken ct = default) => Task.FromResult(metas);
         public Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(

@@ -83,7 +83,7 @@ public sealed class PartnerScopeTests
             new ListApplicationsQuery("t1", "u-broker", ActorScope.Partner),
             new FakeApps(metas: metas, links: [("app-2", "u-broker")]),
             default);
-        list.ShouldHaveSingleItem().Id.ShouldBe("app-2");
+        list.Items.ShouldHaveSingleItem().Id.ShouldBe("app-2");
     }
 
     [Fact]
@@ -287,6 +287,44 @@ public sealed class PartnerScopeTests
     {
         private readonly HashSet<(string, string)> _links =
             links?.ToHashSet() ?? [];
+
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+        {
+            var rows = (metas ?? []).Where(m =>
+                scope == ActorScope.Staff ||
+                (scope == ActorScope.Borrower &&
+                    m.BorrowerUserId == actorId) ||
+                (scope == ActorScope.Partner &&
+                    _links.Contains((m.Id, actorId!)))).ToList();
+            return Task.FromResult(new ApplicationPage(
+                rows.Skip(skip).Take(take).ToList(),
+                rows.Count, skip, take));
+        }
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+        {
+            if (record?.Id != id)
+                return Task.FromResult<ScopedApplicationMeta?>(null);
+            var inScope = scope switch
+            {
+                ActorScope.Staff => true,
+                ActorScope.Borrower => record.BorrowerUserId == actorId,
+                _ => _links.Contains((id, actorId!)),
+            };
+            return Task.FromResult<ScopedApplicationMeta?>(
+                new ScopedApplicationMeta(id, record.Status,
+                    record.PipelineStep, record.BorrowerUserId,
+                    record.CurrentVersion, record.TridClockStart,
+                    record.SubmittedUtc, inScope));
+        }
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
 
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
@@ -578,6 +616,12 @@ public sealed class PartnerScopeTests
     private sealed class FakeVault(
         IEnumerable<VaultDocRecord> docs) : IVaultDocRepository
     {
+        public Task<IReadOnlyList<VaultDocRecord>> ListForUploaderAsync(
+            string appId, string uploaderId, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<VaultDocRecord>>(docs
+                .Where(d => d.ApplicationId == appId && d.Actor == uploaderId)
+                .ToList());
+
         public Task<VaultDocRecord?> GetAsync(string vaultDocId,
             CancellationToken ct = default)
             => Task.FromResult(docs.FirstOrDefault(

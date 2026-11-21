@@ -33,6 +33,33 @@ public sealed class ListApplicationsTests
     private sealed class FakeApps(IReadOnlyList<ApplicationMeta> metas)
         : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+        {
+            var rows = metas.Where(m =>
+                scope == ActorScope.Staff ||
+                (scope == ActorScope.Borrower &&
+                    m.BorrowerUserId == actorId) ||
+                (scope == ActorScope.Partner && false)).ToList();
+            return Task.FromResult(new ApplicationPage(
+                rows.Skip(skip).Take(take).Select(m => m with
+                {
+                    BorrowerName = includeNames ? m.BorrowerName
+                        : m.BorrowerName is null ? null
+                            : ApplicationMeta.MaskedName
+                }).ToList(), rows.Count, skip, take));
+        }
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<IReadOnlyList<ApplicationMeta>> ListAsync(
             CancellationToken ct = default) => Task.FromResult(metas);
 
@@ -75,9 +102,9 @@ public sealed class ListApplicationsTests
     public async Task Officer_scope_sees_borrower_name_plaintext()
     {
         using var _ = Scope(new HashSet<PiiClass> { PiiClass.Name });
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
-            new FakeApps([Meta()]), default);
+            new FakeApps([Meta()]), default)).Items;
         metas[0].BorrowerName.ShouldBe("Ada Lovelace");
     }
 
@@ -85,20 +112,22 @@ public sealed class ListApplicationsTests
     public async Task Absent_name_grant_masks_borrower_name()
     {
         using var _ = Scope(); // empty visibility — masked-by-default
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-svc", Scope: ActorScope.Staff),
-            new FakeApps([Meta()]), default);
-        metas[0].BorrowerName.ShouldStartWith("•••");
-        metas[0].BorrowerName.ShouldEndWith("lace"); // "•••"+last-4, same shape as DocMasker
+            new FakeApps([Meta()]), default)).Items;
+        // MPE-266: opaque label — no decrypt, and no
+        // last-4 plaintext leak in the masked shape.
+        metas[0].BorrowerName.ShouldBe(ApplicationMeta.MaskedName);
     }
 
     [Fact]
     public async Task Null_name_stays_null_regardless_of_scope()
     {
         using var _ = Scope();
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-svc", Scope: ActorScope.Staff),
-            new FakeApps([Meta(name: null)]), default);
+            new FakeApps([Meta(name: null)]),
+            default)).Items;
         metas[0].BorrowerName.ShouldBeNull();
     }
 
@@ -108,9 +137,10 @@ public sealed class ListApplicationsTests
         // Stamp Thursday 2026-01-08: Fri 9th (1), Sat 10th counts under
         // the Reg Z general rule (2), Mon 12th (3) — Sundays/holidays skip.
         using var _ = Scope();
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
-            new FakeApps([Meta(stamp: "2026-01-08T10:00:00.000Z")]), default);
+            new FakeApps([Meta(stamp: "2026-01-08T10:00:00.000Z")]),
+            default)).Items;
         metas[0].TridDeadlineUtc.ShouldBe("2026-01-12T00:00:00.000Z");
     }
 
@@ -118,9 +148,10 @@ public sealed class ListApplicationsTests
     public async Task Unstamped_clock_yields_null_deadline()
     {
         using var _ = Scope();
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
-            new FakeApps([Meta(stamp: null)]), default);
+            new FakeApps([Meta(stamp: null)]),
+            default)).Items;
         metas[0].TridDeadlineUtc.ShouldBeNull();
     }
 
@@ -128,11 +159,11 @@ public sealed class ListApplicationsTests
     public async Task Borrower_scope_sees_own_drafts_only_and_masked()
     {
         using var _ = Scope(); // borrowers hold no plaintext grants
-        var metas = await ListApplicationsHandler.Handle(
+        var metas = (await ListApplicationsHandler.Handle(
             new ListApplicationsQuery("t1", "u-b1", Scope: ActorScope.Borrower),
             new FakeApps([Meta(id: "app-mine"), Meta(id: "app-theirs", borrower: "u-b2")]),
-            default);
+            default)).Items;
         metas.ShouldHaveSingleItem().Id.ShouldBe("app-mine");
-        metas[0].BorrowerName.ShouldStartWith("•••");
+        metas[0].BorrowerName.ShouldBe(ApplicationMeta.MaskedName);
     }
 }

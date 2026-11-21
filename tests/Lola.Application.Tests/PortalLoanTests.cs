@@ -48,6 +48,33 @@ public sealed class PortalLoanTests
 
     private sealed class FakeApps(ApplicationRecord record) : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+        {
+            var inScope = scope == ActorScope.Staff ||
+                (scope == ActorScope.Borrower &&
+                    record.BorrowerUserId == actorId);
+            var rows = inScope
+                ? new[] { new ApplicationMeta(record.Id, record.Status,
+                    record.PipelineStep, record.BorrowerUserId,
+                    record.CurrentVersion, record.TridClockStart,
+                    null, null) }
+                : [];
+            return Task.FromResult(new ApplicationPage(
+                rows.Skip(skip).Take(take).ToList(),
+                rows.Length, skip, take));
+        }
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<bool> IsPartnerLinkedAsync(string id,
             string partnerUserId, CancellationToken ct = default)
             => throw new NotImplementedException();
@@ -130,6 +157,11 @@ public sealed class PortalLoanTests
 
     private sealed class FakeVault : IVaultDocRepository
     {
+        public async Task<IReadOnlyList<VaultDocRecord>> ListForUploaderAsync(
+            string appId, string uploaderId, CancellationToken ct = default)
+            => (await ListAsync(appId, ct))
+                .Where(d => d.Actor == uploaderId).ToList();
+
         public Task<IReadOnlyList<VaultDocRecord>> ListAsync(string appId,
             CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<VaultDocRecord>>(

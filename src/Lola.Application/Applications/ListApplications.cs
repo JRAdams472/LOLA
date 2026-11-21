@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Errors;
 using Lola.Application.Identity;
 using Lola.Domain.Applications;
 using Lola.Domain.Classification;
@@ -7,38 +8,38 @@ using Lola.Domain.Identity;
 namespace Lola.Application.Applications;
 
 /// Metas only — no payload — so masking can't leak through a doc.
-/// Borrower actors see their own drafts only. The handler owns the
-/// visibility boundary: the repo returns party[0]'s name plaintext and
-/// it is masked here unless the caller's role grants the Name class
-/// (ADR-0008); the TRID deadline derives from the clock stamp.
+/// External actors get a SQL-scoped page (MPE-266): the owner/link
+/// predicate runs before any name ciphertext loads; a scope that
+/// can't see names skips the decrypt entirely and carries the opaque
+/// masked label instead. Page size is bounded; order is
+/// (created_utc DESC, id) — deterministic across pages.
 public sealed record ListApplicationsQuery(
-    string TenantId, string ActorId, ActorScope Scope);
+    string TenantId, string ActorId, ActorScope Scope,
+    int Page = 1, int PageSize = 50);
+
+public sealed record ApplicationListPage(
+    IReadOnlyList<ApplicationMeta> Items, int Total,
+    int Page, int PageSize);
 
 public static class ListApplicationsHandler
 {
-    public static async Task<IReadOnlyList<ApplicationMeta>> Handle(
+    public const int MaxPageSize = 100;
+
+    public static async Task<ApplicationListPage> Handle(
         ListApplicationsQuery q, IApplicationRepository apps, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        var all = await apps.ListAsync(ct);
+        if (q.Page < 1 || q.PageSize < 1 || q.PageSize > MaxPageSize)
+            throw DomainException.BadRequest(
+                $"page >= 1 and 1 <= pageSize <= {MaxPageSize} required");
         var canSeeName = VisibilityContext.Current.Contains(PiiClass.Name);
-        var enriched = all.Select(a => a with
+        var page = await apps.ListScopedAsync(q.Scope, q.ActorId,
+            (q.Page - 1) * q.PageSize, q.PageSize, canSeeName, ct);
+        var items = page.Items.Select(a => a with
         {
-            BorrowerName = a.BorrowerName is null || canSeeName
-                ? a.BorrowerName
-                : DocMasker.Mask(a.BorrowerName),
             TridDeadlineUtc = TridClock.DeadlineUtc(a.TridClockStart)
         }).ToList();
-        // Linked-only visibility (M19): a partner sees exactly the
-        // apps an active application_partners row names — nothing
-        // else in the tenant.
-        if (q.Scope == ActorScope.Partner)
-        {
-            var linked = await apps.LinkedAppIdsForPartnerAsync(q.ActorId, ct);
-            return enriched.Where(a => linked.Contains(a.Id)).ToList();
-        }
-        return q.Scope == ActorScope.Borrower
-            ? enriched.Where(a => a.BorrowerUserId == q.ActorId).ToList()
-            : enriched;
+        return new ApplicationListPage(items, page.Total,
+            q.Page, q.PageSize);
     }
 }

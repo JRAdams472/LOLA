@@ -35,10 +35,12 @@ public static class ApplicationEndpoints
                 new CreateDraftCommand(id, body?.BorrowerUserId,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
-        group.MapGet("", async (string id, ClaimsPrincipal user,
-                IMessageBus bus, CancellationToken ct) => await
-            Guarded(id, async () => await bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
-                new ListApplicationsQuery(id, Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+        group.MapGet("", async (string id, int? page, int? pageSize,
+                ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ApplicationListPage>(
+                new ListApplicationsQuery(id, Actor(user),
+                    LolaPolicies.ScopeFor(user),
+                    page ?? 1, pageSize ?? 50), ct)));
 
         group.MapGet("/search", async (string id, string field, string value,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await

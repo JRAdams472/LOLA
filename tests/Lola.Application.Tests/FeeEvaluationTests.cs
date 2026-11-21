@@ -270,6 +270,20 @@ public sealed class FeeEvaluationTests
     private sealed class FakeApps(ApplicationDocument doc)
         : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<bool> IsPartnerLinkedAsync(string id,
             string partnerUserId, CancellationToken ct = default)
             => throw new NotImplementedException();

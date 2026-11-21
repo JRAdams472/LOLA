@@ -28,11 +28,14 @@ public static class ListConditionsHandler
     }
 }
 
-/// Borrower-scoped condition view (M12 projection) — own application
-/// only, public fields. Staff actors get an empty list: this surface
-/// is borrower-scope by construction (mirrors GetPortalLoanQuery).
+/// Borrower/partner-scoped condition view (M12 projection; partner
+/// admission MPE-266) — the public-field projection is identical for
+/// both external scopes; only the reach check differs (own app vs
+/// active link). Staff actors get an empty list: this surface is
+/// external-scope by construction.
 public sealed record ListBorrowerConditionsQuery(
-    string TenantId, string AppId, string ActorId);
+    string TenantId, string AppId, string ActorId,
+    ActorScope Scope = ActorScope.Borrower);
 
 public static class ListBorrowerConditionsHandler
 {
@@ -41,8 +44,11 @@ public static class ListBorrowerConditionsHandler
         IApplicationRepository apps, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
+        if (q.Scope == ActorScope.Staff)
+            throw DomainException.Forbidden(
+                "staff conditions use the full projection");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, ActorScope.Borrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         var all = await conditions.ListByApplicationAsync(q.AppId,
             state: null, ct);
         return all.Select(BorrowerConditionDto.Of).ToList();

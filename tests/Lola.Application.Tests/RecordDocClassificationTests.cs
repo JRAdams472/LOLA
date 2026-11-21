@@ -35,6 +35,12 @@ public sealed class RecordDocClassificationTests
 
     private sealed class FakeVault : IVaultDocRepository
     {
+        public Task<IReadOnlyList<VaultDocRecord>> ListForUploaderAsync(
+            string appId, string uploaderId, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<VaultDocRecord>>(Extra.Values
+                .Where(d => d.ApplicationId == appId && d.Actor == uploaderId)
+                .OrderByDescending(d => d.CreatedUtc).ToList());
+
         public VaultDocRecord? DocRow { get; set; }
         public Dictionary<string, VaultDocRecord> Extra { get; } = [];
         public string? SavedJson { get; private set; }
@@ -115,6 +121,20 @@ public sealed class RecordDocClassificationTests
     private sealed class FakeApps(ApplicationRecord record)
         : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<bool> IsPartnerLinkedAsync(string id,
             string partnerUserId, CancellationToken ct = default)
             => throw new NotImplementedException();

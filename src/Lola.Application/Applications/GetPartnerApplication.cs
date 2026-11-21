@@ -1,17 +1,21 @@
 using Lola.Application.Admin;
+using Lola.Application.Errors;
+using Lola.Domain.Applications;
 
 namespace Lola.Application.Applications;
 
-/// Partner-scoped application detail (M19/MPE-272): the linked-app
-/// metadata projection only — never the staff document. Phase 4
-/// (MPE-266) grows this into the purpose-specific partner DTO; until
-/// then the partner sees loan status, not field data.
+/// Partner-scoped application detail (M19): metadata + loan amount,
+/// authorized on a minimal-metadata scoped query BEFORE the payload
+/// is touched — `GetScopedMetaAsync` answers missing-vs-unlinked
+/// without loading the doc, and `loan_amount` is a catalog non-PII
+/// field extracted server-side (never the staff document, never
+/// rate-lock or document-intelligence internals).
 public sealed record GetPartnerApplicationQuery(
     string TenantId, string AppId, string ActorId);
 
 public sealed record PartnerApplicationDto(
     string Id, string Status, string PipelineStep,
-    int CurrentVersion, string? SubmittedUtc);
+    int CurrentVersion, string? SubmittedUtc, string? LoanAmount);
 
 public static class GetPartnerApplicationHandler
 {
@@ -20,11 +24,20 @@ public static class GetPartnerApplicationHandler
         Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, ActorScope.Partner, ct);
+        var meta = await apps.GetScopedMetaAsync(
+            q.AppId, ActorScope.Partner, q.ActorId, ct)
+            ?? throw DomainException.NotFound("application not found");
+        if (!meta.InScope)
+            throw DomainException.Forbidden(
+                "partner scope covers linked applications only");
+        // loan_amount carries no catalog PiiClass — a json_extract on
+        // the current version, never a payload hand-off.
+        var amount = await apps.GetDocValueAsync(
+            q.AppId, "$.loan_amount", ct);
         await audit.WriteAsync(q.ActorId, "read", "application", q.AppId,
             ["status"], "partner metadata", ct);
-        return new PartnerApplicationDto(app.Id, app.Status,
-            app.PipelineStep, app.CurrentVersion, app.SubmittedUtc);
+        return new PartnerApplicationDto(meta.Id, meta.Status,
+            meta.PipelineStep, (int)meta.CurrentVersion,
+            meta.SubmittedUtc, amount);
     }
 }

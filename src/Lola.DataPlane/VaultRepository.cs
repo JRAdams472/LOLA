@@ -142,6 +142,21 @@ public sealed class VaultRepository(TenantConnectionFactory factory,
         return result;
     }
 
+    public async Task<IReadOnlyList<VaultDocRecord>> ListForUploaderAsync(
+        string appId, string uploaderId, CancellationToken ct = default)
+    {
+        var rows = (await QueryAsync<CipherRow>(
+            $"""
+            SELECT {DocColumns} FROM vault_docs
+            WHERE application_id=@appId AND uploaded_by=@uploaderId
+            ORDER BY created_utc DESC, rowid DESC
+            """, new { appId, uploaderId }, ct)).ToList();
+        var result = new List<VaultDocRecord>(rows.Count);
+        foreach (var r in rows)
+            result.Add(await DecryptAsync(r, ct));
+        return result;
+    }
+
     public async Task<IReadOnlyList<VaultScanOutboxRow>>
         ListDueScansAsync(string nowUtc, int limit,
             CancellationToken ct = default)

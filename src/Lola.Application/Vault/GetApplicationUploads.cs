@@ -21,11 +21,11 @@ public static class GetApplicationUploadsHandler
         _ = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, q.Scope, ct);
         var staff = q.Scope == ActorScope.Staff;
-        var docs = await vault.ListAsync(q.AppId, ct);
-        // Own-uploads-only (M19): a partner sees the uploads they
-        // pushed, never the borrower's or staff's.
-        if (q.Scope == ActorScope.Partner)
-            docs = docs.Where(d => d.Actor == q.ActorId).ToList();
+        // Own-uploads-only in SQL (MPE-266): a partner's read never
+        // materializes another actor's doc rows or filename ciphertext.
+        var docs = q.Scope == ActorScope.Partner
+            ? await vault.ListForUploaderAsync(q.AppId, q.ActorId, ct)
+            : await vault.ListAsync(q.AppId, ct);
         return docs.Select(d => ToDto(d, staff)).ToList();
     }
 

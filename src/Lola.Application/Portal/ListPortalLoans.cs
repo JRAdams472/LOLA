@@ -15,9 +15,13 @@ public static class ListPortalLoansHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        var all = await apps.ListAsync(ct);
-        return all
-            .Where(a => a.BorrowerUserId == q.ActorId)
+        // Scoped SQL page (MPE-266): the borrower predicate runs in the
+        // query — unrelated tenants' rows and name ciphertexts are
+        // never loaded for a portal list. Borrowers have a handful of
+        // apps; the cap is a floor, not pagination.
+        var page = await apps.ListScopedAsync(ActorScope.Borrower,
+            q.ActorId, 0, 100, includeNames: false, ct);
+        return page.Items
             .Select(a =>
             {
                 var (label, stage) = BorrowerStatusMap.Map(a.Status);
