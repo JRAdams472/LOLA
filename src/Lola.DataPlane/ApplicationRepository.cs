@@ -367,11 +367,131 @@ public sealed class ApplicationRepository(
             WHERE partner_user_id = @partnerUserId AND revoked_utc IS NULL
             """, new { partnerUserId }, ct)).ToList();
 
+    /// Scope predicate → WHERE fragment (MPE-266): the predicate runs
+    /// in SQL so unrelated ciphertext never reaches the cipher.
+    private static string ScopePredicate(ActorScope scope) => scope switch
+    {
+        ActorScope.Borrower => "a.borrower_user_id = @actorId",
+        ActorScope.Partner => """
+            EXISTS (SELECT 1 FROM application_partners ap
+                    WHERE ap.app_id = a.id
+                      AND ap.partner_user_id = @actorId
+                      AND ap.revoked_utc IS NULL)
+            """,
+        _ => "1 = 1",
+    };
+
+    public async Task<ApplicationPage> ListScopedAsync(
+        ActorScope scope, string? actorId, int skip, int take,
+        bool includeNames, CancellationToken ct = default)
+    {
+        var where = scope == ActorScope.Staff
+            ? "" : $"WHERE {ScopePredicate(scope)}";
+        var rows = (await QueryAsync<PipelineRow>(
+            $"""
+            SELECT a.id AS Id, a.status AS Status,
+                   a.pipeline_step AS PipelineStep,
+                   a.borrower_user_id AS BorrowerUserId,
+                   a.current_version AS CurrentVersion,
+                   a.trid_clock_start AS TridClockStart,
+                   a.updated_utc AS UpdatedUtc,
+                   p.first_name_ct AS FirstNameCt,
+                   p.last_name_ct AS LastNameCt
+            FROM applications a
+            LEFT JOIN application_parties p
+              ON p.application_id = a.id AND p.party_index = 0
+            {where}
+            ORDER BY a.created_utc DESC, a.id
+            LIMIT @take OFFSET @skip
+            """, new { actorId, take, skip }, ct)).ToList();
+        var total = await QuerySingleOrDefaultAsync<long>(
+            $"SELECT COUNT(*) FROM applications a {where}",
+            new { actorId }, ct);
+
+        // Name decrypt only when the caller can actually see it —
+        // external scopes get the masked sentinel instead of paying a
+        // decrypt for a value destined to be masked.
+        Dictionary<string, string> plain = [];
+        if (includeNames)
+        {
+            var ciphertexts = rows
+                .SelectMany(r => new[] { r.FirstNameCt, r.LastNameCt })
+                .Where(c => c is not null).Select(c => c!).Distinct()
+                .ToList();
+            if (ciphertexts.Count > 0)
+            {
+                var plaintexts = await cipher.DecryptAsync(ciphertexts, ct);
+                plain = ciphertexts.Zip(plaintexts)
+                    .ToDictionary(x => x.First, x => x.Second);
+            }
+        }
+
+        var items = rows.Select(r =>
+        {
+            var hasName = r.FirstNameCt is not null || r.LastNameCt is not null;
+            string? name = null;
+            if (includeNames && hasName)
+                name = string.Join(' ', new[]
+                    {
+                        r.FirstNameCt is null ? null : plain[r.FirstNameCt],
+                        r.LastNameCt is null ? null : plain[r.LastNameCt]
+                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            return new ApplicationMeta(r.Id, r.Status, r.PipelineStep,
+                r.BorrowerUserId, r.CurrentVersion, r.TridClockStart,
+                !includeNames && hasName ? ApplicationMeta.MaskedName
+                    : name?.Length > 0 ? name : null,
+                null, r.UpdatedUtc);
+        }).ToList();
+        return new ApplicationPage(items, (int)total, skip, take);
+    }
+
+    public async Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+        string id, ActorScope scope, string? actorId,
+        CancellationToken ct = default)
+    {
+        var predicate = scope == ActorScope.Staff
+            ? "1" : $"({ScopePredicate(scope)})";
+        var row = await QuerySingleOrDefaultAsync<ScopedMetaRow>(
+            $"""
+            SELECT a.id AS Id, a.status AS Status,
+                   a.pipeline_step AS PipelineStep,
+                   a.borrower_user_id AS BorrowerUserId,
+                   a.current_version AS CurrentVersion,
+                   a.trid_clock_start AS TridClockStart,
+                   v.submitted_utc AS SubmittedUtc,
+                   {predicate} AS InScope
+            FROM applications a
+            JOIN application_versions v
+              ON v.application_id = a.id AND v.version = a.current_version
+            WHERE a.id = @id
+            """, new { id, actorId }, ct);
+        return row is null ? null : new ScopedApplicationMeta(
+            row.Id, row.Status, row.PipelineStep, row.BorrowerUserId,
+            row.CurrentVersion, row.TridClockStart, row.SubmittedUtc,
+            row.InScope != 0);
+    }
+
+    public async Task<string?> GetDocValueAsync(string id, string path,
+        CancellationToken ct = default)
+        => await QuerySingleOrDefaultAsync<string?>(
+            """
+            SELECT json_extract(v.payload, @path)
+            FROM applications a
+            JOIN application_versions v
+              ON v.application_id = a.id AND v.version = a.current_version
+            WHERE a.id = @id
+            """, new { id, path }, ct);
+
     private sealed record Row(
         string Id, string Status, string PipelineStep, string? BorrowerUserId,
         long CurrentVersion, string? TridClockStart, string Payload, string? SubmittedUtc);
 
     private sealed record MetaRow(long CurrentVersion, string VersionId);
+
+    private sealed record ScopedMetaRow(
+        string Id, string Status, string PipelineStep,
+        string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
+        string? SubmittedUtc, long InScope);
 
     private sealed record PipelineRow(
         string Id, string Status, string PipelineStep,

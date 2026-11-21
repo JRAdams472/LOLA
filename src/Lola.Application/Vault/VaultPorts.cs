@@ -111,6 +111,12 @@ public interface IVaultDocRepository
     Task<IReadOnlyList<VaultDocRecord>> ListAsync(string appId,
         CancellationToken ct = default);
 
+    /// Own-uploads only (MPE-266): the uploader predicate runs in SQL —
+    /// a partner's registry read never materializes another actor's
+    /// doc rows (or their filename ciphertext).
+    Task<IReadOnlyList<VaultDocRecord>> ListForUploaderAsync(
+        string appId, string uploaderId, CancellationToken ct = default);
+
     Task<IReadOnlyList<VaultScanOutboxRow>> ListDueScansAsync(
         string nowUtc, int limit, CancellationToken ct = default);
 

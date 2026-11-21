@@ -33,6 +33,61 @@ public sealed class FakeApplicationStore
 public sealed class FakeApplicationRepository(FakeApplicationStore store)
     : IApplicationRepository
 {
+    /// In-memory mirror of the scoped query (MPE-266): the scope
+    /// predicate filters before paging; `includeNames=false` stamps
+    /// the masked sentinel without surfacing the stored name.
+    public Task<ApplicationPage> ListScopedAsync(
+        ActorScope scope, string? actorId, int skip, int take,
+        bool includeNames, CancellationToken ct = default)
+    {
+        var rows = store.Apps
+            .Where(kv => scope == ActorScope.Staff ||
+                (scope == ActorScope.Borrower &&
+                    kv.Value.BorrowerUserId == actorId) ||
+                (scope == ActorScope.Partner &&
+                    store.PartnerLinks.TryGetValue(
+                        (kv.Key, actorId!), out var l) &&
+                    l.RevokedUtc is null))
+            .OrderByDescending(kv => kv.Value.CreatedUtc)
+            .ThenBy(kv => kv.Key)
+            .ToList();
+        var items = rows.Skip(skip).Take(take)
+            .Select(kv => new ApplicationMeta(kv.Key, kv.Value.Status,
+                kv.Value.PipelineStep, kv.Value.BorrowerUserId,
+                kv.Value.Version, kv.Value.TridClockStart,
+                includeNames ? BorrowerName(kv.Value.Doc)
+                    : BorrowerName(kv.Value.Doc) is null ? null
+                        : ApplicationMeta.MaskedName, null))
+            .ToList();
+        return Task.FromResult(new ApplicationPage(
+            items, rows.Count, skip, take));
+    }
+
+    public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+        string id, ActorScope scope, string? actorId,
+        CancellationToken ct = default)
+    {
+        if (!store.Apps.TryGetValue(id, out var app))
+            return Task.FromResult<ScopedApplicationMeta?>(null);
+        var inScope = scope switch
+        {
+            ActorScope.Staff => true,
+            ActorScope.Borrower => app.BorrowerUserId == actorId,
+            _ => store.PartnerLinks.TryGetValue((id, actorId!),
+                out var l) && l.RevokedUtc is null,
+        };
+        return Task.FromResult<ScopedApplicationMeta?>(
+            new ScopedApplicationMeta(id, app.Status, app.PipelineStep,
+                app.BorrowerUserId, app.Version, app.TridClockStart,
+                app.SubmittedUtc, inScope));
+    }
+
+    public Task<string?> GetDocValueAsync(
+        string id, string path, CancellationToken ct = default)
+        => Task.FromResult(store.Apps.TryGetValue(id, out var app)
+            ? app.Doc.Get(path.TrimStart('$', '.'))?.GetValue<string>()
+            : null);
+
     public Task InsertAsync(string id, ApplicationDocument doc, string status,
         string? borrowerUserId, string writtenBy, CancellationToken ct = default)
     {
@@ -682,6 +737,15 @@ public sealed class FakeDocumentRepository
 public sealed class FakeVaultDocRepository
     : Lola.Application.Vault.IVaultDocRepository
 {
+    public Task<IReadOnlyList<Lola.Application.Vault.VaultDocRecord>>
+        ListForUploaderAsync(string appId, string uploaderId,
+            CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Vault.VaultDocRecord>>(Docs.Values
+                .Where(d => d.ApplicationId == appId &&
+                    d.Actor == uploaderId)
+                .OrderByDescending(d => d.CreatedUtc).ToList());
+
     public Dictionary<string, Lola.Application.Vault.VaultDocRecord> Docs { get; } = [];
     public Dictionary<string, Lola.Application.Vault.VaultScanOutboxRow> Outbox { get; } = [];
     private readonly Dictionary<string, string> _rowTenants = [];

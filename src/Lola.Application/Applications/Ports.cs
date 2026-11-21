@@ -19,7 +19,26 @@ public sealed record ApplicationMeta(
     string Id, string Status, string PipelineStep,
     string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
     string? BorrowerName, string? TridDeadlineUtc,
-    string? UpdatedUtc = null);
+    string? UpdatedUtc = null)
+{
+    /// Opaque label for scoped reads where the caller must never see
+    /// the decrypted name (MPE-266) — same "•••" family DocMasker
+    /// emits, produced without paying a decrypt for a value that was
+    /// only ever going to be masked.
+    public const string MaskedName = "•••";
+}
+
+/// Bounded, scope-filtered pipeline page (MPE-266).
+public sealed record ApplicationPage(
+    IReadOnlyList<ApplicationMeta> Items, int Total, int Skip, int Take);
+
+/// Minimal metadata + scope verdict for external-actor detail reads —
+/// no payload load, no decrypt. `InScope=false` maps to Forbidden;
+/// a null row maps to NotFound, preserving the M19 contract.
+public sealed record ScopedApplicationMeta(
+    string Id, string Status, string PipelineStep,
+    string? BorrowerUserId, long CurrentVersion, string? TridClockStart,
+    string? SubmittedUtc, bool InScope);
 
 /// Append-only pipeline step event (MPE-112) — every named-step
 /// entry or seam-keyed attempt, attributed to an actor.
@@ -87,6 +106,31 @@ public interface IApplicationRepository
     /// `partnerUserId` — the Partner branch of the applications list.
     Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
         string partnerUserId, CancellationToken ct = default);
+
+    /// Scoped pipeline page (MPE-266): the borrower's-owner /
+    /// active-partner-link predicate runs in SQL — before paging and
+    /// before any name ciphertext loads — with deterministic order
+    /// (created_utc DESC, id tie-break). Staff keeps the whole tenant.
+    /// `includeNames=false` skips the party-name decrypt entirely and
+    /// stamps `ApplicationMeta.MaskedName` where a name exists —
+    /// external actors never hold Name visibility, so decrypting
+    /// solely to mask is wasted ciphertext handling.
+    Task<ApplicationPage> ListScopedAsync(ActorScope scope,
+        string? actorId, int skip, int take, bool includeNames,
+        CancellationToken ct = default);
+
+    /// Minimal metadata + scope verdict for external-actor detail
+    /// reads — no payload load, no decrypt, one scoped query (avoids a
+    /// link-check→read gap). `InScope=false` maps to Forbidden; a null
+    /// row maps to NotFound — the M19 contract is preserved.
+    Task<ScopedApplicationMeta?> GetScopedMetaAsync(string id,
+        ActorScope scope, string? actorId, CancellationToken ct = default);
+
+    /// Single value off the CURRENT version payload via json_extract —
+    /// callers name catalog non-PII paths only (the partner detail
+    /// DTO's loan_amount). The payload column itself never leaves.
+    Task<string?> GetDocValueAsync(string id, string path,
+        CancellationToken ct = default);
 }
 
 /// One application_partners link row (M19). `RevokedUtc` non-null marks

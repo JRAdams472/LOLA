@@ -20,27 +20,25 @@ public static class ConditionEndpoints
             .RequireAuthorization(LolaPolicies.Applications)
             .RequireRateLimiting("intake");
 
-        // List — borrowers reach the public projection; staff get
-        // full detail including internal notes and linkage. Partners
-        // are refused for now — their conditions view arrives with the
-        // partner surface in M19 P2.
+        // List — external scopes (borrower own, linked partner)
+        // share the stripped public projection; staff get full detail
+        // including internal notes and linkage.
         group.MapGet("/{appId}/conditions", async (string id,
                 string appId, string? state, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => LolaPolicies.ScopeFor(user) switch
             {
-                Lola.Application.Applications.ActorScope.Borrower =>
+                Lola.Application.Applications.ActorScope.Borrower or
+                Lola.Application.Applications.ActorScope.Partner =>
                     await bus.InvokeAsync<
                         IReadOnlyList<BorrowerConditionDto>>(
                         new ListBorrowerConditionsQuery(id, appId,
-                            Actor(user)), ct) as object,
-                Lola.Application.Applications.ActorScope.Staff =>
-                    await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
+                            Actor(user), LolaPolicies.ScopeFor(user)), ct)
+                        as object,
+                _ => await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
                         new ListConditionsQuery(id, appId, Actor(user),
                             Lola.Application.Applications.ActorScope.Staff,
                             state), ct) as object,
-                _ => throw Lola.Application.Errors.DomainException
-                    .Forbidden("partners cannot read conditions")
             }));
 
         // Mutations — staff-only.
