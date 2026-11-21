@@ -27,7 +27,7 @@ public static class VendorEndpoints
             Guarded(id, async () => await
                 bus.InvokeAsync<VendorOrderAccepted>(
                     new PlaceVendorOrderCommand(id, appId,
-                        Actor(user), IsBorrower(user),
+                        Actor(user), LolaPolicies.ScopeFor(user),
                         body?.Kind ?? ""), ct)));
 
         group.MapGet("", async (string id, string appId,
@@ -36,7 +36,7 @@ public static class VendorEndpoints
             Guarded(id, async () => await
                 bus.InvokeAsync<IReadOnlyList<VendorOrderDto>>(
                     new ListVendorOrdersQuery(id, appId,
-                        Actor(user), IsBorrower(user)), ct)));
+                        Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         group.MapGet("/{orderId}", async (string id, string appId,
                 string orderId, ClaimsPrincipal user,
@@ -44,7 +44,7 @@ public static class VendorEndpoints
             Guarded(id, async () => await
                 bus.InvokeAsync<VendorOrderDto?>(
                     new GetVendorOrderQuery(id, appId, orderId,
-                        Actor(user), IsBorrower(user)), ct)));
+                        Actor(user), LolaPolicies.ScopeFor(user)), ct)));
     }
 
     private static async Task<IResult> Guarded(string tenantId,
@@ -64,9 +64,6 @@ public static class VendorEndpoints
 
     private static string Actor(ClaimsPrincipal user) =>
         user.FindFirst("sub")?.Value ?? "unknown";
-
-    private static bool IsBorrower(ClaimsPrincipal user) =>
-        LolaPolicies.HasRole(user, LolaRole.Borrower);
 
     public sealed record VendorOrderRequestBody(string? Kind);
 }

@@ -8,7 +8,7 @@ namespace Lola.Application.Pricing;
 /// the application, whatever its status (pending/done/failed ride in
 /// the DTO). Null when the application has never been priced.
 public sealed record GetApplicationPricingQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public static class GetApplicationPricingHandler
 {
@@ -17,10 +17,10 @@ public static class GetApplicationPricingHandler
         IPricingRepository pricing, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("pricing evals are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         var latest = await pricing.GetLatestEvalAsync(q.AppId, ct);
         return latest is null ? null : PricingWire.ToDto(latest);
     }

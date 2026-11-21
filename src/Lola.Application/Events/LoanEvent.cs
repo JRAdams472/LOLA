@@ -18,6 +18,8 @@ public static class LoanEventKind
     public const string ConditionReopened = "condition_reopened";
     public const string ValidationReceived = "validation_received";
     public const string DocClassified = "doc_classified";
+    public const string PartnerLinked = "partner_linked";
+    public const string PartnerRevoked = "partner_revoked";
 }
 
 /// One append-only mutation event. `BeforeVal`/`AfterVal` carry

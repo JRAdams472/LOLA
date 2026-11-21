@@ -10,7 +10,7 @@ namespace Lola.Application.Applications;
 /// (MPE-112), not here.
 public sealed record TransitionApplicationCommand(
     string TenantId, string AppId, string Target,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public sealed record TransitionResult(string Id, string Status);
 
@@ -26,10 +26,10 @@ public static class TransitionApplicationHandler
         TransitionApplicationCommand c, IApplicationRepository apps, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("transitions are staff-only");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         if (!Allowed.TryGetValue(app.Status, out var targets) || !targets.Contains(c.Target))
             throw DomainException.BadRequest(
                 $"cannot transition '{app.Status}' → '{c.Target}'");

@@ -8,7 +8,7 @@ namespace Lola.Application.Applications;
 /// boundary, so the handler forbids it outright.
 public sealed record SearchApplicationsQuery(
     string TenantId, string Field, string Value, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public sealed record ApplicationSearchResult(IReadOnlyList<string> ApplicationIds);
 
@@ -19,7 +19,7 @@ public static class SearchApplicationsHandler
         Audit.ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("blind search is staff-only");
         var ids = await parties.SearchAsync(q.Field, q.Value, ct);
         await audit.WriteAsync(q.ActorId, "search", "application", null,

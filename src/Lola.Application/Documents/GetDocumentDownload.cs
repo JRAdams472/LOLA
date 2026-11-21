@@ -10,7 +10,7 @@ namespace Lola.Application.Documents;
 /// LOLA never proxies package bytes. Staff or borrower-own only.
 public sealed record GetDocumentDownloadQuery(
     string TenantId, string AppId, string DocId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 /// The redirect target the endpoint turns into a 302.
 public sealed record DocDownloadResult(string Url);
@@ -29,7 +29,7 @@ public static class GetDocumentDownloadHandler
             throw Errors.DomainException.NotFound(
                 "document not found");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, doc.ApplicationId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, doc.ApplicationId, q.ActorId, q.Scope, ct);
         if (doc.Status != "completed" || doc.RequestId is null)
             throw Errors.DomainException.Conflict(
                 "document package is not completed yet");

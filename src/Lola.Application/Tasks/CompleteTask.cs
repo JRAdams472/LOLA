@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Errors;
 
@@ -9,7 +10,7 @@ namespace Lola.Application.Tasks;
 /// completion); terminal states are 400. Done rows leave the live
 /// queue and the dedupe slot frees for re-derivation.
 public sealed record CompleteTaskCommand(string TenantId, string TaskId,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public static class CompleteTaskHandler
 {
@@ -18,7 +19,7 @@ public static class CompleteTaskHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "completing tasks is staff-only");
         var existing = await tasks.GetAsync(c.TaskId, ct);

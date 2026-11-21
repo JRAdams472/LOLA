@@ -16,7 +16,7 @@ public sealed record VaultUrlOptions(int TtlSeconds = 900);
 /// design (the signature IS the credential).
 public sealed record GetVaultDownloadQuery(
     string TenantId, string AppId, string VaultDocId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public sealed record VaultDownloadResult(string Url);
 
@@ -33,7 +33,10 @@ public static class GetVaultDownloadHandler
         if (doc is null || doc.ApplicationId != q.AppId)
             throw DomainException.NotFound("upload not found");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, doc.ApplicationId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, doc.ApplicationId, q.ActorId, q.Scope, ct);
+        if (q.Scope == ActorScope.Partner && doc.Actor != q.ActorId)
+            throw DomainException.Forbidden(
+                "partners download their own uploads only");
         if (doc.Status != "clean")
             throw new DomainException(409,
                 $"upload is '{doc.Status}' — only clean uploads " +

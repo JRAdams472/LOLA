@@ -83,6 +83,8 @@ public class DocMarqueeFactory : LolaApiFactory
                 ApplicationRepository>();
             services.AddScoped<Application.Applications.IApplicationPartyRepository,
                 ApplicationPartyRepository>();
+            services.AddScoped<Application.Applications.IApplicationPartnerRepository,
+                ApplicationPartnerRepository>();
             services.AddScoped<Application.Pricing.IPricingRepository,
                 PricingRepository>();
             services.AddScoped<Application.Pricing.IRateLockRepository,

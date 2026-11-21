@@ -8,7 +8,7 @@ namespace Lola.Application.Fees;
 /// application, whatever its status (pending/done/failed ride in the
 /// DTO). Null when the application has never been fee-evaluated.
 public sealed record GetApplicationFeesQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public static class GetApplicationFeesHandler
 {
@@ -17,10 +17,10 @@ public static class GetApplicationFeesHandler
         IFeeRepository fees, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("fee evals are staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         var batch = await fees.GetLatestBatchEvalsAsync(q.AppId, ct);
         if (batch.Count == 0) return null;
         var overrides = await fees.ListOverridesAsync(q.AppId, ct);

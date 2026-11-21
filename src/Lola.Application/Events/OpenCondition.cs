@@ -9,7 +9,7 @@ namespace Lola.Application.Events;
 /// (M16–M18) supplies another. Every open writes the audit spine and
 /// a `condition_opened` loan event.
 public sealed record OpenConditionCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string Kind, string Title, string? Detail, bool Blocking,
     string? LinkedEntity = null, string? LinkedEntityId = null);
 
@@ -22,13 +22,13 @@ public static class OpenConditionHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "conditions are a staff action");
         if (string.IsNullOrWhiteSpace(c.Title))
             throw DomainException.BadRequest("title is required");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
 
         var created = await conditions.OpenAsync(new ConditionDraft(
             c.AppId, c.Kind, c.Title, c.Detail, c.Blocking,

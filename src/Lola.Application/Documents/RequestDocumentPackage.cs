@@ -16,7 +16,7 @@ namespace Lola.Application.Documents;
 /// reason codes. Idempotent: a repeated request for the same
 /// app+kind+payload returns the original doc id.
 public sealed record RequestDocumentPackageCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string Kind, IReadOnlyList<string>? ReasonCodes = null);
 
 public sealed record DocAccepted(string DocId, bool Deduplicated);
@@ -31,11 +31,11 @@ public static class RequestDocumentPackageHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw Errors.DomainException.Forbidden(
                 "document generation is a staff action");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
 
         // The vendor customer comes from the tenant's provisioning
         // binding — a tenant with no ISPPr link can't generate.

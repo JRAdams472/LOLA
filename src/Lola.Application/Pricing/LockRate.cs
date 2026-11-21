@@ -11,7 +11,7 @@ namespace Lola.Application.Pricing;
 /// Frozen paths persist on the row so the patch handlers can enforce
 /// them without re-deriving the scenario.
 public sealed record LockRateCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string? EvalId, string ProductCode, decimal Rate,
     int? LockTermDays);
 
@@ -25,10 +25,10 @@ public static class LockRateHandler
         ITenantAuditLog audit, TimeProvider clock, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("rate lock is a staff action");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
 
         if (await locks.GetActiveAsync(c.AppId, ct) is not null)
             throw DomainException.Conflict(

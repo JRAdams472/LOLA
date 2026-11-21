@@ -21,18 +21,27 @@ public static class ConditionEndpoints
             .RequireRateLimiting("intake");
 
         // List — borrowers reach the public projection; staff get
-        // full detail including internal notes and linkage.
+        // full detail including internal notes and linkage. Partners
+        // are refused for now — their conditions view arrives with the
+        // partner surface in M19 P2.
         group.MapGet("/{appId}/conditions", async (string id,
                 string appId, string? state, ClaimsPrincipal user,
                 IMessageBus bus, CancellationToken ct) => await
-            Guarded(id, async () => IsBorrower(user)
-                ? await bus.InvokeAsync<
-                    IReadOnlyList<BorrowerConditionDto>>(
-                    new ListBorrowerConditionsQuery(id, appId,
-                        Actor(user)), ct)
-                : await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
-                    new ListConditionsQuery(id, appId, Actor(user),
-                        false, state), ct)));
+            Guarded(id, async () => LolaPolicies.ScopeFor(user) switch
+            {
+                Lola.Application.Applications.ActorScope.Borrower =>
+                    await bus.InvokeAsync<
+                        IReadOnlyList<BorrowerConditionDto>>(
+                        new ListBorrowerConditionsQuery(id, appId,
+                            Actor(user)), ct) as object,
+                Lola.Application.Applications.ActorScope.Staff =>
+                    await bus.InvokeAsync<IReadOnlyList<ConditionDto>>(
+                        new ListConditionsQuery(id, appId, Actor(user),
+                            Lola.Application.Applications.ActorScope.Staff,
+                            state), ct) as object,
+                _ => throw Lola.Application.Errors.DomainException
+                    .Forbidden("partners cannot read conditions")
+            }));
 
         // Mutations — staff-only.
         group.MapPost("/{appId}/conditions", async (string id,
@@ -41,7 +50,7 @@ public static class ConditionEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ConditionDto>(
                 new OpenConditionCommand(id, appId, Actor(user),
-                    IsBorrower(user), body.Kind ?? "manual", body.Title,
+                    LolaPolicies.ScopeFor(user), body.Kind ?? "manual", body.Title,
                     body.Detail, body.Blocking ?? false, body.LinkedEntity,
                     body.LinkedEntityId), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
@@ -53,7 +62,7 @@ public static class ConditionEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ConditionDto>(
                 new TransitionConditionCommand(id, appId, cid,
-                    Actor(user), IsBorrower(user), "closed",
+                    Actor(user), LolaPolicies.ScopeFor(user), "closed",
                     body.Reason), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
@@ -64,7 +73,7 @@ public static class ConditionEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ConditionDto>(
                 new TransitionConditionCommand(id, appId, cid,
-                    Actor(user), IsBorrower(user), "waived",
+                    Actor(user), LolaPolicies.ScopeFor(user), "waived",
                     body.Reason), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
@@ -74,7 +83,7 @@ public static class ConditionEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ConditionDto>(
                 new TransitionConditionCommand(id, appId, cid,
-                    Actor(user), IsBorrower(user), "open", null), ct)))
+                    Actor(user), LolaPolicies.ScopeFor(user), "open", null), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
         // Mutation event spine — staff-only (blind-index tokens only).
@@ -84,7 +93,7 @@ public static class ConditionEndpoints
             Guarded(id, async () => await bus.InvokeAsync<
                 IReadOnlyList<LoanEvent>>(
                 new GetLoanEventsQuery(id, appId, Actor(user),
-                    IsBorrower(user), limit ?? 200), ct)))
+                    LolaPolicies.ScopeFor(user), limit ?? 200), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
 
         // Tenant-level event chain verify — mirrors /audit/verify.
@@ -93,7 +102,7 @@ public static class ConditionEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<EventVerifyResult>(
                 new VerifyEventChainQuery(id, Actor(user),
-                    IsBorrower(user)), ct)))
+                    LolaPolicies.ScopeFor(user)), ct)))
             .RequireAuthorization(LolaPolicies.TenantStaff);
     }
 
@@ -111,9 +120,6 @@ public static class ConditionEndpoints
 
     private static string Actor(ClaimsPrincipal user)
         => user.FindFirst("sub")?.Value ?? "unknown";
-
-    private static bool IsBorrower(ClaimsPrincipal user)
-        => LolaPolicies.HasRole(user, LolaRole.Borrower);
 }
 
 public sealed record OpenConditionRequest(

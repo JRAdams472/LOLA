@@ -10,7 +10,7 @@ namespace Lola.Application.Applications;
 public sealed record CorrectApplicationCommand(
     string TenantId, string AppId,
     IReadOnlyDictionary<string, string> Patch,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public static class CorrectApplicationHandler
 {
@@ -22,10 +22,10 @@ public static class CorrectApplicationHandler
         Pricing.IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("correction is staff-only");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         await Pricing.RateFreeze.EnforceAsync(locks, c.AppId, c.Patch.Keys, ct);
         if (app.Status is "draft" or "decisioned")
             throw DomainException.BadRequest(

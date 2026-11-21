@@ -41,7 +41,7 @@ public static class RecordValidationFeedbackHandler
                 $"unknown severity '{f.Severity}'");
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, f.ApplicationId, $"auto:{f.Source}",
-            isBorrower: false, ct);
+            ActorScope.Staff, ct);
         var actor = $"auto:{f.Source}";
         var docClasses = AuditFields.InDoc(app.Doc);
 

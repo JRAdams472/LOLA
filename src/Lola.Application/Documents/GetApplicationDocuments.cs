@@ -10,7 +10,7 @@ namespace Lola.Application.Documents;
 /// the registry itself holds no PII, only references).
 public sealed record GetApplicationDocumentsQuery(
     string TenantId, string AppId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class GetApplicationDocumentsHandler
 {
@@ -20,7 +20,7 @@ public static class GetApplicationDocumentsHandler
     {
         AdminGuards.RequireTenant(q.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         var rows = await docs.ListDocsAsync(q.AppId, ct);
         return rows.Select(DocWire.ToDto).ToList();
     }

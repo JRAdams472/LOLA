@@ -1,4 +1,5 @@
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Errors;
 
 namespace Lola.Application.Tasks;
@@ -8,7 +9,7 @@ namespace Lola.Application.Tasks;
 /// honors the same optional skill filter so callers can ask "next
 /// for me". Null when the queue is empty.
 public sealed record GetNextTaskQuery(string TenantId, string ActorId,
-    bool ActorIsBorrower, IReadOnlyList<string>? Skills = null);
+    ActorScope Scope, IReadOnlyList<string>? Skills = null);
 
 public static class GetNextTaskHandler
 {
@@ -17,7 +18,7 @@ public static class GetNextTaskHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "the work queue is staff-only");
         await eval.EvaluateTenantAsync(q.TenantId, ct);

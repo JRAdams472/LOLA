@@ -97,6 +97,12 @@ public sealed class LoanEventEmissionTests
     private sealed class FakeApps(ApplicationRecord record)
         : IApplicationRepository
     {
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
             => Task.FromResult<ApplicationRecord?>(
@@ -183,7 +189,7 @@ public sealed class LoanEventEmissionTests
             new Lola.Application.Tenancy.TenantScope("t1", "x.db", "k"));
         var dto = await RevealApplicationHandler.Handle(
             new RevealApplicationQuery("t1", "app-1", "officer-1",
-                "borrower support call", false),
+                "borrower support call", ActorScope.Staff),
             new FakeApps(record), new FakeAudit(), events, default);
         dto.ShouldNotBeNull();
         // Ssn + Name — distinct classes, never values.

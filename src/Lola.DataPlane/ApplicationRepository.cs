@@ -346,6 +346,27 @@ public sealed class ApplicationRepository(
         node is JsonValue v && v.TryGetValue<string>(out var s)
             ? s : node.ToJsonString();
 
+    /// M19 partner row-scope read — an ACTIVE link only; revoked rows
+    /// are provenance, not scope.
+    public async Task<bool> IsPartnerLinkedAsync(
+        string id, string partnerUserId, CancellationToken ct = default)
+        => await QuerySingleOrDefaultAsync<long>(
+            """
+            SELECT COUNT(1) FROM application_partners
+            WHERE app_id = @id AND partner_user_id = @partnerUserId
+              AND revoked_utc IS NULL
+            """, new { id, partnerUserId }, ct) == 1;
+
+    /// The partner-scoped list (M19) — ids only; the caller intersects
+    /// with the already-decrypted pipeline list.
+    public async Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+        string partnerUserId, CancellationToken ct = default)
+        => (await QueryAsync<string>(
+            """
+            SELECT app_id FROM application_partners
+            WHERE partner_user_id = @partnerUserId AND revoked_utc IS NULL
+            """, new { partnerUserId }, ct)).ToList();
+
     private sealed record Row(
         string Id, string Status, string PipelineStep, string? BorrowerUserId,
         long CurrentVersion, string? TridClockStart, string Payload, string? SubmittedUtc);

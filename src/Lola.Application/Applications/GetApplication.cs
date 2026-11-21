@@ -5,7 +5,7 @@ using Lola.Domain.Identity;
 namespace Lola.Application.Applications;
 
 public sealed record GetApplicationQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public static class GetApplicationHandler
 {
@@ -16,7 +16,7 @@ public static class GetApplicationHandler
     {
         AdminGuards.RequireTenant(q.TenantId);
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, q.ActorIsBorrower, ct);
+            apps, q.AppId, q.ActorId, q.Scope, ct);
         await audit.WriteAsync(q.ActorId, "read", "application", q.AppId,
             Audit.AuditFields.InDoc(app.Doc), null, ct);
         DocMasker.MaskInPlace(app.Doc);

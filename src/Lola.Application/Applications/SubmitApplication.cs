@@ -9,7 +9,7 @@ namespace Lola.Application.Applications;
 /// operator-correction loop; a passing submit stamps an immutable
 /// snapshot version (invariant 6).
 public sealed record SubmitApplicationCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string AppId, string ActorId, ActorScope Scope);
 
 public sealed record SubmitResult(bool Ok, int? Version, IReadOnlyList<FieldError> Errors)
 {
@@ -25,8 +25,11 @@ public static class SubmitApplicationHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
+        if (c.Scope == ActorScope.Partner)
+            throw DomainException.Forbidden(
+                "partners cannot submit applications");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
+            apps, c.AppId, c.ActorId, c.Scope, ct);
         if (app.Status != "draft")
             throw DomainException.BadRequest($"only drafts submit (status is '{app.Status}')");
 

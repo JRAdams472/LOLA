@@ -9,7 +9,7 @@ namespace Lola.Application.Applications;
 /// Report-only: nothing here disposes of an application. Staff-only —
 /// a borrower gets 403 like every other audit/compliance surface.
 public sealed record GetTenantRetentionQuery(
-    string TenantId, string ActorId, bool ActorIsBorrower);
+    string TenantId, string ActorId, ActorScope Scope);
 
 public sealed record ApplicationRetention(
     string AppId, string CreatedUtc, DateTimeOffset RetentionUntilUtc);
@@ -25,7 +25,7 @@ public static class GetTenantRetentionHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("retention reports are staff-only");
         var windows = await apps.RetentionWindowsAsync(ct);
         var apps_ = windows

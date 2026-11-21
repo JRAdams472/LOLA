@@ -12,7 +12,7 @@ namespace Lola.Application.Events;
 /// `condition_*` loan event.
 public sealed record TransitionConditionCommand(
     string TenantId, string AppId, string ConditionId, string ActorId,
-    bool ActorIsBorrower, string To, string? Reason);
+    ActorScope Scope, string To, string? Reason);
 
 public static class TransitionConditionHandler
 {
@@ -23,7 +23,7 @@ public static class TransitionConditionHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "condition transitions are a staff action");
         var to = c.To.ToLowerInvariant();
@@ -39,7 +39,7 @@ public static class TransitionConditionHandler
                 + " a condition");
 
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         var existing = await conditions.GetAsync(c.ConditionId, ct);
         if (existing is null || existing.ApplicationId != c.AppId)
             throw DomainException.NotFound("condition not found");

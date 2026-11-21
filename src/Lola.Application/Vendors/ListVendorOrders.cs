@@ -15,7 +15,7 @@ namespace Lola.Application.Vendors;
 /// request/result documents never cross this read.
 public sealed record ListVendorOrdersQuery(
     string TenantId, string AppId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class ListVendorOrdersHandler
 {
@@ -25,11 +25,11 @@ public static class ListVendorOrdersHandler
         ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "vendor orders are a staff surface");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, isBorrower: false, ct);
+            apps, q.AppId, q.ActorId, ActorScope.Staff, ct);
         var rows = await orders.ListByApplicationAsync(q.AppId, ct);
         var dtos = new List<VendorOrderDto>(rows.Count);
         foreach (var r in rows)

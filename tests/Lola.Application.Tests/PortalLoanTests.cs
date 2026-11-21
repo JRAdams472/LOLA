@@ -48,6 +48,12 @@ public sealed class PortalLoanTests
 
     private sealed class FakeApps(ApplicationRecord record) : IApplicationRepository
     {
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
             => Task.FromResult<ApplicationRecord?>(id == record.Id ? record : null);

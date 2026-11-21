@@ -87,7 +87,7 @@ public static class RecordDocClassificationHandler
             AfterVal: result.DocKind), ct);
 
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, doc.ApplicationId, Actor, isBorrower: false, ct);
+            apps, doc.ApplicationId, Actor, ActorScope.Staff, ct);
         await ApplyConditionsAsync(doc, result, app, conditions,
             vault, audit, events, AuditFields.InDoc(app.Doc), ct);
         // Queue convergence — closed conditions resolve tasks, new

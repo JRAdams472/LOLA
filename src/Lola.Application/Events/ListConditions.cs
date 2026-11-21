@@ -7,7 +7,7 @@ namespace Lola.Application.Events;
 /// Staff condition list — full detail. Borrower access is forbidden
 /// here; the borrower projection is ListBorrowerConditionsQuery.
 public sealed record ListConditionsQuery(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string? State = null);
 
 public static class ListConditionsHandler
@@ -17,11 +17,11 @@ public static class ListConditionsHandler
         IApplicationRepository apps, CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "condition detail is staff-only");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, isBorrower: false, ct);
+            apps, q.AppId, q.ActorId, ActorScope.Staff, ct);
         var all = await conditions.ListByApplicationAsync(
             q.AppId, q.State, ct);
         return all.Select(ConditionDto.Of).ToList();
@@ -42,7 +42,7 @@ public static class ListBorrowerConditionsHandler
     {
         AdminGuards.RequireTenant(q.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, q.AppId, q.ActorId, isBorrower: true, ct);
+            apps, q.AppId, q.ActorId, ActorScope.Borrower, ct);
         var all = await conditions.ListByApplicationAsync(q.AppId,
             state: null, ct);
         return all.Select(BorrowerConditionDto.Of).ToList();

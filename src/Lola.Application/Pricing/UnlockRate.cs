@@ -10,7 +10,7 @@ namespace Lola.Application.Pricing;
 /// stays in history (append-only, invariant 6).
 public sealed record UnlockRateCommand(
     string TenantId, string AppId, string ActorId,
-    bool ActorIsBorrower, string Reason);
+    ActorScope Scope, string Reason);
 
 public static class UnlockRateHandler
 {
@@ -20,12 +20,12 @@ public static class UnlockRateHandler
         TimeProvider clock, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("rate unlock is a staff action");
         if (string.IsNullOrWhiteSpace(c.Reason))
             throw DomainException.BadRequest("an unlock reason is required");
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
 
         var active = await locks.GetActiveAsync(c.AppId, ct)
             ?? throw DomainException.NotFound("no active rate lock");

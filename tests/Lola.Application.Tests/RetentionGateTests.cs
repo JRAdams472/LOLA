@@ -228,6 +228,12 @@ public sealed class RetentionGateTests
         public Task UpdatePipelineStepAsync(string id, string step, CancellationToken ct = default) => throw new NotImplementedException();
         public Task RecordStepEventAsync(string id, string step, string event_, string actor, string? reason, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<StepEventDto>> ListStepEventsAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<ApplicationMeta>> ListAsync(CancellationToken ct = default) => throw new NotImplementedException();
     }

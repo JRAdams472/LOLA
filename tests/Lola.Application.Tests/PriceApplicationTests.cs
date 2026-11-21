@@ -41,8 +41,8 @@ public sealed class PriceApplicationTests
             new FakeAdapter());
     }
 
-    private static PriceApplicationCommand Cmd(bool borrower = false) =>
-        new("t1", "app-1", "officer-1", borrower,
+    private static PriceApplicationCommand Cmd(ActorScope scope = ActorScope.Staff) =>
+        new("t1", "app-1", "officer-1", scope,
             null, null, 30, null, false);
 
     private static IDisposable Scope()
@@ -96,7 +96,7 @@ public sealed class PriceApplicationTests
         var (apps, pricing, audit, adapter) = Sut();
         using var _ = Scope();
         await Should.ThrowAsync<DomainException>(() =>
-            PriceApplicationHandler.Handle(Cmd(borrower: true),
+            PriceApplicationHandler.Handle(Cmd(ActorScope.Borrower),
                 apps, pricing, adapter, audit, default));
         pricing.Evals.ShouldBeEmpty();
     }
@@ -115,7 +115,7 @@ public sealed class PriceApplicationTests
         second.EvalId.ShouldNotBe(first.EvalId);
 
         var latest = await GetApplicationPricingHandler.Handle(
-            new GetApplicationPricingQuery("t1", "app-1", "officer-1", false),
+            new GetApplicationPricingQuery("t1", "app-1", "officer-1", ActorScope.Staff),
             apps, pricing, default);
         latest.ShouldNotBeNull();
         latest!.EvalId.ShouldBe(second.EvalId);
@@ -123,7 +123,7 @@ public sealed class PriceApplicationTests
         latest.Adapter.ShouldBe("fake");
 
         var history = await GetPricingHistoryHandler.Handle(
-            new GetPricingHistoryQuery("t1", "app-1", "officer-1", false),
+            new GetPricingHistoryQuery("t1", "app-1", "officer-1", ActorScope.Staff),
             apps, pricing, default);
         history.Count.ShouldBe(2);
         history[0].EvalId.ShouldBe(first.EvalId);
@@ -146,6 +146,12 @@ public sealed class PriceApplicationTests
     private sealed class FakeApps(ApplicationDocument doc)
         : IApplicationRepository
     {
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id,
             CancellationToken ct = default)
             => Task.FromResult<ApplicationRecord?>(id == "app-1"

@@ -61,6 +61,12 @@ public sealed class ListApplicationsTests
         public Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
             CancellationToken ct = default)
             => throw new NotImplementedException();
+        public Task<bool> IsPartnerLinkedAsync(string id,
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+            string partnerUserId, CancellationToken ct = default)
+            => throw new NotImplementedException();
         public Task<ApplicationRecord?> GetAsync(string id, CancellationToken ct = default)
             => throw new NotImplementedException();
     }
@@ -70,7 +76,7 @@ public sealed class ListApplicationsTests
     {
         using var _ = Scope(new HashSet<PiiClass> { PiiClass.Name });
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-officer", ActorIsBorrower: false),
+            new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
             new FakeApps([Meta()]), default);
         metas[0].BorrowerName.ShouldBe("Ada Lovelace");
     }
@@ -80,7 +86,7 @@ public sealed class ListApplicationsTests
     {
         using var _ = Scope(); // empty visibility — masked-by-default
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-svc", ActorIsBorrower: false),
+            new ListApplicationsQuery("t1", "u-svc", Scope: ActorScope.Staff),
             new FakeApps([Meta()]), default);
         metas[0].BorrowerName.ShouldStartWith("•••");
         metas[0].BorrowerName.ShouldEndWith("lace"); // "•••"+last-4, same shape as DocMasker
@@ -91,7 +97,7 @@ public sealed class ListApplicationsTests
     {
         using var _ = Scope();
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-svc", ActorIsBorrower: false),
+            new ListApplicationsQuery("t1", "u-svc", Scope: ActorScope.Staff),
             new FakeApps([Meta(name: null)]), default);
         metas[0].BorrowerName.ShouldBeNull();
     }
@@ -103,7 +109,7 @@ public sealed class ListApplicationsTests
         // the Reg Z general rule (2), Mon 12th (3) — Sundays/holidays skip.
         using var _ = Scope();
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-officer", ActorIsBorrower: false),
+            new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
             new FakeApps([Meta(stamp: "2026-01-08T10:00:00.000Z")]), default);
         metas[0].TridDeadlineUtc.ShouldBe("2026-01-12T00:00:00.000Z");
     }
@@ -113,7 +119,7 @@ public sealed class ListApplicationsTests
     {
         using var _ = Scope();
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-officer", ActorIsBorrower: false),
+            new ListApplicationsQuery("t1", "u-officer", Scope: ActorScope.Staff),
             new FakeApps([Meta(stamp: null)]), default);
         metas[0].TridDeadlineUtc.ShouldBeNull();
     }
@@ -123,7 +129,7 @@ public sealed class ListApplicationsTests
     {
         using var _ = Scope(); // borrowers hold no plaintext grants
         var metas = await ListApplicationsHandler.Handle(
-            new ListApplicationsQuery("t1", "u-b1", ActorIsBorrower: true),
+            new ListApplicationsQuery("t1", "u-b1", Scope: ActorScope.Borrower),
             new FakeApps([Meta(id: "app-mine"), Meta(id: "app-theirs", borrower: "u-b2")]),
             default);
         metas.ShouldHaveSingleItem().Id.ShouldBe("app-mine");

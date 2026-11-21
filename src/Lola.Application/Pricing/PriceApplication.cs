@@ -12,7 +12,7 @@ namespace Lola.Application.Pricing;
 /// Duplicate requests (same app + same request payload) return the
 /// original eval id rather than double-billing the adapter.
 public sealed record PriceApplicationCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     IReadOnlyList<string>? Products, decimal? Rate, int? LockTermDays,
     string? AsOf, bool EligibilityOnly);
 
@@ -26,10 +26,10 @@ public static class PriceApplicationHandler
         ITenantAuditLog audit, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        if (c.ActorIsBorrower)
+        if (c.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("pricing is a staff action");
         var app = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, isBorrower: false, ct);
+            apps, c.AppId, c.ActorId, ActorScope.Staff, ct);
         // `asOf` selects a publication snapshot (MPE-132): "draft" or
         // an RFC3339 timestamp — anything else is a client error.
         if (c.AsOf is not null && c.AsOf != "draft" &&

@@ -9,7 +9,7 @@ namespace Lola.Application.Applications;
 public sealed record UpdateDraftCommand(
     string TenantId, string AppId,
     IReadOnlyDictionary<string, string> Patch,
-    string ActorId, bool ActorIsBorrower);
+    string ActorId, ActorScope Scope);
 
 public sealed record ApplicationUpdatedResult(string Id, int Version, string Status);
 
@@ -23,7 +23,10 @@ public static class UpdateDraftHandler
         Pricing.IRateLockRepository locks, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
-        var app = await RequireAppAsync(apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
+        if (c.Scope == ActorScope.Partner)
+            throw DomainException.Forbidden(
+                "partners cannot patch application drafts");
+        var app = await RequireAppAsync(apps, c.AppId, c.ActorId, c.Scope, ct);
         if (app.Status != "draft")
             throw DomainException.BadRequest("only drafts can be patched");
         await Pricing.RateFreeze.EnforceAsync(locks, c.AppId, c.Patch.Keys, ct);
@@ -40,14 +43,21 @@ public static class UpdateDraftHandler
         return version;
     }
 
+    /// Row-scope guard (M19): every app-bound handler funnels here.
+    /// Borrower reach is `BorrowerUserId == actor`; Partner reach is an
+    /// active `application_partners` link — unlinked is 403, not 404,
+    /// so link state is never enumerable through response shape.
     internal static async Task<ApplicationRecord> RequireAppAsync(
         IApplicationRepository apps, string appId,
-        string actorId, bool isBorrower, CancellationToken ct)
+        string actorId, ActorScope scope, CancellationToken ct)
     {
         var app = await apps.GetAsync(appId, ct)
             ?? throw DomainException.NotFound("application not found");
-        if (isBorrower && app.BorrowerUserId != actorId)
-            throw DomainException.Forbidden("borrower scope covers own drafts only");
+        if (scope == ActorScope.Borrower && app.BorrowerUserId != actorId)
+            throw DomainException.Forbidden("borrower scope covers own applications only");
+        if (scope == ActorScope.Partner
+            && !await apps.IsPartnerLinkedAsync(appId, actorId, ct))
+            throw DomainException.Forbidden("partner scope covers linked applications only");
         return app;
     }
 }

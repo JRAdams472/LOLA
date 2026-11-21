@@ -264,6 +264,8 @@ builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartyReposi
 builder.Services.AddScoped<ApplicationRepository>();
 builder.Services.AddScoped<Lola.Application.Applications.IApplicationRepository,
     ApplicationRepository>();
+builder.Services.AddScoped<Lola.Application.Applications.IApplicationPartnerRepository,
+    ApplicationPartnerRepository>();
 builder.Services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
     Lola.Application.Applications.WorkflowPipeline>();
 builder.Services.AddSingleton(TimeProvider.System);

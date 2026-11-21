@@ -23,6 +23,11 @@ public sealed class FakeApplicationStore
 
     public ConcurrentDictionary<string, App> Apps { get; } = new();
     public ConcurrentDictionary<string, List<StepEventDto>> Steps { get; } = new();
+
+    /// application_partners mirror (M19) — key is (appId, partnerUserId).
+    public ConcurrentDictionary<(string AppId, string UserId), PartnerLink>
+        PartnerLinks
+    { get; } = new();
 }
 
 public sealed class FakeApplicationRepository(FakeApplicationStore store)
@@ -130,6 +135,18 @@ public sealed class FakeApplicationRepository(FakeApplicationStore store)
                 kv.Value.Version, kv.Value.TridClockStart,
                 BorrowerName(kv.Value.Doc), null))
             .ToList());
+
+    public Task<bool> IsPartnerLinkedAsync(string id,
+        string partnerUserId, CancellationToken ct = default)
+        => Task.FromResult(store.PartnerLinks.TryGetValue(
+            (id, partnerUserId), out var l) && l.RevokedUtc is null);
+
+    public Task<IReadOnlyList<string>> LinkedAppIdsForPartnerAsync(
+        string partnerUserId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<string>>(store.PartnerLinks
+            .Where(kv => kv.Key.UserId == partnerUserId
+                && kv.Value.RevokedUtc is null)
+            .Select(kv => kv.Key.AppId).ToList());
 
     /// Mirrors the real repo's party[0] first+last composition — the
     /// fake has no ciphertext, so it reads the stored doc directly.
@@ -785,4 +802,36 @@ public sealed class FakeVaultDocRepository
         };
         return Task.CompletedTask;
     }
+}
+
+/// In-memory application_partners write side (M19) — same upsert/
+/// soft-revoke semantics as the real repo: re-link clears revoked,
+/// revoke reports false when nothing active exists.
+public sealed class FakeApplicationPartnerRepository(FakeApplicationStore store)
+    : IApplicationPartnerRepository
+{
+    public Task LinkAsync(PartnerLink link, CancellationToken ct = default)
+    {
+        store.PartnerLinks[(link.AppId, link.PartnerUserId)] =
+            link with { RevokedUtc = null };
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> RevokeAsync(string appId, string partnerUserId,
+        string revokedUtc, CancellationToken ct = default)
+    {
+        if (!store.PartnerLinks.TryGetValue((appId, partnerUserId),
+                out var existing) || existing.RevokedUtc is not null)
+            return Task.FromResult(false);
+        store.PartnerLinks[(appId, partnerUserId)] =
+            existing with { RevokedUtc = revokedUtc };
+        return Task.FromResult(true);
+    }
+
+    public Task<IReadOnlyList<PartnerLink>> ListForAppAsync(
+        string appId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<PartnerLink>>(store.PartnerLinks
+            .Where(kv => kv.Key.AppId == appId)
+            .OrderByDescending(kv => kv.Value.LinkedUtc)
+            .Select(kv => kv.Value).ToList());
 }

@@ -10,7 +10,8 @@ public class IdentityTests
     [Fact]
     public void Role_set_matches_adr_0005()
         => Enum.GetNames<LolaRole>().ShouldBe(
-            ["TenantAdmin", "LoanOfficer", "Borrower", "Service"], ignoreOrder: true);
+            ["TenantAdmin", "LoanOfficer", "Borrower", "Service",
+             "Broker", "Realtor"], ignoreOrder: true);
 
     [Fact]
     public void TenantRecord_carries_wrapped_key()

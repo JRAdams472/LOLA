@@ -10,16 +10,17 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
 {
     private const string Columns =
         "id, tenant_id AS TenantId, email, role, token_hash AS TokenHash, " +
-        "expires_utc AS ExpiresUtc, used_utc AS UsedUtc, created_by AS CreatedBy";
+        "expires_utc AS ExpiresUtc, used_utc AS UsedUtc, created_by AS CreatedBy, " +
+        "org_name AS OrgName";
 
     public async Task InsertAsync(InviteRecord invite, CancellationToken ct = default)
     {
         using var conn = db.Open();
         await conn.ExecuteAsync(new CommandDefinition("""
             INSERT INTO invites (id, tenant_id, email, role, token_hash,
-                                 expires_utc, created_by)
+                                 expires_utc, created_by, org_name)
             VALUES (@Id, @TenantId, @Email, @Role, @TokenHash,
-                    @ExpiresUtc, @CreatedBy)
+                    @ExpiresUtc, @CreatedBy, @OrgName)
             """, new
         {
             invite.Id,
@@ -28,7 +29,8 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
             Role = invite.Role.ToString(),
             invite.TokenHash,
             invite.ExpiresUtc,
-            invite.CreatedBy
+            invite.CreatedBy,
+            invite.OrgName
         }, cancellationToken: ct));
     }
 
@@ -54,10 +56,11 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
 
     private sealed record InviteRow(
         string Id, string TenantId, string Email, string Role,
-        string TokenHash, string ExpiresUtc, string? UsedUtc, string CreatedBy)
+        string TokenHash, string ExpiresUtc, string? UsedUtc, string CreatedBy,
+        string? OrgName)
     {
         public InviteRecord ToInvite() => new(Id, TenantId, Email,
             Enum.Parse<LolaRole>(Role, ignoreCase: true), TokenHash, ExpiresUtc,
-            UsedUtc, CreatedBy);
+            UsedUtc, CreatedBy, OrgName);
     }
 }

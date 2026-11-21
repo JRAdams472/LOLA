@@ -66,4 +66,48 @@ public class IdentityMigrationTests
         cols.ShouldContain("token_hash");
         cols.ShouldNotContain("token"); // the bearer secret never rests in the DB
     }
+    // ---- 0008_tpo.sql (MPE-265) ----
+
+    [Fact]
+    public void Tpo_adds_org_name_to_users_and_invites()
+    {
+        using var conn = TempDb().Open();
+        conn.Query<string>("SELECT name FROM pragma_table_info('users')")
+            .ShouldContain("org_name");
+        conn.Query<string>("SELECT name FROM pragma_table_info('invites')")
+            .ShouldContain("org_name");
+    }
+
+    [Fact]
+    public void Tpo_partner_roles_pass_every_check_but_visibility()
+    {
+        using var conn = TempDb().Open();
+        conn.Execute("INSERT INTO tenants (id, slug, display_name,"
+            + " status, db_path) VALUES ('t1', 't1', 'T', 'active',"
+            + " 'x.db')");
+        conn.Execute(
+            "INSERT INTO users (id, tenant_id, email, display_name,"
+            + " org_name, status, created_utc)"
+            + " VALUES ('u-tpo', 't1', 'b@tpo', 'B', 'TPO LLC',"
+            + " 'invited', '2026-11-20T00:00:00Z')");
+        conn.Execute(
+            "INSERT INTO groups (id, tenant_id, name)"
+            + " VALUES ('g-tpo', 't1', 'brokers')");
+        // group_roles admits the partner roles.
+        conn.Execute("INSERT INTO group_roles (group_id, role)"
+            + " VALUES ('g-tpo', 'Broker'), ('g-tpo', 'Realtor')");
+        // invites CHECK admits partner roles + org.
+        conn.Execute(
+            "INSERT INTO invites (id, tenant_id, email, role,"
+            + " token_hash, expires_utc, created_by, org_name)"
+            + " VALUES ('i-tpo', 't1', 'b@tpo', 'Broker', 'h',"
+            + " '2099-01-01T00:00:00Z', 'u-admin', 'TPO LLC')");
+        // role_visibility stays 4-role — partners are masked by
+        // construction and the CHECK refuses a grant outright.
+        Should.Throw<Microsoft.Data.Sqlite.SqliteException>(() =>
+            conn.Execute(
+                "INSERT INTO role_visibility"
+                + " (role, pii_class, access)"
+                + " VALUES ('Broker', 'Identity', 'masked')"));
+    }
 }

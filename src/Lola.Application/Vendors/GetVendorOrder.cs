@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Lola.Application.Admin;
+using Lola.Application.Applications;
 using Lola.Application.Audit;
 using Lola.Application.Errors;
 using Lola.Application.Security;
@@ -12,7 +13,7 @@ namespace Lola.Application.Vendors;
 /// like a reveal — field classes only, never values.
 public sealed record GetVendorOrderQuery(
     string TenantId, string AppId, string OrderId, string ActorId,
-    bool ActorIsBorrower);
+    ActorScope Scope);
 
 public static class GetVendorOrderHandler
 {
@@ -22,7 +23,7 @@ public static class GetVendorOrderHandler
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(q.TenantId);
-        if (q.ActorIsBorrower)
+        if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden(
                 "vendor orders are a staff surface");
         var row = await orders.GetAsync(q.OrderId, ct);

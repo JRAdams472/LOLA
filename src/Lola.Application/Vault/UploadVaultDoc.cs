@@ -12,7 +12,7 @@ namespace Lola.Application.Vault;
 /// ever exists in streams (never buffered, never a temp file —
 /// invariant 1). Staff or borrower-own only.
 public sealed record UploadVaultDocCommand(
-    string TenantId, string AppId, string ActorId, bool ActorIsBorrower,
+    string TenantId, string AppId, string ActorId, ActorScope Scope,
     string Classification, string? DeclaredFileName,
     string? DeclaredContentType, Stream Content);
 
@@ -33,7 +33,7 @@ public static class UploadVaultDocHandler
     {
         AdminGuards.RequireTenant(c.TenantId);
         _ = await UpdateDraftHandler.RequireAppAsync(
-            apps, c.AppId, c.ActorId, c.ActorIsBorrower, ct);
+            apps, c.AppId, c.ActorId, c.Scope, ct);
 
         // Sniff the head before any of it is sealed — magic bytes
         // decide the stored type; the declared name/type are hints.
