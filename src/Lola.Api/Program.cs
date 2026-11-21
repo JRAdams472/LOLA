@@ -530,6 +530,15 @@ builder.Services.AddSingleton<ITenantProvisioner>(sp => new TenantProvisioningSe
 
 var app = builder.Build();
 app.Services.GetRequiredService<ControlPlaneDb>().Migrate();
+// MPE-271 reconciliation: group_roles rows carrying machine authority
+// predate the assignable-role restriction. Report them for operator
+// reconciliation — the platform claim, not the row, is the enforcement
+// point, so reporting never silently broadens or erases history.
+foreach (var grant in InvalidRoleGrantScan.Run(
+             app.Services.GetRequiredService<ControlPlaneDb>()))
+    Log.Warning(
+        "invalid group role grant requires operator reconciliation: {TenantId} {GroupId} {Role}",
+        grant.TenantId, grant.GroupId, grant.Role);
 var version = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
 

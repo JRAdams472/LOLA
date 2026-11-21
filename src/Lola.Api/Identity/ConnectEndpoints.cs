@@ -65,6 +65,13 @@ public static class ConnectEndpoints
                 // surface keys on it via the PlatformOps policy.
                 identity.AddClaim(new Claim(Claims.Role,
                     request.ClientId == "lola-ops" ? "lola-ops" : "Service"));
+                // Platform authority binds to the validated client
+                // registration (MPE-271): designated global clients only,
+                // never a requested scope, role name or group membership.
+                if (request.ClientId is not null
+                    && PlatformAuthority.DesignatedClientIds.Contains(request.ClientId))
+                    identity.AddClaim(new Claim(
+                        PlatformAuthority.Claim, PlatformAuthority.Value));
                 if (request.ClientId?.StartsWith("svc-", StringComparison.Ordinal) == true
                     && request.ClientId.Length > 4)
                     identity.AddClaim(new Claim("tid", request.ClientId[4..]));

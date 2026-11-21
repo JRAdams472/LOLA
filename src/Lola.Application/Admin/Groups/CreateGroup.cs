@@ -12,6 +12,7 @@ public static class CreateGroupHandler
         CreateGroupCommand c, IGroupDirectory groups, CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
+        AdminGuards.RequireAssignableRoles(c.Roles);
         var group = new LolaGroup($"g-{Guid.NewGuid():N}", c.TenantId,
             c.Name, c.Description, c.Roles);
         await groups.InsertAsync(group, ct);
