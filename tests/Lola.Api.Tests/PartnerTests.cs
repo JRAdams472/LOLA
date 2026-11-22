@@ -124,7 +124,7 @@ public sealed class PartnerTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.OK);
         var list = await broker.GetFromJsonAsync<JsonElement>(
             $"/api/tenants/{tenant}/applications");
-        var ids = list.EnumerateArray()
+        var ids = list.GetProperty("items").EnumerateArray()
             .Select(a => a.GetProperty("id").GetString()).ToList();
         ids.ShouldBe([app1]);
         (await broker.GetAsync(
@@ -166,6 +166,146 @@ public sealed class PartnerTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+
+    /// MPE-266 partner surface — paged list envelope, allowlisted
+    /// detail DTO (metadata + loan_amount, no staff payload), the
+    /// stripped conditions projection, and own-uploads-only vault
+    /// reads. Revoke closes detail/uploads immediately.
+    [Fact]
+    public async Task Partner_surface_paged_detail_conditions_uploads()
+    {
+        var tenant = $"tpo2-{Guid.NewGuid():N}";
+        var svc = factory.CreateClient();
+        svc.DefaultRequestHeaders.Authorization =
+            new("Bearer", await ServiceTokenAsync(
+                svc, "lola-svc", "svc-secret-value"));
+        (await svc.PostAsJsonAsync("/api/admin/tenants",
+            new { tenantId = tenant, slug = tenant, displayName = "T" }))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var adminToken = await PkceLogin.TokenAsync(
+            factory, tenant, LolaRole.TenantAdmin);
+        var admin = factory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization =
+            new("Bearer", adminToken);
+        var invite = await admin.PostAsJsonAsync(
+            $"/api/admin/tenants/{tenant}/partner-invites",
+            new
+            {
+                email = $"broker-{tenant}@test.dev",
+                role = "Broker",
+                org = "TPO"
+            });
+        var link = (await invite.Content
+                .ReadFromJsonAsync<JsonElement>())
+            .GetProperty("inviteUrl").GetString()!;
+        var token = Uri.UnescapeDataString(link.Split("token=")[1]);
+        (await factory.CreateClient().PostAsJsonAsync(
+                "/api/invites/accept",
+                new
+                {
+                    token,
+                    displayName = "Broker",
+                    password = PkceLogin.Password
+                }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        var brokerToken = await PkceLogin.TokenAsync(
+            factory, tenant, LolaRole.Broker, seed: false,
+            email: $"broker-{tenant}@test.dev");
+        var broker = factory.CreateClient();
+        broker.DefaultRequestHeaders.Authorization =
+            new("Bearer", brokerToken);
+        var brokerId = (await admin.GetFromJsonAsync<JsonElement>(
+                $"/api/admin/tenants/{tenant}/users"))
+            .EnumerateArray().Single(u =>
+                u.GetProperty("email").GetString()
+                    == $"broker-{tenant}@test.dev")
+            .GetProperty("id").GetString()!;
+
+        var officerToken = await PkceLogin.TokenAsync(
+            factory, tenant, LolaRole.LoanOfficer);
+        var officer = factory.CreateClient();
+        officer.DefaultRequestHeaders.Authorization =
+            new("Bearer", officerToken);
+        var appId = (await (await officer.PostAsJsonAsync(
+                $"/api/tenants/{tenant}/applications", new { }))
+            .Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetString()!;
+        _ = (await officer.PostAsJsonAsync(
+                $"/api/tenants/{tenant}/applications", new { }))
+            .Content.ReadFromJsonAsync<JsonElement>(); // unlinked
+        (await officer.PatchAsJsonAsync(
+                $"/api/tenants/{tenant}/applications/{appId}",
+                new
+                {
+                    patch = new Dictionary<string, string>
+                    { ["loan_amount"] = "425000" }
+                }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await officer.PutAsJsonAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"
+                + $"/partners/{brokerId}", new { }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Paged envelope — linked-only items, total, bound.
+        var page = await broker.GetFromJsonAsync<JsonElement>(
+            $"/api/tenants/{tenant}/applications?page=1&pageSize=10");
+        page.GetProperty("total").GetInt32().ShouldBe(1);
+        page.GetProperty("page").GetInt32().ShouldBe(1);
+        page.GetProperty("items").EnumerateArray().Single()
+            .GetProperty("id").GetString().ShouldBe(appId);
+        (await broker.GetAsync(
+                $"/api/tenants/{tenant}/applications?pageSize=500"))
+            .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        // Detail — allowlisted keys only, amount present, nothing
+        // staff-shaped (no doc payload, borrower ids, or rate locks).
+        var detail = await broker.GetFromJsonAsync<JsonElement>(
+            $"/api/tenants/{tenant}/applications/{appId}");
+        var keys = detail.EnumerateObject()
+            .Select(p => p.Name).OrderBy(k => k).ToList();
+        keys.ShouldBe([
+            "currentVersion", "id", "loanAmount",
+            "pipelineStep", "status", "submittedUtc"]);
+        detail.GetProperty("loanAmount").GetString()
+            .ShouldBe("425000");
+        var raw = await broker.GetStringAsync(
+            $"/api/tenants/{tenant}/applications/{appId}");
+        foreach (var forbidden in new[]
+            { "docJson", "borrowerUserId", "rateLock",
+              "documentIntelligence", "ssn" })
+            raw.ShouldNotContain(forbidden);
+
+        // Conditions — the stripped borrower projection, not a 403.
+        var cond = await broker.GetFromJsonAsync<JsonElement>(
+            $"/api/tenants/{tenant}/applications/{appId}/conditions");
+        cond.EnumerateArray().ShouldBeEmpty();
+
+        // Upload — accepted on the linked app; list shows own only.
+        var pdf = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(
+                "%PDF-1.4 partner doc"u8.ToArray()), "file", "poa.pdf" }
+        };
+        (await broker.PostAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"
+                + "/uploads?classification=paystub", pdf))
+            .StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var ups = await broker.GetFromJsonAsync<JsonElement>(
+            $"/api/tenants/{tenant}/applications/{appId}/uploads");
+        ups.EnumerateArray().ShouldHaveSingleItem()
+            .GetProperty("filename").GetString()
+            .ShouldBe("poa.pdf");
+
+        // Revoke — detail + uploads close immediately.
+        (await officer.DeleteAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"
+                + $"/partners/{brokerId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await broker.GetAsync(
+                $"/api/tenants/{tenant}/applications/{appId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
     /// MPE-272 operation matrix — an active application link does NOT
     /// extend a partner's reach to privileged outputs. On the same
     /// LINKED app (with a populated synthetic package): no plaintext

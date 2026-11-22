@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import AppShell from "@/components/AppShell";
 import LoanCard from "@/components/LoanCard";
 import { usePortalLoans } from "@/lib/loans";
@@ -11,7 +13,20 @@ import { useMe } from "@/lib/me";
  */
 export default function HomePage() {
   const me = useMe();
-  const loans = usePortalLoans(me.status === "ready" ? me.me.tid : undefined);
+  // M19 partner roles land on their own surface — no borrower
+  // dashboard for a Broker/Realtor session.
+  const isPartner =
+    me.status === "ready" &&
+    me.me.roles.some((r) => r === "Broker" || r === "Realtor");
+  const loans = usePortalLoans(
+    me.status === "ready" && !isPartner ? me.me.tid : undefined,
+  );
+
+  useEffect(() => {
+    if (isPartner) window.location.assign("/partner");
+  }, [isPartner]);
+
+  if (isPartner) return null;
 
   return (
     <AppShell>

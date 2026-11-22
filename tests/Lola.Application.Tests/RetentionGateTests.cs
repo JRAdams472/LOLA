@@ -218,6 +218,20 @@ public sealed class RetentionGateTests
     private sealed class FakeApps(IReadOnlyList<ApplicationRetentionRow> rows)
         : IApplicationRepository
     {
+        public Task<ApplicationPage> ListScopedAsync(
+            ActorScope scope, string? actorId, int skip, int take,
+            bool includeNames, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<ScopedApplicationMeta?> GetScopedMetaAsync(
+            string id, ActorScope scope, string? actorId,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<string?> GetDocValueAsync(
+            string id, string path, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
         public Task<IReadOnlyList<ApplicationRetentionRow>> RetentionWindowsAsync(
             CancellationToken ct = default) => Task.FromResult(rows);
         public Task InsertAsync(string id, Lola.Domain.Applications.ApplicationDocument doc, string status, string? borrowerUserId, string writtenBy, CancellationToken ct = default) => throw new NotImplementedException();

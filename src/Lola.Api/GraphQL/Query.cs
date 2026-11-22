@@ -56,8 +56,9 @@ public class Query(IMessageBus bus)
     {
         var (actor, scope) = Actor(context);
         if (scope != ActorScope.Staff) return Task.FromResult<IReadOnlyList<ApplicationMeta>>([]);
-        return bus.InvokeAsync<IReadOnlyList<ApplicationMeta>>(
-            new ListApplicationsQuery(tenantId, actor, scope), ct);
+        return bus.InvokeAsync<ApplicationListPage>(
+            new ListApplicationsQuery(tenantId, actor, scope), ct)
+            .ContinueWith(t => (IReadOnlyList<ApplicationMeta>)t.Result.Items);
     }
 
     /// Borrower-portal reads (M12) — own application only, borrower
