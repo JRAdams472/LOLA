@@ -87,10 +87,10 @@ public sealed class ScopedQueryTests(OpenBaoFixture fixture)
             await apps.InsertAsync("app-no", Doc(), "draft",
                 "u-b2", "test");
             await links.LinkAsync(new PartnerLink(
-                "app-yes", "u-br", "broker", "u-admin",
+                "app-yes", "u-br", "Broker", "u-admin",
                 "2026-01-01T00:00:00Z", null), default);
             await links.LinkAsync(new PartnerLink(
-                "app-no", "u-other", "broker", "u-admin",
+                "app-no", "u-other", "Broker", "u-admin",
                 "2026-01-01T00:00:00Z", null), default);
 
             var writes = cipher.DecryptCalls;
@@ -149,7 +149,7 @@ public sealed class ScopedQueryTests(OpenBaoFixture fixture)
                 .ShouldBeNull();
 
             await links.LinkAsync(new PartnerLink(
-                "app-1", "u-br", "broker", "u-admin",
+                "app-1", "u-br", "Broker", "u-admin",
                 "2026-01-01T00:00:00Z", null), default);
             var meta = await apps.GetScopedMetaAsync(
                 "app-1", ActorScope.Partner, "u-br");
