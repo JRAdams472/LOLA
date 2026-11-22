@@ -203,7 +203,7 @@ public sealed class LoanEventEmissionTests
             new Lola.Application.Tenancy.TenantScope("t1", "x.db", "k"));
         var dto = await RevealApplicationHandler.Handle(
             new RevealApplicationQuery("t1", "app-1", "officer-1",
-                "borrower support call", ActorScope.Staff),
+                "reveal.borrower_request", ActorScope.Staff),
             new FakeApps(record), new FakeAudit(), events, default);
         dto.ShouldNotBeNull();
         // Ssn + Name — distinct classes, never values.

@@ -46,7 +46,7 @@ public sealed class RevealAndAuditReportTests(LolaApiFactory factory)
 
         // Reveal returns the plaintext doc with a reason.
         var reveal = await officer.PostAsJsonAsync($"{base_}/{appId}/reveal",
-            new { reason = "borrower requested verification" });
+            new { reason = "reveal.borrower_request" });
         reveal.StatusCode.ShouldBe(HttpStatusCode.OK);
         var revealed = await reveal.Content.ReadAsStringAsync();
         revealed.ShouldContain("123456789");
@@ -60,7 +60,7 @@ public sealed class RevealAndAuditReportTests(LolaApiFactory factory)
         revealEvent.GetProperty("fieldClasses").EnumerateArray()
             .Select(c => c.GetString()).ShouldContain("Ssn");
         revealEvent.GetProperty("reason").GetString()
-            .ShouldBe("borrower requested verification");
+            .ShouldBe("reveal.borrower_request");
         revealEvent.GetProperty("actor").GetString().ShouldNotBeNullOrEmpty();
         revealEvent.GetProperty("createdUtc").GetString().ShouldNotBeNullOrEmpty();
         audit.GetRawText().ShouldNotContain("123456789");
@@ -111,7 +111,7 @@ public sealed class RevealAndAuditReportTests(LolaApiFactory factory)
         await officer.PatchAsJsonAsync($"{base_}/{appId}",
             new { patch = new Dictionary<string, string> { ["party[0].ssn"] = "123456789" } });
         await officer.PostAsJsonAsync($"{base_}/{appId}/reveal",
-            new { reason = "compliance check" });
+            new { reason = "reveal.compliance_audit" });
 
         // ?action= filters the tenant-wide report.
         var onlyReveal = await officer.GetFromJsonAsync<JsonElement>(

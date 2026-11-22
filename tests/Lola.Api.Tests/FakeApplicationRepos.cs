@@ -871,9 +871,50 @@ public sealed class FakeVaultDocRepository
 /// In-memory application_partners write side (M19) — same upsert/
 /// soft-revoke semantics as the real repo: re-link clears revoked,
 /// revoke reports false when nothing active exists.
-public sealed class FakeApplicationPartnerRepository(FakeApplicationStore store)
+public sealed class FakeApplicationPartnerRepository(
+    FakeApplicationStore store, FakeTenantAuditLog audit,
+    FakeLoanEventLog events)
     : IApplicationPartnerRepository
 {
+    /// Atomic-commit mirror (MPE-274): the in-memory store is
+    /// single-threaded per call, so state+evidence apply together;
+    /// NoOp/NotFound write nothing.
+    public async Task<PartnerLinkOutcome> CommitLinkAsync(
+        PartnerLink link, Lola.Application.Audit.AuditDraft auditDraft,
+        Lola.Application.Events.LoanEventDraft loanEvent,
+        CancellationToken ct = default)
+    {
+        if (store.PartnerLinks.TryGetValue(
+                (link.AppId, link.PartnerUserId), out var cur) &&
+            cur.RevokedUtc is null && cur.PartnerRole == link.PartnerRole)
+            return PartnerLinkOutcome.NoOp;
+        store.PartnerLinks[(link.AppId, link.PartnerUserId)] =
+            link with { RevokedUtc = null };
+        await audit.WriteAsync(auditDraft.Actor, auditDraft.Action,
+            auditDraft.Entity, auditDraft.EntityId,
+            auditDraft.FieldClasses, auditDraft.Reason, ct);
+        await events.WriteAsync(loanEvent, ct);
+        return PartnerLinkOutcome.Linked;
+    }
+
+    public async Task<PartnerLinkOutcome> CommitRevokeAsync(
+        string appId, string partnerUserId, string revokedUtc,
+        Lola.Application.Audit.AuditDraft auditDraft,
+        Lola.Application.Events.LoanEventDraft loanEvent,
+        CancellationToken ct = default)
+    {
+        if (!store.PartnerLinks.TryGetValue((appId, partnerUserId),
+                out var existing) || existing.RevokedUtc is not null)
+            return PartnerLinkOutcome.NotFound;
+        store.PartnerLinks[(appId, partnerUserId)] =
+            existing with { RevokedUtc = revokedUtc };
+        await audit.WriteAsync(auditDraft.Actor, auditDraft.Action,
+            auditDraft.Entity, auditDraft.EntityId,
+            auditDraft.FieldClasses, auditDraft.Reason, ct);
+        await events.WriteAsync(loanEvent, ct);
+        return PartnerLinkOutcome.Revoked;
+    }
+
     public Task LinkAsync(PartnerLink link, CancellationToken ct = default)
     {
         store.PartnerLinks[(link.AppId, link.PartnerUserId)] =

@@ -1,5 +1,6 @@
 using Dapper;
 using Lola.Application.Audit;
+using Microsoft.Data.Sqlite;
 using System.Text.Json;
 
 namespace Lola.DataPlane;
@@ -11,14 +12,66 @@ namespace Lola.DataPlane;
 public sealed class TenantAuditLog(TenantConnectionFactory factory)
     : TenantRepository(factory), ITenantAuditLog
 {
-    public async Task WriteAsync(string actor, string action,
+    public Task WriteAsync(string actor, string action,
         string entity, string? entityId,
         IReadOnlyList<string> fieldClasses, string? reason,
         CancellationToken ct = default)
+        => WriteInternalAsync(new AuditDraft(actor, action, entity,
+            entityId, fieldClasses, reason), null, ct);
+
+    /// Same-tx writer for repositories that own the mutation's
+    /// BEGIN IMMEDIATE (MPE-274 composite commits) — the audit row
+    /// joins the caller's connection so a mutation rollback takes the
+    /// evidence with it. Not on the port: sibling-repo detail.
+    internal Task WriteOnConnectionAsync(AuditDraft draft,
+        SqliteConnection conn, CancellationToken ct = default)
+        => WriteInternalAsync(draft, conn, ct);
+
+    private async Task WriteInternalAsync(AuditDraft draft,
+        SqliteConnection? sharedConn, CancellationToken ct)
     {
+        var (actor, action, entity, entityId, fieldClasses, reason) =
+            (draft.Actor, draft.Action, draft.Entity, draft.EntityId,
+                draft.FieldClasses, draft.Reason);
         var eventId = $"evt-{Guid.NewGuid():N}";
         var classesJson = JsonSerializer.Serialize(fieldClasses);
         var createdUtc = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+
+        if (sharedConn is not null)
+        {
+            // Caller's BEGIN IMMEDIATE already serializes writers — the
+            // last-hash read and insert are atomic inside their tx.
+            var prevShared = await sharedConn.QuerySingleOrDefaultAsync<string>(
+                "SELECT hash FROM audit_events ORDER BY seq DESC LIMIT 1")
+                ?? HashChain.Genesis;
+            var hashShared = HashChain.ComputeHash(prevShared, eventId,
+                actor, action, entity, entityId, fieldClasses, reason,
+                createdUtc);
+            await sharedConn.ExecuteAsync(
+                """
+                INSERT INTO audit_events
+                    (event_id, actor, action, entity, entity_id,
+                     field_classes, reason, prev_hash, hash, created_utc)
+                VALUES (@eventId, @actor, @action, @entity, @entityId,
+                        @classesJson, @reason, @prevShared, @hashShared,
+                        @createdUtc)
+                """,
+                new
+                {
+                    eventId,
+                    actor,
+                    action,
+                    entity,
+                    entityId,
+                    classesJson,
+                    reason,
+                    prevShared,
+                    hashShared,
+                    createdUtc
+                });
+            return;
+        }
+
         await using var conn = await OpenAsync(ct);
         // BEGIN IMMEDIATE serializes concurrent writers: the last-hash
         // read and the insert must be one atomic step or two writers

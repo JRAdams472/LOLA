@@ -43,16 +43,19 @@ public static class LinkPartnerHandler
         var link = new PartnerLink(c.AppId, c.PartnerUserId,
             partnerRole.ToString(), c.ActorId,
             DateTimeOffset.UtcNow.ToString("O"), null);
-        await links.LinkAsync(link, ct);
-        await audit.WriteAsync(c.ActorId, "partner_linked",
-            "application", c.AppId, ["application_partners"],
-            $"linked {link.PartnerRole} partner {c.PartnerUserId}", ct);
-        await events.WriteAsync(new LoanEventDraft(c.AppId,
-            LoanEventKind.PartnerLinked, c.ActorId,
-            "application_partner", c.PartnerUserId,
-            FieldPath: $"partners.{link.PartnerRole.ToLowerInvariant()}",
-            AfterVal: "linked"), ct);
+        // MPE-274: state + audit + event commit atomically — a retry
+        // of an identical link is a NoOp with NO duplicate evidence.
+        var outcome = await links.CommitLinkAsync(link,
+            new Audit.AuditDraft(c.ActorId, "partner_linked",
+                "application", c.AppId, ["application_partners"],
+                $"linked {link.PartnerRole} partner {c.PartnerUserId}"),
+            new LoanEventDraft(c.AppId,
+                LoanEventKind.PartnerLinked, c.ActorId,
+                "application_partner", c.PartnerUserId,
+                FieldPath: $"partners.{link.PartnerRole.ToLowerInvariant()}",
+                AfterVal: "linked"), ct);
         return new PartnerLinkDto(link.PartnerUserId, link.PartnerRole,
-            link.LinkedBy, link.LinkedUtc, link.RevokedUtc);
+            link.LinkedBy, link.LinkedUtc,
+            outcome == PartnerLinkOutcome.NoOp ? link.RevokedUtc : null);
     }
 }

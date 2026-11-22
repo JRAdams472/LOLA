@@ -45,7 +45,7 @@ public sealed class RetentionGateTests
         var (handler, _, erased, audit, _, _) = Fixture(
             [new ApplicationRetentionRow("app-1", "2026-05-01T00:00:00.000Z")]);
         var result = await handler(
-            new EraseTenantCommand("t1", Force: true, "court order", "ops"));
+            new EraseTenantCommand("t1", Force: true, "erasure.regulatory_order", "ops"));
         result.TenantId.ShouldBe("t1");
         erased.ShouldBe(["t1"]);
         audit.Events.Count.ShouldBe(2);
@@ -54,7 +54,7 @@ public sealed class RetentionGateTests
         ev.Entity.ShouldBe("tenant");
         ev.EntityId.ShouldBe("t1");
         ev.Actor.ShouldBe("ops");
-        ev.Reason.ShouldBe("court order");
+        ev.Reason.ShouldBe("erasure.regulatory_order");
         // The erasure itself is attributed in the control-plane log —
         // the tenant file's own chain is shredded with the data.
         audit.Events[1].Action.ShouldBe("tenant_erased");

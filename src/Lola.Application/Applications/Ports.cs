@@ -140,6 +140,23 @@ public sealed record PartnerLink(
     string AppId, string PartnerUserId, string PartnerRole,
     string LinkedBy, string LinkedUtc, string? RevokedUtc);
 
+/// Outcome of an atomic access change (MPE-274): the state write,
+/// tenant audit row, and loan event row commit together or roll
+/// back together inside one tenant-file transaction.
+public enum PartnerLinkOutcome
+{
+    /// Active link written (first link or re-link of a revoked row)
+    /// with its audit + event evidence.
+    Linked,
+    /// An identical active link already existed — state unchanged,
+    /// NO duplicate evidence written.
+    NoOp,
+    /// Revoke found no active link — nothing written (404 contract).
+    NotFound,
+    /// Active link revoked with its audit + event evidence.
+    Revoked,
+}
+
 /// Staff-side administration of application_partners (M19): link,
 /// revoke, and enumerate an app's partners. The reads a Partner
 /// actor's own scope needs live on IApplicationRepository — this port
@@ -159,6 +176,22 @@ public interface IApplicationPartnerRepository
     /// Every link row for an app, newest first — including revoked.
     Task<IReadOnlyList<PartnerLink>> ListForAppAsync(
         string appId, CancellationToken ct = default);
+
+    /// Atomic access change (MPE-274): link state, tenant audit row
+    /// and loan event row commit inside ONE tenant-file transaction —
+    /// hash predecessors are read in-tx, and any failure rolls back
+    /// all three. `NoOp` means an identical active link already
+    /// existed: state unchanged and NO duplicate evidence written.
+    Task<PartnerLinkOutcome> CommitLinkAsync(PartnerLink link,
+        Audit.AuditDraft audit, Events.LoanEventDraft loanEvent,
+        CancellationToken ct = default);
+
+    /// Same atomicity for revoke. `NotFound` means no active link —
+    /// nothing written (the handler keeps the 404 contract).
+    Task<PartnerLinkOutcome> CommitRevokeAsync(string appId,
+        string partnerUserId, string revokedUtc,
+        Audit.AuditDraft audit, Events.LoanEventDraft loanEvent,
+        CancellationToken ct = default);
 }
 
 /// Blind-index equality search — `field` is a catalog trailing key

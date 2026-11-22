@@ -143,9 +143,9 @@ public sealed class PartnerScopeTests
     public async Task Link_writes_row_event_and_audit()
     {
         using var _ = Scope();
-        var links = new FakeLinks();
         var audit = new FakeAudit();
         var events = new FakeEventLog();
+        var links = new FakeLinks(audit, events);
         var dto = await LinkPartnerHandler.Handle(
             new LinkPartnerCommand("t1", "app-1", "u-broker", "u-officer"),
             new FakeApps(App()), links,
@@ -178,11 +178,11 @@ public sealed class PartnerScopeTests
     public async Task Unlink_revokes_and_audits_missing_link_404s()
     {
         using var _ = Scope();
-        var links = new FakeLinks();
-        links.Store.Add(new PartnerLink("app-1", "u-broker", "Broker",
-            "u-admin", "2026-11-20T00:00:00Z", null));
         var audit = new FakeAudit();
         var events = new FakeEventLog();
+        var links = new FakeLinks(audit, events);
+        links.Store.Add(new PartnerLink("app-1", "u-broker", "Broker",
+            "u-admin", "2026-11-20T00:00:00Z", null));
         (await UnlinkPartnerHandler.Handle(
             new UnlinkPartnerCommand("t1", "app-1", "u-broker",
                 "u-officer"),
@@ -374,9 +374,54 @@ public sealed class PartnerScopeTests
             => throw new NotImplementedException();
     }
 
-    private sealed class FakeLinks : IApplicationPartnerRepository
+    private sealed class FakeLinks(
+        FakeAudit? audit = null, FakeEventLog? events = null)
+        : IApplicationPartnerRepository
     {
         public List<PartnerLink> Store { get; } = [];
+
+        /// Composite-commit mirror (MPE-274): state + audit + event
+        /// apply together — the drafts ride to the same fakes the
+        /// tests inspect, and NoOp/NotFound write nothing.
+        public async Task<PartnerLinkOutcome> CommitLinkAsync(
+            PartnerLink link, Lola.Application.Audit.AuditDraft ad,
+            Lola.Application.Events.LoanEventDraft loanEvent,
+            CancellationToken ct)
+        {
+            var i = Store.FindIndex(l => l.AppId == link.AppId
+                && l.PartnerUserId == link.PartnerUserId
+                && l.RevokedUtc is null);
+            if (i >= 0 && Store[i].PartnerRole == link.PartnerRole)
+                return PartnerLinkOutcome.NoOp;
+            if (i >= 0) Store[i] = link;
+            else Store.Add(link);
+            if (audit is not null)
+                await audit.WriteAsync(ad.Actor, ad.Action, ad.Entity,
+                    ad.EntityId, ad.FieldClasses, ad.Reason, ct);
+            if (events is not null)
+                await events.WriteAsync(loanEvent, ct);
+            return PartnerLinkOutcome.Linked;
+        }
+
+        public async Task<PartnerLinkOutcome> CommitRevokeAsync(
+            string appId, string partnerUserId, string revokedUtc,
+            Lola.Application.Audit.AuditDraft ad,
+            Lola.Application.Events.LoanEventDraft loanEvent,
+            CancellationToken ct)
+        {
+            var i = Store.FindIndex(l => l.AppId == appId
+                && l.PartnerUserId == partnerUserId
+                && l.RevokedUtc is null);
+            if (i < 0) return PartnerLinkOutcome.NotFound;
+            Store[i] = Store[i] with { RevokedUtc = revokedUtc };
+            if (audit is not null)
+                await audit.WriteAsync(ad.Actor, ad.Action, ad.Entity,
+                    ad.EntityId, ad.FieldClasses, ad.Reason, ct);
+            if (events is not null)
+                await events.WriteAsync(loanEvent, ct);
+            return PartnerLinkOutcome.Revoked;
+        }
+
         public Task LinkAsync(PartnerLink link,
             CancellationToken ct = default)
         { Store.Add(link); return Task.CompletedTask; }
