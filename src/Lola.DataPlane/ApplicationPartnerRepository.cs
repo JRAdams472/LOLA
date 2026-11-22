@@ -14,9 +14,12 @@ namespace Lola.DataPlane;
 /// MPE-274: access changes commit state + audit + loan event inside
 /// ONE BEGIN IMMEDIATE — an evidence gap after a granted scope was
 /// the finding; a failed evidence write now takes the grant with it.
-public sealed class ApplicationPartnerRepository(TenantConnectionFactory factory)
+public sealed class ApplicationPartnerRepository(
+    TenantConnectionFactory factory)
     : TenantRepository(factory), IApplicationPartnerRepository
 {
+    private readonly TenantConnectionFactory _factory = factory;
+
     /// Failure-injection seam (tests, InternalsVisibleTo): invoked
     /// with "state", "audit", or "event" immediately before each
     /// append inside the composite tx — throwing there proves the
@@ -64,10 +67,10 @@ public sealed class ApplicationPartnerRepository(TenantConnectionFactory factory
                     link.LinkedUtc
                 });
             WriteProbe?.Invoke("audit");
-            await new TenantAuditLog(factory)
+            await new TenantAuditLog(_factory)
                 .WriteOnConnectionAsync(audit, conn, ct);
             WriteProbe?.Invoke("event");
-            await new LoanEventLog(factory)
+            await new LoanEventLog(_factory)
                 .WriteOnConnectionAsync(loanEvent, conn, ct);
             await conn.ExecuteAsync("COMMIT");
             return PartnerLinkOutcome.Linked;
@@ -107,10 +110,10 @@ public sealed class ApplicationPartnerRepository(TenantConnectionFactory factory
                   AND revoked_utc IS NULL
                 """, new { appId, partnerUserId, revokedUtc });
             WriteProbe?.Invoke("audit");
-            await new TenantAuditLog(factory)
+            await new TenantAuditLog(_factory)
                 .WriteOnConnectionAsync(audit, conn, ct);
             WriteProbe?.Invoke("event");
-            await new LoanEventLog(factory)
+            await new LoanEventLog(_factory)
                 .WriteOnConnectionAsync(loanEvent, conn, ct);
             await conn.ExecuteAsync("COMMIT");
             return PartnerLinkOutcome.Revoked;
