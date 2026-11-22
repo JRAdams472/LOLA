@@ -19,6 +19,7 @@ document-store hybrid, adapter seams, masked-by-default, observability,
 workflow/coverage). **Milestone and phase plans must conform to them —
 see the `milestone-planning` skill.** Any proposed change requires an
 amended ADR + explicit user approval before code; never drift silently.
+ADR structure is enforced in CI — `node tools/adrcheck.mjs` must stay green.
 
 ## Security Invariants (non-negotiable)
 
@@ -93,7 +94,9 @@ This is **protected personal data**. These rules outrank convenience:
   sub-issues** — the plan goes on the parent first, then the subtickets.
 - Every phase gets a **sub-issue** under its milestone parent named for
   its branch, with scope + acceptance criteria; mark it **In Progress**
-  when its phase starts.
+  when its phase starts. **Author sub-issues per the `ticket-contract`
+  skill** — Scope / Implementation steps / Negative cases / Acceptance /
+  conformance line.
 - On phase completion, post **proof of completion** on the sub-issue
   **before asking for merge approval and before moving the ticket toward
   Done** — a sub-issue never closes on "looks good":
@@ -134,143 +137,28 @@ This is **protected personal data**. These rules outrank convenience:
 - Boy-scout rule: fix trivial adjacent issues in a touched file when
   low-risk; never let it balloon the diff.
 
-## Evidence Gathering (Observability)
+## Playbooks (skills — invoked on demand)
 
-Seq and Jaeger run in the compose stack and are both queryable over plain
-HTTP — no MCP needed. Use them to attach runtime evidence (logs, traces)
-to phase proof-of-completion.
+Mandates stay here; step-by-step recipes live in `.devin/skills/` so this
+file stays inside the always-on context budget. The skill is the
+executable form — follow it when the situation matches its description.
 
-- **Seq** (structured logs, `http://localhost:5441` — host port remapped
-  for sibling coexistence; container still `:80`):
-  ```bash
-  # Recent events as JSON
-  curl -s 'http://localhost:5441/api/events?count=50'
-  # Filtered — e.g. errors only (Seq filter expression syntax)
-  curl -s 'http://localhost:5441/api/events?count=50&filter=level%20%3D%20%27ERROR%27'
-  ```
-- **Jaeger** (traces, `http://localhost:17686` — the v2 API is under
-  `/api/v3/`, NOT `/api/`):
-  ```bash
-  curl -s 'http://localhost:17686/api/v3/services'
-  # start_time_min/max are REQUIRED and must be RFC3339
-  curl -sG 'http://localhost:17686/api/v3/traces' \
-    --data-urlencode 'query.service_name=lola' \
-    --data-urlencode 'query.limit=10' \
-    --data-urlencode 'query.start_time_min=2026-01-01T00:00:00Z' \
-    --data-urlencode 'query.start_time_max=2030-01-01T00:00:00Z'
-  ```
-- **Raw fallback**: `docker logs lola-api-1 --since 30m` (JSON output).
-- **SonarQube Community Build** (`http://localhost:9000`, project key
-  `lola`): the `sonarqube` MCP server (`.devin/mcp_config.local.json`)
-  exposes issues/hotspots/quality-gate/measures tools; the API is plain
-  HTTP with token auth (`-u "$TOKEN:"`, token as username, empty
-  password). Rescan by mounting **source subdirs only** — a whole-repo
-  mount crawls `node_modules` and CI leftovers:
-  ```bash
-  docker run --rm \
-    -v "$PWD/src:/usr/src/src" -v "$PWD/tests:/usr/src/tests" \
-    -v "$PWD/migrations:/usr/src/migrations" \
-    -e SONAR_TOKEN="$TOKEN" sonarsource/sonar-scanner-cli \
-    -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.projectKey=lola \
-    -Dsonar.sources=. -Dsonar.exclusions='**/bin/**,**/obj/**' \
-    -Dsonar.cs.vscoveragexml.reportsPaths=coverage.xml
-  ```
-- **MCP helpers configured** (`.devin/mcp_config.local.json`, gitignored):
-  `playwright` (real screenshots for UI proof), `linear` (ticket
-  workflow), `github`, `sonarqube`.
-- **Boy-scout rule for findings:** when a change touches a file with open
-  low/info-severity SonarQube findings, fix them in the same change when
-  trivial and low-risk. Skip nontrivial findings rather than ballooning
-  the diff.
-- **No PII in evidence:** Seq/Jaeger payloads and `docker logs` output
-  must never contain plaintext PII — if they do, that's invariant-3
-  breakage, file it as a bug, and redact before quoting in tickets.
-
-## Milestone Hardening Gate (required before milestone close)
-
-Every milestone ends with a deep-dive hardening pass — not just the final
-close-out milestone. The gate is smaller and cheaper per milestone than a
-single end-of-program review, and findings surface while the attack
-surface is still small:
-
-1. **OWASP review** of the milestone's attack surface (Top 10):
-   injection, broken access control, cryptographic failures, auth/session
-   weaknesses, security misconfiguration, vulnerable/outdated
-   dependencies, logging failures (**esp. any PII — invariant 3**),
-   SSRF on outbound adapters, upload/file handling.
-2. **Application hardening:** error-model consistency, rate limits,
-   timeouts, input-validation coverage, secrets handling, new-dependency
-   review (free/OSS and published ≥7 days).
-3. **Architecture overview:** code vs. `docs/adr/*` — any drift is
-   flagged and fixed, or escalated as an ADR amendment with user
-   approval; never merged silently.
-4. Findings post as a **comment on the milestone ticket**. Critical
-   findings are fixed before close; the rest become Linear tickets.
-   **A milestone is not Done until its hardening-gate comment exists.**
-
-## Plan Close-Out
-
-After the final phase of a plan merges, before starting the next:
-
-1. Delete merged phase branches locally and on GitHub (verify PR state
-   with `gh` first).
-2. Ensure no new feature is left at zero test coverage — every new
-   service, handler, or page needs at least one unit or integration test.
-3. Re-walk corrected audit/threat-model findings for regressions.
-4. File Linear tickets (project **LOLA**, or the correct sibling project —
-   e.g. ISPPr for e-signature) for improvements or new features inspired
-   by the completed work.
-5. Update `README.md` so features and architecture reflect what shipped —
-   including sweeping for stale claims (endpoint lists, env vars,
-   workflow names).
-6. Review every doc listed in `README.md`'s Documentation section plus
-   touched `clients/*/README.md` files for staleness.
-7. Update the GitHub wiki (`LOLA.wiki.git`) — it lives outside the repo,
-   so clone it, add/refresh pages for what shipped, and push to `master`.
-8. Refresh wiki **screenshots** when user-facing screens changed: run the
-   isolated `lolashots` stack per `.devin/skills/wiki-screenshots`,
-   inspect every PNG for spinners, publish under `images/`, and embed on
-   the relevant pages — **and verify no real or realistic PII appears in
-   any screenshot** (synthetic borrowers only).
-9. **SonarQube rescan gate (required):** if the plan remediated SonarQube
-   findings, run the documented rescan after the final phase merges and
-   confirm **zero new open issues** beyond the plan's accepted `wontfix`
-   list — a finding introduced by the plan's own code is a regression,
-   not backlog. Record the final open-issue count in the close-out proof.
-
-## Code Size & Shape Report (required on every ticket marked complete)
-
-Post a code-shape report as a comment on **every** Linear ticket when it
-is marked Done — phase sub-issues and parent tickets alike. It's fun to
-watch the project change; the per-phase granularity is the point. Post
-it via `save_comment` together with (or right after) the proof comment.
-Report absolute numbers, and deltas vs. the previous report if one
-exists on an earlier ticket.
-
-Generate it as follows:
-
-1. **Per-language LOC** — tokei (installed via winget; if not on PATH it's
-   at `%LOCALAPPDATA%\Microsoft\WinGet\Packages\XAMPPRocky.Tokei_*\tokei.exe`):
-   ```bash
-   tokei -e clients/*/node_modules -e '**/bin' -e '**/obj' src tests clients migrations
-   ```
-   Call out generated code separately in the report.
-2. **Source vs. test split** — bucket tracked files (`git ls-files`) by
-   path: C# tests are `tests/**` + `*.Tests.csproj` files; web tests are
-   `clients/*/__tests__`, `e2e`, `mocks`. Everything else is source. Sum
-   `wc -l` per bucket; "executable lines" = non-blank non-comment.
-3. **Test counts** — `grep -c '\[Fact\]\|\[Theory\]'` per test project;
-   count `it(|test(` in web `__tests__` + `e2e`.
-4. **Coverage** —
-   - .NET: `dotnet test --collect:"XPlat Code Coverage"` (lcov) — report
-     per-project numbers; `node tools/covercheck.mjs <lcov.info>` for the
-     floor check.
-   - Web: `npm test -- --coverage` (or read `coverage/lcov.info` — always
-     note its date; stale reports must be flagged).
-5. **Post** — `save_comment` on the parent ticket with the report as a
-   markdown table: LOC / executable / test LOC / test count / coverage
-   per feature area, plus a one-line caveats section (generated code
-   excluded, stale reports, skipped suites).
+- **Runtime evidence** — attach Seq/Jaeger/docker-log evidence to proofs:
+  `observability-evidence` skill (SonarQube rescan recipe included).
+  **No PII in evidence — ever** (invariant 3).
+- **Milestone hardening gate** — OWASP + hardening + ADR-drift pass:
+  `milestone-hardening` skill. **A milestone is not Done until its
+  hardening-gate comment exists.**
+- **Plan close-out** — branch cleanup, docs/wiki/screenshot sweep, SonarQube
+  rescan gate: `plan-closeout` skill. Required after the final phase of a
+  plan merges, before starting the next.
+- **Code size & shape report** — LOC/tests/coverage/rework numbers:
+  `code-shape-report` skill. **Required on every ticket marked Done** —
+  post it via `save_comment` with or right after the proof comment.
+- **Ticket authoring** — sub-issue contract template: `ticket-contract`
+  skill (see Linear Workflow).
+- **Screenshot capture** — real wiki/proof screenshots:
+  `wiki-screenshots` skill.
 
 ## Coverage Policy (enforced in CI)
 
@@ -285,14 +173,12 @@ Generate it as follows:
   `*.designer.cs`), test files/projects (`tests/**`, `*.test.*`,
   `*.spec.*`, `__tests__/`), `migrations/**`, and `Program.cs`
   composition roots (wiring verified via compose/e2e, not unit tests).
-- Run locally:
-  `dotnet test --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`
-  → `node tools/covercheck.mjs <lcov.info>`; for web,
-  `npx vitest run --coverage` → `node tools/covercheck.mjs clients/*/coverage/lcov.info`.
+- Local run commands live in the `code-shape-report` skill.
 
 ## Verification Commands
 
 ```bash
 dotnet format --verify-no-changes && dotnet build && dotnet test
+node tools/adrcheck.mjs             # ADR structure gate
 docker compose up --build        # openbao + seq + jaeger + minio + clamav (+ api/web when scaffolded)
 ```
