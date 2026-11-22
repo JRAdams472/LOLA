@@ -4,6 +4,9 @@ Locked decisions for the MPE-63 megaplan. **Milestone plans must conform to
 these records.** Any proposed change requires an amended ADR plus explicit
 user approval *before* code — never drift silently.
 
+Each ADR has exactly one `**Status:**`, one `## Decision`, and one
+`## Consequences` section — enforced in CI by `tools/adrcheck.mjs`.
+
 | ADR | Decision |
 |---|---|
 | [0001](0001-language-runtime.md) | C#/.NET 10 base language; free/OSS modules only |
