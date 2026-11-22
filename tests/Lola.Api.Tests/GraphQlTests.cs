@@ -23,7 +23,7 @@ public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory
     /// same handler, same VisibilityContext.
     [Theory]
     [InlineData(LolaRole.LoanOfficer, "Ada Lovelace")]
-    [InlineData(LolaRole.Service, "•••lace")]
+    [InlineData(LolaRole.Service, "•••")]
     public async Task Applications_list_masks_identically_to_rest(
         LolaRole role, string expectedName)
     {
@@ -50,7 +50,7 @@ public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory
         var body = await gql.Content.ReadFromJsonAsync<JsonElement>();
         var gqlApps = body.GetProperty("data").GetProperty("applications");
 
-        var restRow = rest.EnumerateArray().Single(a =>
+        var restRow = rest.GetProperty("items").EnumerateArray().Single(a =>
             a.GetProperty("id").GetString() == appId);
         var gqlRow = gqlApps.EnumerateArray().Single(a =>
             a.GetProperty("id").GetString() == appId);

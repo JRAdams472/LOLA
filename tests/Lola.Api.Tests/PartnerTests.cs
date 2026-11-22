@@ -288,9 +288,9 @@ public sealed class PartnerTests(LolaApiFactory factory)
                 "%PDF-1.4 partner doc"u8.ToArray()), "file", "poa.pdf" }
         };
         (await broker.PostAsync(
-                $"/api/tenants/{tenant}/applications/{appId}/uploads",
-                pdf))
-            .StatusCode.ShouldBe(HttpStatusCode.OK);
+                $"/api/tenants/{tenant}/applications/{appId}"
+                + "/uploads?classification=paystub", pdf))
+            .StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var ups = await broker.GetFromJsonAsync<JsonElement>(
             $"/api/tenants/{tenant}/applications/{appId}/uploads");
         ups.EnumerateArray().ShouldHaveSingleItem()
