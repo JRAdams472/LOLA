@@ -10,6 +10,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Failure-injection probes (MPE-274 atomic commits) are internal;
+         the test assembly reaches them here. -->
+    <InternalsVisibleTo Include="Lola.DataPlane.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="dbup-sqlite" Version="6.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />

@@ -58,11 +58,12 @@ public static class EraseTenantHandler
                 throw new DomainException(409,
                     $"tenant is inside the Reg B retention window until " +
                     $"{clearAt.Value:O} — retry with force and a reason");
-            if (string.IsNullOrWhiteSpace(c.Reason))
-                throw DomainException.BadRequest(
-                    "a reason is required for a retention override");
+            // MPE-274: validated code only — same injection channel
+            // as reveal; the code lands in the chain, not prose.
+            var reason = Audit.ReasonCodes.Require(c.Reason,
+                Audit.ReasonCodes.Erasure);
             await audit.WriteAsync(c.ActorId, "retention_override",
-                "tenant", c.TenantId, [], c.Reason, ct);
+                "tenant", c.TenantId, [], reason, ct);
         }
 
         // Vendor credential dies BEFORE the tenant keys (MPE-191):

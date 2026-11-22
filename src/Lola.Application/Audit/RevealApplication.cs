@@ -24,12 +24,14 @@ public static class RevealApplicationHandler
         AdminGuards.RequireTenant(q.TenantId);
         if (q.Scope != ActorScope.Staff)
             throw DomainException.Forbidden("PII reveal is staff-only");
-        if (string.IsNullOrWhiteSpace(q.Reason))
-            throw new ArgumentException("a reveal reason is required");
+        // MPE-274: validated code only — operator free text was a PII
+        // injection channel straight into the audit chain. The
+        // rejection never echoes the supplied value.
+        var reason = ReasonCodes.Require(q.Reason, ReasonCodes.Reveal);
         var app = await UpdateDraftHandler.RequireAppAsync(
             apps, q.AppId, q.ActorId, ActorScope.Staff, ct);
         await audit.WriteAsync(q.ActorId, "reveal", "application",
-            q.AppId, AuditFields.InDoc(app.Doc), q.Reason, ct);
+            q.AppId, AuditFields.InDoc(app.Doc), reason, ct);
         // Mutation log mirrors the audit's class set — one event per
         // PII class exposed; values never ride the log (invariant 3).
         foreach (var clsName in AuditFields.InDoc(app.Doc))

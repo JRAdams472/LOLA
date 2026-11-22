@@ -65,14 +65,14 @@ public sealed class RetentionEndpointTests(LolaApiFactory factory)
         // Force + reason proceeds — and the override lands in the
         // control-plane audit log, which outlives the shredded file.
         (await svc.DeleteAsync(
-                $"/api/admin/tenants/{tenant}?force=true&reason=court_order"))
+                $"/api/admin/tenants/{tenant}?force=true&reason=erasure.regulatory_order"))
             .StatusCode.ShouldBe(HttpStatusCode.OK);
         var cpAudit = factory.Services.GetRequiredService<IControlPlaneAuditLog>();
         var overrides = await cpAudit.QueryAsync(new AuditFilter(
             Entity: "tenant", Action: "retention_override"));
         var ev = overrides.ShouldHaveSingleItem();
         ev.EntityId.ShouldBe(tenant);
-        ev.Reason.ShouldBe("court_order");
+        ev.Reason.ShouldBe("erasure.regulatory_order");
     }
 
     private static async Task<string> ServiceTokenAsync(HttpClient client)

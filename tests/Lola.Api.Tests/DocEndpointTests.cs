@@ -450,7 +450,7 @@ public sealed class DocEndpointTests(LolaApiFactory factory)
         // The fake app store is factory-shared — other tests' apps sit
         // inside the Reg B window, so force+reason is required.
         var del = await svc.DeleteAsync(
-            $"/api/admin/tenants/{tenant}?force=true&reason=reg_b_expired");
+            $"/api/admin/tenants/{tenant}?force=true&reason=erasure.regulatory_order");
         del.StatusCode.ShouldBe(HttpStatusCode.OK);
         factory.Services.GetRequiredService<FakeDocVendorAdmin>()
             .Revoked.ShouldContain("key-77");

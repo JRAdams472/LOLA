@@ -5,12 +5,29 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 
-/// Audited PII reveal — the reason is REQUIRED and lands verbatim in
-/// the append-only audit chain alongside actor + field classes
-/// (invariant 8). The dialog owns no state after close.
+/// Audited PII reveal — the reason is REQUIRED and lands as a
+/// validated code in the append-only audit chain (MPE-274). Codes,
+/// not prose: a free-text prompt was an injection channel for PII
+/// into the tamper-evident log. The dialog owns no state after close.
+const REASON_CODES = [
+  {
+    value: "reveal.borrower_request",
+    label: "Borrower request — document or data verification",
+  },
+  {
+    value: "reveal.underwriting_review",
+    label: "Underwriting review — condition or eligibility check",
+  },
+  {
+    value: "reveal.compliance_audit",
+    label: "Compliance audit — regulator or QC review",
+  },
+];
+
 export default function RevealDialog({
   open,
   onClose,
@@ -35,8 +52,8 @@ export default function RevealDialog({
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>
           Unmasking this application&rsquo;s PII is an audited action —
-          your identity, the field classes, and this reason are written
-          to the tamper-evident audit log.
+          your identity, the field classes, and a reason code are
+          written to the tamper-evident audit log.
         </DialogContentText>
         {error && (
           <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
@@ -45,20 +62,27 @@ export default function RevealDialog({
         )}
         <TextField
           autoFocus
+          select
           label="Reason (required)"
           size="small"
           fullWidth
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. borrower SSN verification for LE"
-        />
+          helperText="Choose the category — details belong in the case notes, not here."
+        >
+          {REASON_CODES.map((c) => (
+            <MenuItem key={c.value} value={c.value}>
+              {c.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </DialogContent>
       <DialogActions>
         <Button onClick={close}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={!reason.trim() || pending}
-          onClick={() => onConfirm(reason.trim())}
+          disabled={!reason || pending}
+          onClick={() => onConfirm(reason)}
         >
           Reveal
         </Button>

@@ -65,7 +65,7 @@ public sealed class ErasureMarqueeTests(LolaApiFactory factory)
         (await (await officer.GetAsync($"{base_}/{appId}"))
             .Content.ReadAsStringAsync()).ShouldNotContain("123456789");
         var reveal = await officer.PostAsJsonAsync($"{base_}/{appId}/reveal",
-            new { reason = "marquee" });
+            new { reason = "reveal.compliance_audit" });
         reveal.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await reveal.Content.ReadAsStringAsync()).ShouldContain("123456789");
 
@@ -114,7 +114,7 @@ public sealed class ErasureMarqueeTests(LolaApiFactory factory)
         // Force + reason overrides — keys die, file dies, residuals die,
         // the tenant retires, and the override lands in the spine.
         (await svc.DeleteAsync(
-                $"/api/admin/tenants/{tenant}?force=true&reason=reg_b_expired"))
+                $"/api/admin/tenants/{tenant}?force=true&reason=erasure.borrower_request"))
             .StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using (var conn = cp.Open())

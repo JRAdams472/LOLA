@@ -85,8 +85,9 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 FakeApplicationPartnerRepository>();
             services.AddScoped<Lola.Application.Applications.IWorkflowPipeline,
                 Lola.Application.Applications.WorkflowPipeline>();
-            services.AddSingleton<Lola.Application.Audit.ITenantAuditLog,
-                FakeTenantAuditLog>();
+            services.AddSingleton(new FakeTenantAuditLog());
+            services.AddSingleton<Lola.Application.Audit.ITenantAuditLog>(
+                sp => sp.GetRequiredService<FakeTenantAuditLog>());
             // Mutation log + conditions (M15) — hermetic mirrors; the
             // SQLCipher impls are proven in Lola.DataPlane.Tests.
             services.AddSingleton(new FakeLoanEventLog());
