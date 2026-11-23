@@ -41,9 +41,12 @@ public static class PkceLogin
             $"&code_challenge={challenge}&code_challenge_method=S256";
 
         await client.GetAsync(authorize);
+        // MPE-286 tenant-aware login: the org slug resolves the tenant,
+        // then email resolves inside it — no global email lookup.
         await PostWithRetryAsync(client, "/account/login",
             new Dictionary<string, string>
             {
+                ["org"] = tenant,
                 ["email"] = email,
                 ["password"] = Password,
                 ["returnUrl"] = authorize

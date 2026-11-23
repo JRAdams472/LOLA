@@ -28,35 +28,51 @@ public class ResidualCleanupTests
         using (var conn = db.Open())
         {
             conn.Execute(
-                "INSERT INTO tenants (id, slug, display_name, status, db_path) " +
-                "VALUES (@tid, @tid, 'T', 'active', 'x.db')", new { tid });
+                "INSERT INTO tenants (id, slug, slug_idx, display_name, status, db_path) " +
+                "VALUES (@tid, @s, @si, @n, 'active', 'x.db')",
+                new { tid, s = TestCrypto.Enc(tid), si = TestCrypto.Idx(tid), n = TestCrypto.Enc("T") });
             conn.Execute(
                 """
-                INSERT INTO users (id, tenant_id, email, display_name, password_hash, status)
-                VALUES ('u1', @tid, 'a@x.dev', 'Alice', 'phc$argon2', 'active'),
-                       ('u2', @tid, 'b@x.dev', 'Bob', NULL, 'invited'),
-                       ('u3', @tid, 'p@x.dev', 'Partner', 'phc$argon2', 'active')
-                """, new { tid });
+                INSERT INTO users (id, tenant_id, email, email_idx, display_name, password_hash, status)
+                VALUES ('u1', @tid, @e1, @i1, @n1, 'phc$argon2', 'active'),
+                       ('u2', @tid, @e2, @i2, @n2, NULL, 'invited'),
+                       ('u3', @tid, @e3, @i3, @n3, 'phc$argon2', 'active')
+                """, new
+                {
+                    tid,
+                    e1 = TestCrypto.Enc("a@x.dev"),
+                    i1 = TestCrypto.Idx("a@x.dev"),
+                    n1 = TestCrypto.Enc("Alice"),
+                    e2 = TestCrypto.Enc("b@x.dev"),
+                    i2 = TestCrypto.Idx("b@x.dev"),
+                    n2 = TestCrypto.Enc("Bob"),
+                    e3 = TestCrypto.Enc("p@x.dev"),
+                    i3 = TestCrypto.Idx("p@x.dev"),
+                    n3 = TestCrypto.Enc("Partner")
+                });
             // Invited partner carries a synthetic org attribution
             // (M19) — erasure must drop it like every other
             // PII-class field (MPE-273).
             conn.Execute(
-                "UPDATE users SET org_name = 'TPO Org LLC' WHERE id = 'u3'");
+                "UPDATE users SET org_name = @o WHERE id = 'u3'",
+                new { o = TestCrypto.Enc("TPO Org LLC") });
             conn.Execute(
-                "INSERT INTO groups (id, tenant_id, name) VALUES ('g1', @tid, 'staff')",
-                new { tid });
+                "INSERT INTO groups (id, tenant_id, name, name_idx) " +
+                "VALUES ('g1', @tid, @n, @ni)",
+                new { tid, n = TestCrypto.Enc("staff"), ni = TestCrypto.Idx("staff") });
             conn.Execute(
                 "INSERT INTO group_roles (group_id, role) VALUES ('g1', 'LoanOfficer')");
             conn.Execute(
                 "INSERT INTO user_groups (user_id, group_id) VALUES ('u1', 'g1')");
             conn.Execute(
                 """
-                INSERT INTO invites (id, tenant_id, email, role, token_hash, expires_utc, created_by)
-                VALUES ('i1', @tid, 'new@x.dev', 'Borrower', 'hash1', '2030-01-01', 'u1')
-                """, new { tid });
+                INSERT INTO invites (id, tenant_id, email, email_idx, role, token_hash, expires_utc, created_by)
+                VALUES ('i1', @tid, @e, @ei, 'Borrower', 'hash1', '2030-01-01', 'u1')
+                """, new { tid, e = TestCrypto.Enc("new@x.dev"), ei = TestCrypto.Idx("new@x.dev") });
             conn.Execute(
-                "INSERT INTO openiddict_applications (id, client_id, client_secret) " +
-                "VALUES ('app1', @svc, 'hashed')", new { svc = $"svc-{tid}" });
+                "INSERT INTO openiddict_applications (id, client_id, client_id_idx, client_secret) " +
+                "VALUES ('app1', @c, @ci, 'hashed')",
+                new { c = TestCrypto.Enc($"svc-{tid}"), ci = TestCrypto.Idx($"svc-{tid}") });
             conn.Execute(
                 """
                 INSERT INTO openiddict_authorizations (id, application_id, subject)
@@ -82,7 +98,7 @@ public class ResidualCleanupTests
                 """, new { tid });
         }
 
-        var result = await new ControlPlaneResiduals(db).CleanAsync(tid);
+        var result = await new ControlPlaneResiduals(db, TestCrypto.Cipher, TestCrypto.Index).CleanAsync(tid);
         result.ShouldBe(new ResidualCleanup(3, 2, 1, 1, 1, 3));
 
         using (var conn = db.Open())
@@ -119,8 +135,10 @@ public class ResidualCleanupTests
             users.Count.ShouldBe(3);
             foreach (var u in users)
             {
-                u.Email.ShouldBe($"erased-{u.Id}@erased");
-                u.Display.ShouldBe("erased");
+                // Tombstones are cp-domain ciphertext — the column
+                // still holds no plaintext marker (MPE-286).
+                u.Email.ShouldBe(TestCrypto.Enc($"erased-{u.Id}@erased"));
+                u.Display.ShouldBe(TestCrypto.Enc("erased"));
                 u.Hash.ShouldBeNull();
                 u.Status.ShouldBe("disabled");
                 u.Mfa.ShouldBe(0);
@@ -141,7 +159,7 @@ public class ResidualCleanupTests
         }
 
         // Idempotent: a retried erase's second pass finds nothing.
-        var again = await new ControlPlaneResiduals(db).CleanAsync(tid);
+        var again = await new ControlPlaneResiduals(db, TestCrypto.Cipher, TestCrypto.Index).CleanAsync(tid);
         again.ShouldBe(new ResidualCleanup(0, 0, 0, 0, 0, 3));
     }
 }

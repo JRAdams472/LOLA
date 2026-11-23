@@ -60,7 +60,7 @@ public sealed class InputValidationTests(LolaApiFactory factory)
         // Seed a tenant + a live invite directly (token known in test).
         var tenant = $"t{Guid.NewGuid():N}"[..12];
         var db = factory.Services.GetRequiredService<ControlPlaneDb>();
-        var registry = new TenantRegistry(db);
+        var registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         await registry.InsertProvisioningAsync(
             tenant, tenant, $"Tenant {tenant}", $"data/tenants/{tenant}.db");
         await registry.SetStatusAsync(tenant, "active");
@@ -71,14 +71,15 @@ public sealed class InputValidationTests(LolaApiFactory factory)
         using (var conn = db.Open())
         {
             await conn.ExecuteAsync("""
-                INSERT INTO invites (id, tenant_id, email, role, token_hash,
+                INSERT INTO invites (id, tenant_id, email, email_idx, role, token_hash,
                                      expires_utc, created_by)
-                VALUES (@id, @t, @e, 'Borrower', @h, @exp, 'test')
+                VALUES (@id, @t, @e, @ei, 'Borrower', @h, @exp, 'test')
                 """, new
             {
                 id = $"i-{Guid.NewGuid():N}",
                 t = tenant,
-                e = $"borrower-{tenant}@test.dev",
+                e = TestCrypto.Enc($"borrower-{tenant}@test.dev"),
+                ei = TestCrypto.Idx($"borrower-{tenant}@test.dev"),
                 h = hash,
                 exp = DateTimeOffset.UtcNow.AddHours(1).ToString("O")
             });

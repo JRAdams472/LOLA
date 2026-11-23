@@ -23,7 +23,7 @@ public sealed class MigrationRunnerTests(OpenBaoFixture fixture)
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        var registry = new TenantRegistry(db);
+        var registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         var tracker = new TenantMigrationTracker(db);
         var cipher = new TransitFieldCipher(fixture.Transit);
         var runner = new TenantMigrationRunner(cipher, registry, tracker);

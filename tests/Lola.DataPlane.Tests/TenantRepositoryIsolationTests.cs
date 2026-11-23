@@ -32,7 +32,7 @@ public sealed class TenantRepositoryIsolationTests(OpenBaoFixture fixture)
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        registry = new TenantRegistry(db);
+        registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         tracker = new TenantMigrationTracker(db);
         cipher = new TransitFieldCipher(fixture.Transit);
     }

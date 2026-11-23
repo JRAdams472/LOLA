@@ -1,5 +1,7 @@
 using Dapper;
 using Lola.Application.Identity;
+using Lola.Application.Security;
+using Lola.Domain.Classification;
 
 namespace Lola.ControlPlane;
 
@@ -22,14 +24,24 @@ namespace Lola.ControlPlane;
 ///   - `users` — anonymized, not deleted: user ids are FK-free history
 ///     references (audit actors, created_by), so the row survives as a
 ///     tombstone with no usable credential or PII-class field.
-public sealed class ControlPlaneResiduals(ControlPlaneDb db) : IControlPlaneResiduals
+///
+/// Tombstone ciphertext (MPE-286): residuals run AFTER the tenant's
+/// transit keys are destroyed (keys-first shredding, MPE-96), so the
+/// synthetic tombstone values encrypt under the `control-plane` key
+/// domain — `DecryptTenantAsync` retries that domain when the tenant
+/// key is gone. The svc-client match likewise keys on `client_id_idx`
+/// because `client_id` itself is ciphertext.
+public sealed class ControlPlaneResiduals(
+    ControlPlaneDb db, IFieldCipher cipher, IBlindIndex index) : IControlPlaneResiduals
 {
-    public Task<ResidualCleanup> CleanAsync(
+    public async Task<ResidualCleanup> CleanAsync(
         string tenantId, CancellationToken ct = default)
     {
+        var svc = $"svc-{tenantId}";
+        var svcIdx = await CpCrypto.GlobalIndexAsync(
+            index, PiiClass.Other, svc, ct);
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
-        var svc = $"svc-{tenantId}";
 
         var tokens = conn.Execute(
             """
@@ -37,8 +49,8 @@ public sealed class ControlPlaneResiduals(ControlPlaneDb db) : IControlPlaneResi
             WHERE subject IN (SELECT id FROM users WHERE tenant_id = @tenantId)
                OR subject = @svc
                OR application_id IN (SELECT id FROM openiddict_applications
-                                      WHERE client_id = @svc)
-            """, new { tenantId, svc }, tx);
+                                      WHERE client_id_idx = @svcIdx)
+            """, new { tenantId, svc, svcIdx }, tx);
 
         var authorizations = conn.Execute(
             """
@@ -46,12 +58,12 @@ public sealed class ControlPlaneResiduals(ControlPlaneDb db) : IControlPlaneResi
             WHERE subject IN (SELECT id FROM users WHERE tenant_id = @tenantId)
                OR subject = @svc
                OR application_id IN (SELECT id FROM openiddict_applications
-                                      WHERE client_id = @svc)
-            """, new { tenantId, svc }, tx);
+                                      WHERE client_id_idx = @svcIdx)
+            """, new { tenantId, svc, svcIdx }, tx);
 
         var clients = conn.Execute(
-            "DELETE FROM openiddict_applications WHERE client_id = @svc",
-            new { svc }, tx);
+            "DELETE FROM openiddict_applications WHERE client_id_idx = @svcIdx",
+            new { svcIdx }, tx);
 
         var invites = conn.Execute(
             "DELETE FROM invites WHERE tenant_id = @tenantId",
@@ -74,24 +86,39 @@ public sealed class ControlPlaneResiduals(ControlPlaneDb db) : IControlPlaneResi
 
         // Anonymize rather than delete: audit actors and invites.created_by
         // reference user ids — a tombstone keeps those joins resolvable
-        // while carrying no credential and no PII-class field. The email
-        // shape stays unique per (tenant_id, email) via the user id.
-        var users = conn.Execute(
-            """
-            UPDATE users
-            SET email          = 'erased-' || id || '@erased',
-                display_name   = 'erased',
-                password_hash  = NULL,
-                mfa_enabled    = 0,
-                mfa_secret_ref = NULL,
-                org_name       = NULL,
-                status         = 'disabled',
-                updated_utc    = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-            WHERE tenant_id = @tenantId
-            """, new { tenantId }, tx);
+        // while carrying no credential and no PII-class field. The values
+        // are synthetic (not PII) but still encrypt under the cp domain so
+        // classified columns hold ciphertext only, and `email_idx` moves
+        // with the value to keep the unique index consistent.
+        var userIds = conn.Query<string>(
+            "SELECT id FROM users WHERE tenant_id = @tenantId",
+            new { tenantId }, tx).ToList();
+        var users = 0;
+        foreach (var userId in userIds)
+        {
+            var tombstone = $"erased-{userId}@erased";
+            var emailCt = await CpCrypto.EncryptGlobalAsync(cipher, tombstone, ct);
+            var nameCt = await CpCrypto.EncryptGlobalAsync(cipher, "erased", ct);
+            var emailIdx = await CpCrypto.GlobalIndexAsync(
+                index, PiiClass.Contact, tombstone, ct);
+            users += conn.Execute(
+                """
+                UPDATE users
+                SET email          = @emailCt,
+                    email_idx      = @emailIdx,
+                    display_name   = @nameCt,
+                    password_hash  = NULL,
+                    mfa_enabled    = 0,
+                    mfa_secret_ref = NULL,
+                    org_name       = NULL,
+                    status         = 'disabled',
+                    updated_utc    = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                WHERE id = @userId
+                """, new { userId, emailCt, emailIdx, nameCt }, tx);
+        }
 
         tx.Commit();
-        return Task.FromResult(new ResidualCleanup(
-            tokens, authorizations, clients, invites, groups, users));
+        return new ResidualCleanup(
+            tokens, authorizations, clients, invites, groups, users);
     }
 }

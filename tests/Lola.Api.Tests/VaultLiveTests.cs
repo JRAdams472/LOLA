@@ -105,7 +105,7 @@ public sealed class VaultLiveTests
             Cipher = cipher,
             ConnFactory = new TenantConnectionFactory(cipher),
             Db = db,
-            Registry = new TenantRegistry(db),
+            Registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index),
             DataDir = dir
         };
     }

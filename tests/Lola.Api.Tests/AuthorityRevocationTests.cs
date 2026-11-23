@@ -88,7 +88,7 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
             live.Headers.Location!.ToString().Split("code=")[1].Split('&')[0]);
 
         var db = factory.Services.GetRequiredService<ControlPlaneDb>();
-        await new UserDirectory(db).SetStatusAsync(creds.User.Id, "disabled");
+        await new UserDirectory(db, TestCrypto.Cipher, TestCrypto.Index).SetStatusAsync(creds.User.Id, "disabled");
 
         var redeem = await PkceLogin.PostWithRetryAsync(
             factory.CreateClient(), "/connect/token",
@@ -113,7 +113,7 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
         var surviving = await MintAsync(tenant, "survivor");
 
         var db = factory.Services.GetRequiredService<ControlPlaneDb>();
-        await new UserDirectory(db).SetStatusAsync(doomed.User.Id, "disabled");
+        await new UserDirectory(db, TestCrypto.Cipher, TestCrypto.Index).SetStatusAsync(doomed.User.Id, "disabled");
 
         // The surviving user's cookie still mints, and their bearer
         // token still resolves.
@@ -141,8 +141,8 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
         var user = await factory.SeedUserAsync(
             tenant, $"gate-{tenant}@test.dev", PkceLogin.Password);
         var db = factory.Services.GetRequiredService<ControlPlaneDb>();
-        var users = new UserDirectory(db);
-        var tenants = new TenantRegistry(db);
+        var users = new UserDirectory(db, TestCrypto.Cipher, TestCrypto.Index);
+        var tenants = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
 
         // Legacy grant shape — no version claim at all.
         var legacy = new ClaimsPrincipal(new ClaimsIdentity(
@@ -170,8 +170,6 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
     {
         public Task<LolaUser?> FindByIdAsync(string id, CancellationToken ct = default)
             => throw new InvalidOperationException("authority store offline");
-        public Task<LolaUser?> FindByEmailAsync(string email, CancellationToken ct = default)
-            => throw new InvalidOperationException("authority store offline");
         public Task<LolaUser?> FindByEmailInTenantAsync(string tenantId, string email, CancellationToken ct = default)
             => throw new InvalidOperationException("authority store offline");
         public Task<IReadOnlyList<LolaUser>> ListByTenantAsync(string tenantId, CancellationToken ct = default)
@@ -193,17 +191,17 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
         switch (change)
         {
             case "disable":
-                await new UserDirectory(db).SetStatusAsync(user.Id, "disabled");
+                await new UserDirectory(db, TestCrypto.Cipher, TestCrypto.Index).SetStatusAsync(user.Id, "disabled");
                 break;
             case "membership":
-                await new GroupDirectory(db).RemoveMemberAsync(groupId, user.Id);
+                await new GroupDirectory(db, TestCrypto.Cipher, TestCrypto.Index).RemoveMemberAsync(groupId, user.Id);
                 break;
             case "role-edit":
-                await new GroupDirectory(db)
+                await new GroupDirectory(db, TestCrypto.Cipher, TestCrypto.Index)
                     .SetRolesAsync(groupId, [LolaRole.Borrower]);
                 break;
             case "group-delete":
-                await new GroupDirectory(db).DeleteAsync(groupId);
+                await new GroupDirectory(db, TestCrypto.Cipher, TestCrypto.Index).DeleteAsync(groupId);
                 break;
         }
     }
@@ -262,6 +260,7 @@ public sealed class AuthorityRevocationTests(LolaApiFactory factory)
         await PkceLogin.PostWithRetryAsync(client, "/account/login",
             new Dictionary<string, string>
             {
+                ["org"] = tenant,
                 ["email"] = email,
                 ["password"] = PkceLogin.Password,
                 ["returnUrl"] = authorize

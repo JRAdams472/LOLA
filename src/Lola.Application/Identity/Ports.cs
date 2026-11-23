@@ -37,11 +37,9 @@ public interface IUserDirectory
 {
     Task<LolaUser?> FindByIdAsync(string id, CancellationToken ct = default);
 
-    /// Login-time lookup — email is unique PER TENANT, so a global
-    /// email search can span tenants; dev login resolves the row and
-    /// derives the tenant from it (multi-tenant same-email users get a
-    /// tenant hint later).
-    Task<LolaUser?> FindByEmailAsync(string email, CancellationToken ct = default);
+    /// Login lookup is tenant-scoped only (ADR-0005/MPE-286): the
+    /// tenant hint resolves a tenant id first, then `email_idx` finds
+    /// the row — there is deliberately no global email search.
     Task<LolaUser?> FindByEmailInTenantAsync(string tenantId, string email, CancellationToken ct = default);
     Task<IReadOnlyList<LolaUser>> ListByTenantAsync(string tenantId, CancellationToken ct = default);
 

@@ -15,7 +15,9 @@ namespace Lola.ControlPlane.OpenIddict;
 /// of registered clients, so query translation is not worth the
 /// surface. Concurrency tokens rotate on every write — a stale-token
 /// update fails loudly rather than last-write-wins.
-public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
+public sealed class DapperOpenIddictApplicationStore(
+    ControlPlaneDb db, Lola.Application.Security.IFieldCipher cipher,
+    Lola.Application.Security.IBlindIndex index)
     : IOpenIddictApplicationStore<LolaApplication>
 {
     private const string Columns =
@@ -28,12 +30,25 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
         "json_web_key_set AS JsonWebKeySet, " +
         "concurrency_token AS ConcurrencyToken";
 
-    private IQueryable<LolaApplication> All()
+    /// Generic query paths evaluate LINQ predicates in memory — the
+    /// entity must carry DECRYPTED `ClientId` or `a.ClientId == x`
+    /// compares ciphertext against plaintext and silently misses
+    /// (MPE-286).
+    private async Task<IQueryable<LolaApplication>> AllAsync(CancellationToken ct)
     {
         using var conn = db.Open();
-        return conn.Query<LolaApplication>($"SELECT {Columns} FROM openiddict_applications")
-            .AsQueryable();
+        var rows = await conn.QueryAsync<LolaApplication>(
+            new CommandDefinition($"SELECT {Columns} FROM openiddict_applications",
+                cancellationToken: ct));
+        var list = rows.ToList();
+        foreach (var row in list)
+            await DecryptAsync(row, ct);
+        return list.AsQueryable();
     }
+
+    private async Task DecryptAsync(LolaApplication application, CancellationToken ct)
+        => application.ClientId = await CpCrypto.DecryptGlobalAsync(
+            cipher, application.ClientId, ct);
 
     // --- queries ------------------------------------------------------
 
@@ -43,22 +58,21 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
         return new(conn.ExecuteScalar<long>("SELECT count(*) FROM openiddict_applications"));
     }
 
-    public ValueTask<long> CountAsync<TResult>(
+    public async ValueTask<long> CountAsync<TResult>(
         Func<IQueryable<LolaApplication>, IQueryable<TResult>> query, CancellationToken cancellationToken)
-        => new(query(All()).LongCount());
+        => query(await AllAsync(cancellationToken)).LongCount();
 
-    public ValueTask<TResult?> GetAsync<TState, TResult>(
+    public async ValueTask<TResult?> GetAsync<TState, TResult>(
         Func<IQueryable<LolaApplication>, TState, IQueryable<TResult>> query,
         TState state, CancellationToken cancellationToken)
-        => new(query(All(), state).FirstOrDefault());
+        => query(await AllAsync(cancellationToken), state).FirstOrDefault();
 
     public async IAsyncEnumerable<TResult> ListAsync<TState, TResult>(
         Func<IQueryable<LolaApplication>, TState, IQueryable<TResult>> query,
         TState state, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        foreach (var item in query(All(), state))
+        foreach (var item in query(await AllAsync(cancellationToken), state))
             yield return item;
-        await Task.CompletedTask;
     }
 
     public async IAsyncEnumerable<LolaApplication> ListAsync(
@@ -68,23 +82,36 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
         var rows = await conn.QueryAsync<LolaApplication>(
             $"SELECT {Columns} FROM openiddict_applications ORDER BY id LIMIT @count OFFSET @offset",
             new { count = count ?? int.MaxValue, offset = offset ?? 0 });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     public async ValueTask<LolaApplication?> FindByIdAsync(string identifier, CancellationToken cancellationToken)
     {
         using var conn = db.Open();
-        return await conn.QuerySingleOrDefaultAsync<LolaApplication>(
+        var row = await conn.QuerySingleOrDefaultAsync<LolaApplication>(
             $"SELECT {Columns} FROM openiddict_applications WHERE id = @identifier",
             new { identifier });
+        if (row is not null) await DecryptAsync(row, cancellationToken);
+        return row;
     }
 
+    /// Client-id lookup runs on the keyed blind index — `client_id`
+    /// itself is ciphertext (svc-{tenant} ids embed the tenant id,
+    /// MPE-286), so plaintext equality can't match.
     public async ValueTask<LolaApplication?> FindByClientIdAsync(string identifier, CancellationToken cancellationToken)
     {
+        var idx = await CpCrypto.GlobalIndexAsync(
+            index, Domain.Classification.PiiClass.Other, identifier, cancellationToken);
         using var conn = db.Open();
-        return await conn.QuerySingleOrDefaultAsync<LolaApplication>(
-            $"SELECT {Columns} FROM openiddict_applications WHERE client_id = @identifier",
-            new { identifier });
+        var row = await conn.QuerySingleOrDefaultAsync<LolaApplication>(
+            $"SELECT {Columns} FROM openiddict_applications WHERE client_id_idx = @idx",
+            new { idx });
+        if (row is not null) await DecryptAsync(row, cancellationToken);
+        return row;
     }
 
     public async IAsyncEnumerable<LolaApplication> FindByRedirectUriAsync(
@@ -95,7 +122,11 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
             SELECT {Columns} FROM openiddict_applications
             WHERE EXISTS (SELECT 1 FROM json_each(redirect_uris) WHERE value = @uri)
             """, new { uri });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     public async IAsyncEnumerable<LolaApplication> FindByPostLogoutRedirectUriAsync(
@@ -106,7 +137,11 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
             SELECT {Columns} FROM openiddict_applications
             WHERE EXISTS (SELECT 1 FROM json_each(post_logout_redirect_uris) WHERE value = @uri)
             """, new { uri });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     // --- getters --------------------------------------------------------
@@ -117,8 +152,15 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
     public ValueTask<string?> GetIdAsync(LolaApplication application, CancellationToken cancellationToken)
         => new(application.Id);
 
-    public ValueTask<string?> GetClientIdAsync(LolaApplication application, CancellationToken cancellationToken)
-        => new(application.ClientId);
+    /// DB-materialized entities carry ciphertext; in-flight entities
+    /// hold the plaintext id — decrypt only the vault-envelope shape.
+    public async ValueTask<string?> GetClientIdAsync(LolaApplication application, CancellationToken cancellationToken)
+    {
+        var clientId = application.ClientId;
+        if (clientId is not null && clientId.StartsWith("vault:", StringComparison.Ordinal))
+            clientId = await CpCrypto.DecryptGlobalAsync(cipher, clientId, cancellationToken);
+        return clientId;
+    }
 
     public ValueTask<string?> GetClientSecretAsync(LolaApplication application, CancellationToken cancellationToken)
         => new(application.ClientSecret);
@@ -260,27 +302,56 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
             ? Guid.NewGuid().ToString("N")
             : application.Id;
         application.ConcurrencyToken = OidcJson.NewConcurrencyToken();
+        var clientId = await CpCrypto.EncryptGlobalAsync(
+            cipher, application.ClientId, cancellationToken);
+        var clientIdIdx = application.ClientId is null ? null
+            : await CpCrypto.GlobalIndexAsync(
+                index, Domain.Classification.PiiClass.Other, application.ClientId, cancellationToken);
         using var conn = db.Open();
         await conn.ExecuteAsync("""
             INSERT INTO openiddict_applications
-                (id, client_id, client_secret, client_type, consent_type,
+                (id, client_id, client_id_idx, client_secret, client_type, consent_type,
                  display_name, display_names, redirect_uris,
                  post_logout_redirect_uris, permissions, requirements,
                  settings, properties, json_web_key_set, concurrency_token)
-            VALUES (@Id, @ClientId, @ClientSecret, @ClientType, @ConsentType,
+            VALUES (@Id, @ClientId, @ClientIdIdx, @ClientSecret, @ClientType, @ConsentType,
                  @DisplayName, @DisplayNames, @RedirectUris,
                  @PostLogoutRedirectUris, @Permissions, @Requirements,
                  @Settings, @Properties, @JsonWebKeySet, @ConcurrencyToken)
-            """, application);
+            """, new
+        {
+            application.Id,
+            ClientId = clientId,
+            ClientIdIdx = clientIdIdx,
+            application.ClientSecret,
+            application.ClientType,
+            application.ConsentType,
+            application.DisplayName,
+            application.DisplayNames,
+            application.RedirectUris,
+            application.PostLogoutRedirectUris,
+            application.Permissions,
+            application.Requirements,
+            application.Settings,
+            application.Properties,
+            application.JsonWebKeySet,
+            application.ConcurrencyToken
+        });
     }
 
     public async ValueTask UpdateAsync(LolaApplication application, CancellationToken cancellationToken)
     {
+        var clientId = await CpCrypto.EncryptGlobalAsync(
+            cipher, application.ClientId, cancellationToken);
+        var clientIdIdx = application.ClientId is null ? null
+            : await CpCrypto.GlobalIndexAsync(
+                index, Domain.Classification.PiiClass.Other, application.ClientId, cancellationToken);
         using var conn = db.Open();
         var token = OidcJson.NewConcurrencyToken();
         var affected = await conn.ExecuteAsync("""
             UPDATE openiddict_applications SET
-                client_id = @ClientId, client_secret = @ClientSecret,
+                client_id = @ClientId, client_id_idx = @ClientIdIdx,
+                client_secret = @ClientSecret,
                 client_type = @ClientType, consent_type = @ConsentType,
                 display_name = @DisplayName, display_names = @DisplayNames,
                 redirect_uris = @RedirectUris,
@@ -292,7 +363,8 @@ public sealed class DapperOpenIddictApplicationStore(ControlPlaneDb db)
             WHERE id = @Id AND concurrency_token = @ConcurrencyToken
             """, new
         {
-            application.ClientId,
+            ClientId = clientId,
+            ClientIdIdx = clientIdIdx,
             application.ClientSecret,
             application.ClientType,
             application.ConsentType,

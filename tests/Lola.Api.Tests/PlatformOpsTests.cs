@@ -173,8 +173,9 @@ public sealed class PlatformOpsTests(LolaApiFactory factory)
         {
             var gid = $"g-{Guid.NewGuid():N}";
             await conn.ExecuteAsync(
-                "INSERT INTO groups (id, tenant_id, name) VALUES (@gid, @t, @gid)",
-                new { gid, t = tenant });
+                "INSERT INTO groups (id, tenant_id, name, name_idx) " +
+                "VALUES (@gid, @t, @n, @ni)",
+                new { gid, t = tenant, n = TestCrypto.Enc(gid), ni = TestCrypto.Idx(gid) });
             await conn.ExecuteAsync(
                 "INSERT INTO group_roles (group_id, role) VALUES (@gid, 'Service')",
                 new { gid });

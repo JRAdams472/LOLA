@@ -31,7 +31,7 @@ public class OpenIddictStoreTests
     public async Task Application_store_round_trips_every_field()
     {
         var db = TempDb();
-        var store = new DapperOpenIddictApplicationStore(db);
+        var store = new DapperOpenIddictApplicationStore(db, TestCrypto.Cipher, TestCrypto.Index);
         var ct = CancellationToken.None;
 
         var app = await store.InstantiateAsync(ct);
@@ -103,8 +103,8 @@ public class OpenIddictStoreTests
     public async Task Authorization_store_round_trips_and_revokes()
     {
         var db = TempDb();
-        var store = new DapperOpenIddictAuthorizationStore(db);
-        var apps = new DapperOpenIddictApplicationStore(db);
+        var store = new DapperOpenIddictAuthorizationStore(db, TestCrypto.Cipher);
+        var apps = new DapperOpenIddictApplicationStore(db, TestCrypto.Cipher, TestCrypto.Index);
         var ct = CancellationToken.None;
 
         var app = await apps.InstantiateAsync(ct);
@@ -238,7 +238,7 @@ public class OpenIddictStoreTests
     public async Task Token_store_round_trips_revokes_and_prunes()
     {
         var db = TempDb();
-        var store = new DapperOpenIddictTokenStore(db);
+        var store = new DapperOpenIddictTokenStore(db, TestCrypto.Cipher);
         var ct = CancellationToken.None;
 
         var token = await store.InstantiateAsync(ct);
@@ -301,11 +301,11 @@ public class OpenIddictStoreTests
         await store.CreateAsync(t2, ct);
         (await store.RevokeAsync("subject-2", null, null, null, ct)).ShouldBe(1);
 
-        var apps = new DapperOpenIddictApplicationStore(db);
+        var apps = new DapperOpenIddictApplicationStore(db, TestCrypto.Cipher, TestCrypto.Index);
         var app = await apps.InstantiateAsync(ct);
         await apps.SetClientIdAsync(app, "client-tok", ct);
         await apps.CreateAsync(app, ct);
-        var authzs = new DapperOpenIddictAuthorizationStore(db);
+        var authzs = new DapperOpenIddictAuthorizationStore(db, TestCrypto.Cipher);
         var authz = await authzs.InstantiateAsync(ct);
         await authzs.SetSubjectAsync(authz, "subject-3", ct);
         await authzs.SetStatusAsync(authz, "valid", ct);

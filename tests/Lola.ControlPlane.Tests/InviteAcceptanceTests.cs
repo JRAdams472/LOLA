@@ -25,8 +25,9 @@ public class InviteAcceptanceTests
     {
         using var conn = db.Open();
         conn.Execute(
-            "INSERT INTO tenants (id, slug, display_name, status, db_path) " +
-            "VALUES (@tid, @tid, 'T', 'active', 'x.db')", new { tid });
+            "INSERT INTO tenants (id, slug, slug_idx, display_name, status, db_path) " +
+            "VALUES (@tid, @s, @si, @n, 'active', 'x.db')",
+            new { tid, s = TestCrypto.Enc(tid), si = TestCrypto.Idx(tid), n = TestCrypto.Enc("T") });
     }
 
     private static void SeedInvite(ControlPlaneDb db, string tid,
@@ -36,12 +37,23 @@ public class InviteAcceptanceTests
     {
         using var conn = db.Open();
         conn.Execute("""
-            INSERT INTO invites (id, tenant_id, email, role, org_name,
+            INSERT INTO invites (id, tenant_id, email, email_idx, role, org_name,
                                  token_hash, expires_utc, used_utc,
                                  created_by)
-            VALUES (@id, @tid, @email, @role, @org, @hash, @expires,
+            VALUES (@id, @tid, @email, @emailIdx, @role, @org, @hash, @expires,
                     @used, 'u-admin')
-            """, new { id, tid, email, role, org, hash, expires, used });
+            """, new
+        {
+            id,
+            tid,
+            email = TestCrypto.Enc(email),
+            emailIdx = TestCrypto.Idx(email),
+            role,
+            org = org is null ? null : TestCrypto.Enc(org),
+            hash,
+            expires,
+            used
+        });
     }
 
     private static string HashOf(string token)
@@ -57,22 +69,26 @@ public class InviteAcceptanceTests
         SeedTenant(db, "t1");
         SeedInvite(db, "t1", "i1", HashOf("tok"));
 
-        var outcome = await new InviteAcceptance(db).AcceptAsync(
+        var outcome = await new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
             new InviteAcceptanceRequest(HashOf("tok"), "Partner", "phc$"));
 
         using var conn = db.Open();
         var user = conn.QuerySingle<dynamic>(
             "SELECT * FROM users WHERE id = @id",
             new { id = outcome.UserId });
-        ((string)user.email).ShouldBe("p@x");
-        ((string)user.org_name).ShouldBe("TPO Org");
+        // Stored columns are ciphertext + keyed index — never the
+        // plaintext marker (MPE-286).
+        ((string)user.email).ShouldBe(TestCrypto.Enc("p@x"));
+        ((string)user.email_idx).ShouldBe(TestCrypto.Idx("p@x"));
+        ((string)user.org_name).ShouldBe(TestCrypto.Enc("TPO Org"));
         ((string)user.status).ShouldBe("active");
-        ((string)user.display_name).ShouldBe("Partner");
+        ((string)user.display_name).ShouldBe(TestCrypto.Enc("Partner"));
 
         var grp = conn.QuerySingle<dynamic>(
             "SELECT * FROM groups WHERE tenant_id = 't1'");
         ((string?)grp.system_kind).ShouldBe("broker");
-        ((string)grp.name).ShouldBe("brokers");
+        ((string)grp.name).ShouldBe(TestCrypto.Enc("brokers"));
+        ((string)grp.name_idx).ShouldBe(TestCrypto.Idx("brokers"));
         conn.Query<string>(
             "SELECT role FROM group_roles WHERE group_id = @id",
             new { id = (string)grp.id })
@@ -92,7 +108,7 @@ public class InviteAcceptanceTests
         var db = TempDb();
         SeedTenant(db, "t1");
         SeedInvite(db, "t1", "i1", HashOf("tok"));
-        var acceptance = new InviteAcceptance(db);
+        var acceptance = new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index);
 
         var results = await Task.WhenAll(
             TryAccept(acceptance, "tok", "A"),
@@ -119,7 +135,7 @@ public class InviteAcceptanceTests
         SeedTenant(db, "t1");
         SeedInvite(db, "t1", "i1", HashOf("t-a"), email: "a@x");
         SeedInvite(db, "t1", "i2", HashOf("t-b"), email: "b@x");
-        var acceptance = new InviteAcceptance(db);
+        var acceptance = new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index);
 
         var results = await Task.WhenAll(
             TryAccept(acceptance, "t-a", "A"),
@@ -142,14 +158,15 @@ public class InviteAcceptanceTests
         SeedInvite(db, "t1", "i1", HashOf("tok"), role: "Borrower");
         using (var conn = db.Open())
         {
-            conn.Execute("INSERT INTO groups (id, tenant_id, name) " +
-                "VALUES ('g-evil', 't1', 'borrowers')");
+            conn.Execute("INSERT INTO groups (id, tenant_id, name, name_idx) " +
+                "VALUES ('g-evil', 't1', @n, @ni)",
+                new { n = TestCrypto.Enc("borrowers"), ni = TestCrypto.Idx("borrowers") });
             conn.Execute("INSERT INTO group_roles (group_id, role) " +
                 "VALUES ('g-evil', 'LoanOfficer')");
         }
 
         var ex = await Should.ThrowAsync<DomainException>(() =>
-            new InviteAcceptance(db).AcceptAsync(
+            new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
                 new InviteAcceptanceRequest(HashOf("tok"), "P", "phc$")));
         ex.Status.ShouldBe(409);
 
@@ -174,14 +191,15 @@ public class InviteAcceptanceTests
         SeedInvite(db, "t1", "i1", HashOf("tok"), role: "Broker");
         using (var conn = db.Open())
         {
-            conn.Execute("INSERT INTO groups (id, tenant_id, name, " +
-                "system_kind) VALUES ('g-b', 't1', 'brokers', 'broker')");
+            conn.Execute("INSERT INTO groups (id, tenant_id, name, name_idx, " +
+                "system_kind) VALUES ('g-b', 't1', @n, @ni, 'broker')",
+                new { n = TestCrypto.Enc("brokers"), ni = TestCrypto.Idx("brokers") });
             conn.Execute("INSERT INTO group_roles (group_id, role) " +
                 "VALUES ('g-b', 'LoanOfficer')");
         }
 
         var ex = await Should.ThrowAsync<DomainException>(() =>
-            new InviteAcceptance(db).AcceptAsync(
+            new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
                 new InviteAcceptanceRequest(HashOf("tok"), "P", "phc$")));
         ex.Status.ShouldBe(409);
         using var conn2 = db.Open();
@@ -207,7 +225,7 @@ public class InviteAcceptanceTests
                 ? "2000-01-01T00:00:00Z" : "2099-01-01T00:00:00Z");
 
         var ex = await Should.ThrowAsync<DomainException>(() =>
-            new InviteAcceptance(db).AcceptAsync(
+            new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
                 new InviteAcceptanceRequest(HashOf("tok"), "P", "phc$")));
         ex.Status.ShouldBe(400);
         using var conn = db.Open();
@@ -226,16 +244,17 @@ public class InviteAcceptanceTests
         SeedInvite(db, "t1", "i1", HashOf("tok"));
 
         var ex = await Should.ThrowAsync<DomainException>(() =>
-            new InviteAcceptance(db).AcceptAsync(
+            new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
                 new InviteAcceptanceRequest(HashOf("other"), "P", "phc$")));
         ex.Status.ShouldBe(400);
 
         using (var conn = db.Open())
-            conn.Execute("INSERT INTO users (id, tenant_id, email, " +
-                "display_name, status) VALUES ('u-x', 't1', 'p@x', " +
-                "'X', 'active')");
+            conn.Execute("INSERT INTO users (id, tenant_id, email, email_idx, " +
+                "display_name, status) VALUES ('u-x', 't1', @e, @ei, " +
+                "@n, 'active')",
+                new { e = TestCrypto.Enc("p@x"), ei = TestCrypto.Idx("p@x"), n = TestCrypto.Enc("X") });
         var ex2 = await Should.ThrowAsync<DomainException>(() =>
-            new InviteAcceptance(db).AcceptAsync(
+            new InviteAcceptance(db, TestCrypto.Cipher, TestCrypto.Index).AcceptAsync(
                 new InviteAcceptanceRequest(HashOf("tok"), "P", "phc$")));
         ex2.Status.ShouldBe(400);
         using var conn2 = db.Open();

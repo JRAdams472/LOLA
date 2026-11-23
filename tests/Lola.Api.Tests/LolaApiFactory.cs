@@ -165,6 +165,8 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeVaultDocRepository>());
             services.AddSingleton<Lola.Application.Security.IFieldCipher,
                 LoopbackFieldCipher>();
+            services.AddSingleton<Lola.Application.Security.IBlindIndex>(
+                _ => TestCrypto.Index);
             // Download-URL signer (MPE-202): hermetic HMAC instead of
             // transit — same verify contract, on a clock the test can
             // age for the expired-signature case.
@@ -193,7 +195,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         string tenantStatus = "active")
     {
         var db = Services.GetRequiredService<ControlPlaneDb>();
-        var registry = new TenantRegistry(db);
+        // Crypto rides the APP's registrations — marquee factories swap
+        // in the real transit cipher/index, so seeds must key off DI,
+        // not the loopback statics.
+        var cipher = Services.GetRequiredService<IFieldCipher>();
+        var index = Services.GetRequiredService<IBlindIndex>();
+        var registry = new TenantRegistry(db, cipher, index);
         await registry.InsertProvisioningAsync(
             tenantId, tenantId, $"Tenant {tenantId}", $"data/tenants/{tenantId}.db");
         await registry.SetStatusAsync(tenantId, tenantStatus);
@@ -203,17 +210,25 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             $"u-{Guid.NewGuid():N}", tenantId, email, "Test User",
             hasher.Hash(password), UserStatus.Active, MfaEnabled: false,
             "2026-10-27T00:00:00Z", mfaSecretRef);
-        var users = new UserDirectory(db);
+        var users = new UserDirectory(db, cipher, index);
         await users.InsertAsync(user);
 
         // Group + role + membership so RolesForUserAsync resolves.
-        // Name = gid: (tenant_id, name) is UNIQUE and one tenant can
+        // Name = gid: (tenant_id, name_idx) is UNIQUE and one tenant can
         // hold several seeded users across a test.
-        using var conn = db.Open();
         var gid = $"g-{Guid.NewGuid():N}";
+        string nameCt, nameIdx;
+        using (CipherContext.Use(tenantId))
+        {
+            nameCt = await cipher.EncryptAsync(gid);
+            nameIdx = await index.IndexAsync(
+                Lola.Domain.Classification.PiiClass.Other, gid);
+        }
+        using var conn = db.Open();
         await conn.ExecuteAsync(
-            "INSERT INTO groups (id, tenant_id, name) VALUES (@gid, @t, @gid)",
-            new { gid, t = tenantId });
+            "INSERT INTO groups (id, tenant_id, name, name_idx) " +
+            "VALUES (@gid, @t, @n, @ni)",
+            new { gid, t = tenantId, n = nameCt, ni = nameIdx });
         await conn.ExecuteAsync(
             "INSERT INTO group_roles (group_id, role) VALUES (@gid, @r)",
             new { gid, r = role.ToString() });

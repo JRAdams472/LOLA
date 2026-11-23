@@ -16,7 +16,9 @@ public sealed class TransitBlindIndex(OpenBaoTransitClient transit) : IBlindInde
     public async Task<string> IndexAsync(PiiClass classification, string value, CancellationToken ct = default)
     {
         var normalized = PiiNormalization.Normalize(classification, value);
-        var key = $"tenant-{CipherContext.RequiredTenantId}-idx";
+        var key = CipherContext.Domain is { } domain
+            ? $"{domain}-idx"
+            : $"tenant-{CipherContext.RequiredTenantId}-idx";
         var hmac = await transit.HmacAsync(key, normalized, ct);
         return hmac.StartsWith(VaultPrefix, StringComparison.Ordinal)
             ? IdxPrefix + hmac[VaultPrefix.Length..]

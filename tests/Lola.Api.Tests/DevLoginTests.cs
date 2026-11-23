@@ -41,6 +41,7 @@ public sealed class DevLoginTests(LolaApiFactory factory)
             statuses.Add((await client.PostAsync("/account/login",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
+                    ["org"] = "nobody",
                     ["email"] = "nobody@test.dev",
                     ["password"] = "wrong",
                     ["returnUrl"] = "/"

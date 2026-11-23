@@ -93,10 +93,17 @@ public sealed class ErasureMarqueeTests(LolaApiFactory factory)
         {
             await conn.ExecuteAsync(
                 """
-                INSERT INTO invites (id, tenant_id, email, role, token_hash,
+                INSERT INTO invites (id, tenant_id, email, email_idx, role, token_hash,
                                      expires_utc, created_by)
-                VALUES (@i, @t, 'inv@x.dev', 'Borrower', @h, '2030-01-01', 'seed')
-                """, new { i = $"i-{tenant}", t = tenant, h = $"h-{tenant}" });
+                VALUES (@i, @t, @e, @ei, 'Borrower', @h, '2030-01-01', 'seed')
+                """, new
+                {
+                    i = $"i-{tenant}",
+                    t = tenant,
+                    e = TestCrypto.Enc("inv@x.dev"),
+                    ei = TestCrypto.Idx("inv@x.dev"),
+                    h = $"h-{tenant}"
+                });
             await conn.ExecuteAsync(
                 """
                 INSERT INTO tenant_migrations (tenant_id, version, name, status)
@@ -153,12 +160,13 @@ public sealed class ErasureMarqueeTests(LolaApiFactory factory)
                 """, new { s = $"svc-{tenant}", t = tenant })).ShouldBe(0);
 
             // Users are anonymized tombstones — no credential, no PII.
+            // Identity columns are ciphertext post-7c so the shape
+            // check keys on the credential/status columns (the
+            // tombstone value form is proven in ResidualCleanupTests).
             var liveUsers = await conn.ExecuteScalarAsync<long>(
                 """
                 SELECT COUNT(*) FROM users WHERE tenant_id = @t
-                  AND (email NOT LIKE 'erased-%@erased'
-                       OR display_name <> 'erased'
-                       OR password_hash IS NOT NULL
+                  AND (password_hash IS NOT NULL
                        OR mfa_secret_ref IS NOT NULL
                        OR status <> 'disabled')
                 """, new { t = tenant });
