@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import AppShell from "@/components/AppShell";
 import LoanCard from "@/components/LoanCard";
@@ -12,6 +13,7 @@ import { useMe } from "@/lib/me";
  * document/upload summaries for the borrower's own applications only.
  */
 export default function HomePage() {
+  const router = useRouter();
   const me = useMe();
   // M19 partner roles land on their own surface — no borrower
   // dashboard for a Broker/Realtor session.
@@ -23,8 +25,8 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    if (isPartner) window.location.assign("/partner");
-  }, [isPartner]);
+    if (isPartner) router.replace("/partner");
+  }, [isPartner, router]);
 
   if (isPartner) return null;
 

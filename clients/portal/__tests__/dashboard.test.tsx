@@ -10,6 +10,11 @@ import { maskedName, nextActionFor, type PortalLoan } from "@/lib/loans";
  * internal fields because the response type doesn't carry them.
  */
 
+const mockReplace = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}));
+
 const ME = { sub: "u-b1", name: "Ada Lovelace", tid: "t1", roles: ["borrower"] };
 
 const LOAN_META = {
@@ -133,6 +138,20 @@ test("dashboard shows an error state when the read fails", async () => {
       screen.getByRole("alert"),
     ).toHaveTextContent(/couldn't load your application/i),
   );
+});
+
+test("partner roles are redirected to /partner, never the dashboard", async () => {
+  global.fetch = jest.fn((input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === "/auth/me") return okRes({ ...ME, roles: ["Broker"] });
+    return okRes({});
+  }) as jest.Mock;
+  render(<HomePage />);
+
+  await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/partner"));
+  expect(
+    screen.queryByText(/When your loan officer starts your application/),
+  ).not.toBeInTheDocument();
 });
 
 test("maskedName composes only what the doc carries", () => {

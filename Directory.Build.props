@@ -1,0 +1,9 @@
+<Project>
+  <!-- MPE-283: warnings are errors everywhere — src and tests alike.
+       The MPE-280 sweep class (nullable warnings accruing in test
+       projects until a dedicated ticket cleans them) cannot recur:
+       any new warning fails the build locally and in CI. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
