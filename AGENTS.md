@@ -79,10 +79,12 @@ This is **protected personal data**. These rules outrank convenience:
 - **Always pause after opening a PR.** Present the PR link + proof, then
   wait for the user's explicit approval — never self-merge, never merge
   on a schedule, never assume approval carries over between PRs.
-- Before opening a PR: `dotnet format --verify-no-changes`, `dotnet build`,
-  `dotnet test`, and web `lint`/`typecheck`/`test`/`build` all green.
-  Commit lockfiles (`packages.lock.json`, `package-lock.json`) — CI fails
-  when they drift.
+- **Before every push: `node tools/verify.mjs` must be green** —
+  adrcheck, format, build, test, and web lint/typecheck/test/build in
+  one fail-fast pass (`--quick` skips test/build for tight loops, but a
+  full run is still required before opening a PR). Commit lockfiles
+  (`packages.lock.json`, `package-lock.json`) — CI fails when they
+  drift.
 - **No PR or phase merges without the user's explicit approval.** Present
   the PR link + proof, then wait.
 
@@ -178,7 +180,7 @@ executable form — follow it when the situation matches its description.
 ## Verification Commands
 
 ```bash
-dotnet format --verify-no-changes && dotnet build && dotnet test
-node tools/adrcheck.mjs             # ADR structure gate
+node tools/verify.mjs            # full pre-push gate (adrcheck + format + build + test + web)
+node tools/adrcheck.mjs          # ADR structure gate only
 docker compose up --build        # openbao + seq + jaeger + minio + clamav (+ api/web when scaffolded)
 ```
