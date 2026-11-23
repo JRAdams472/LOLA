@@ -9,7 +9,8 @@ namespace Lola.Infrastructure.Crypto;
 /// never enters API memory.
 public sealed class TransitFieldCipher(OpenBaoTransitClient transit) : IFieldCipher
 {
-    private static string KeyName => $"tenant-{CipherContext.RequiredTenantId}";
+    private static string KeyName =>
+        CipherContext.Domain ?? $"tenant-{CipherContext.RequiredTenantId}";
 
     public Task<string> EncryptAsync(string plaintext, CancellationToken ct = default) =>
         transit.EncryptAsync(KeyName, plaintext, ct);

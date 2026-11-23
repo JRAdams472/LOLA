@@ -463,9 +463,6 @@ public sealed class PartnerScopeTests
                     ? new LolaUser(userId, "t1", "p@x", "P", null,
                         UserStatus.Active, false, "now")
                     : null));
-        public Task<LolaUser?> FindByEmailAsync(string email,
-            CancellationToken ct = default)
-            => Task.FromResult<LolaUser?>(null);
         public Task<LolaUser?> FindByEmailInTenantAsync(string tenantId,
             string email, CancellationToken ct = default)
             => Task.FromResult<LolaUser?>(null);

@@ -24,7 +24,7 @@ public sealed class ProvisioningTests(OpenBaoFixture fixture)
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        var registry = new TenantRegistry(db);
+        var registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         var cipher = new TransitFieldCipher(fixture.Transit);
         return (new TenantProvisioningService(
                     registry,

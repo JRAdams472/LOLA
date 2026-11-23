@@ -189,27 +189,41 @@ public static class ConnectEndpoints
             <form class="card" method="post" action="/account/login">
               <h1>LOLA</h1>
               <p class="sub">Officer console — sign in to continue</p>
-              {{(err is not null ? "<p class=\"err\">Invalid email or password.</p>" : "")}}
+              {{(err is not null ? "<p class=\"err\">Invalid sign-in details.</p>" : "")}}
               <input type="hidden" name="returnUrl" value="{{WebUtility.HtmlEncode(returnUrl ?? "/")}}" />
-              <label>Email<input name="email" type="email" required autocomplete="username" autofocus /></label>
+              <label>Organization<input name="org" type="text" required autocomplete="organization" autofocus /></label>
+              <label>Email<input name="email" type="email" required autocomplete="username" /></label>
               <label>Password<input name="password" type="password" required autocomplete="current-password" /></label>
               <button type="submit">Sign in</button>
             </form></body></html>
             """, "text/html"));
 
+        /// Tenant-aware login (MPE-286, ADR-0005): the org slug resolves
+        /// through the keyed `slug_idx`, then email resolves inside that
+        /// tenant only via `email_idx` — there is no global identity
+        /// lookup. Every failure (unknown org, unknown email, bad
+        /// password, disabled user) redirects identically so the
+        /// response can't oracle which leg was wrong.
         app.MapPost("/account/login", async (HttpContext ctx,
-            IUserDirectory users, IPasswordHasher hasher) =>
+            IUserDirectory users, ITenantRegistry tenants,
+            IPasswordHasher hasher) =>
         {
             var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
+            var org = form["org"].ToString();
             var email = form["email"].ToString();
             var password = form["password"].ToString();
             var returnUrl = form["returnUrl"].ToString();
 
-            var user = await users.FindByEmailAsync(email, ctx.RequestAborted);
+            IResult Deny() => Results.Redirect(
+                $"/account/login?returnUrl={Uri.EscapeDataString(returnUrl)}&err=1");
+
+            var tenant = string.IsNullOrWhiteSpace(org) ? null
+                : await tenants.FindBySlugAsync(org, ctx.RequestAborted);
+            var user = tenant is null ? null
+                : await users.FindByEmailInTenantAsync(tenant.Id, email, ctx.RequestAborted);
             if (user?.PasswordHash is null || user.Status != Domain.Identity.UserStatus.Active ||
                 !hasher.Verify(password, user.PasswordHash))
-                return Results.Redirect(
-                    $"/account/login?returnUrl={Uri.EscapeDataString(returnUrl)}&err=1");
+                return Deny();
 
             var roles = await users.RolesForUserAsync(user.Id, ctx.RequestAborted);
             var claims = new List<Claim>

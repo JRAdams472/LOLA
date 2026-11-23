@@ -95,6 +95,12 @@ if ! bao read lola-transit/keys/control-plane >/dev/null 2>&1; then
   echo "openbao-init: creating control-plane transit key"
   bao write -f lola-transit/keys/control-plane type=aes256-gcm96 >/dev/null
 fi
+# Blind-index hmac key for control-plane-global lookups (slug_idx,
+# client_id_idx) — Phase 7c. hmac-type keys can never decrypt.
+if ! bao read lola-transit/keys/control-plane-idx >/dev/null 2>&1; then
+  echo "openbao-init: creating control-plane blind-index key"
+  bao write -f lola-transit/keys/control-plane-idx type=hmac key_size=32 >/dev/null
+fi
 if [ ! -f "$OUT_DIR/control-db-key" ]; then
   echo "openbao-init: wrapping control-plane file key"
   FILEKEY_B64=$(bao random 32 | tr -d '[:space:]')

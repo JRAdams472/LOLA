@@ -10,7 +10,7 @@ public class TenantRegistryTests
         var db = new ControlPlaneDb(
             Path.Combine(Path.GetTempPath(), "lola-tests", $"reg-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        return new TenantRegistry(db);
+        return new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
     }
 
     [Fact]

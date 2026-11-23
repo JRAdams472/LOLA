@@ -160,9 +160,6 @@ public class SystemGroupGuardTests
             CancellationToken ct = default)
             => Task.FromResult<LolaUser?>(new LolaUser(id, "t1", "p@x",
                 "P", null, UserStatus.Active, false, "now"));
-        public Task<LolaUser?> FindByEmailAsync(string email,
-            CancellationToken ct = default)
-            => Task.FromResult<LolaUser?>(null);
         public Task<LolaUser?> FindByEmailInTenantAsync(string tenantId,
             string email, CancellationToken ct = default)
             => Task.FromResult<LolaUser?>(null);

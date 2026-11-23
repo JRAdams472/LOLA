@@ -1,12 +1,17 @@
 using Dapper;
 using Lola.Application.Identity;
+using Lola.Application.Security;
+using Lola.Domain.Classification;
 using Lola.Domain.Identity;
 
 namespace Lola.ControlPlane;
 
 /// Invite ledger over the control-plane DB (MPE-87). Stores only the
 /// SHA-256 token hash — a DB read can never yield a usable token.
-public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
+/// `email`/`org_name` are ciphertext under the owning tenant's transit
+/// key with a tenant-scoped `email_idx` blind index (MPE-286).
+public sealed class InviteDirectory(
+    ControlPlaneDb db, IFieldCipher cipher, IBlindIndex index) : IInviteDirectory
 {
     private const string Columns =
         "id, tenant_id AS TenantId, email, role, token_hash AS TokenHash, " +
@@ -15,22 +20,27 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
 
     public async Task InsertAsync(InviteRecord invite, CancellationToken ct = default)
     {
+        var emailCt = await CpCrypto.EncryptAsync(cipher, invite.TenantId, invite.Email, ct);
+        var orgCt = await CpCrypto.EncryptAsync(cipher, invite.TenantId, invite.OrgName, ct);
+        var emailIdx = await CpCrypto.TenantIndexAsync(
+            index, invite.TenantId, PiiClass.Contact, invite.Email, ct);
         using var conn = db.Open();
         await conn.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO invites (id, tenant_id, email, role, token_hash,
+            INSERT INTO invites (id, tenant_id, email, email_idx, role, token_hash,
                                  expires_utc, created_by, org_name)
-            VALUES (@Id, @TenantId, @Email, @Role, @TokenHash,
+            VALUES (@Id, @TenantId, @Email, @EmailIdx, @Role, @TokenHash,
                     @ExpiresUtc, @CreatedBy, @OrgName)
             """, new
         {
             invite.Id,
             invite.TenantId,
-            invite.Email,
+            Email = emailCt,
+            EmailIdx = emailIdx,
             Role = invite.Role.ToString(),
             invite.TokenHash,
             invite.ExpiresUtc,
             invite.CreatedBy,
-            invite.OrgName
+            OrgName = orgCt
         }, cancellationToken: ct));
     }
 
@@ -41,7 +51,12 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
             new CommandDefinition(
                 $"SELECT {Columns} FROM invites WHERE token_hash = @tokenHash",
                 new { tokenHash }, cancellationToken: ct));
-        return row?.ToInvite();
+        if (row is null) return null;
+        var email = await CpCrypto.DecryptTenantAsync(cipher, row.TenantId, row.Email, ct);
+        var org = await CpCrypto.DecryptTenantAsync(cipher, row.TenantId, row.OrgName, ct);
+        return new InviteRecord(row.Id, row.TenantId, email!,
+            Enum.Parse<LolaRole>(row.Role, ignoreCase: true), row.TokenHash,
+            row.ExpiresUtc, row.UsedUtc, row.CreatedBy, org);
     }
 
     public async Task<bool> MarkUsedAsync(string inviteId, string usedUtc, CancellationToken ct = default)
@@ -57,10 +72,5 @@ public sealed class InviteDirectory(ControlPlaneDb db) : IInviteDirectory
     private sealed record InviteRow(
         string Id, string TenantId, string Email, string Role,
         string TokenHash, string ExpiresUtc, string? UsedUtc, string CreatedBy,
-        string? OrgName)
-    {
-        public InviteRecord ToInvite() => new(Id, TenantId, Email,
-            Enum.Parse<LolaRole>(Role, ignoreCase: true), TokenHash, ExpiresUtc,
-            UsedUtc, CreatedBy, OrgName);
-    }
+        string? OrgName);
 }

@@ -116,7 +116,7 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
         // still refuses outstanding tokens for a non-active tenant.
         var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin);
         var db = factory.Services.GetRequiredService<Lola.ControlPlane.ControlPlaneDb>();
-        await new Lola.ControlPlane.TenantRegistry(db)
+        await new Lola.ControlPlane.TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index)
             .SetStatusAsync(tenant, "provisioning");
 
         var client = factory.CreateClient();

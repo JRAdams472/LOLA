@@ -2,13 +2,16 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Dapper;
+using Lola.Application.Security;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictExceptions;
 
 namespace Lola.ControlPlane.OpenIddict;
 
-/// Custom Dapper IOpenIddictAuthorizationStore (ADR-0005).
-public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
+/// Custom Dapper IOpenIddictAuthorizationStore (ADR-0005). The
+/// `properties` column holds `control-plane`-domain ciphertext
+/// (MPE-286); encryption happens at the write boundary.
+public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db, IFieldCipher cipher)
     : IOpenIddictAuthorizationStore<LolaAuthorization>
 {
     private const string Columns =
@@ -16,12 +19,24 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         "properties, scopes, status, subject, type, " +
         "concurrency_token AS ConcurrencyToken";
 
-    private IQueryable<LolaAuthorization> All()
+    /// Generic query paths evaluate LINQ predicates in memory — the
+    /// entity must carry DECRYPTED fields or predicates compare
+    /// ciphertext against plaintext and silently miss (MPE-286).
+    private async Task<IQueryable<LolaAuthorization>> AllAsync(CancellationToken ct)
     {
         using var conn = db.Open();
-        return conn.Query<LolaAuthorization>($"SELECT {Columns} FROM openiddict_authorizations")
-            .AsQueryable();
+        var rows = await conn.QueryAsync<LolaAuthorization>(
+            new CommandDefinition($"SELECT {Columns} FROM openiddict_authorizations",
+                cancellationToken: ct));
+        var list = rows.ToList();
+        foreach (var row in list)
+            await DecryptAsync(row, ct);
+        return list.AsQueryable();
     }
+
+    private async Task DecryptAsync(LolaAuthorization authorization, CancellationToken ct)
+        => authorization.Properties = await CpCrypto.DecryptGlobalAsync(
+            cipher, authorization.Properties, ct);
 
     public ValueTask<long> CountAsync(CancellationToken cancellationToken)
     {
@@ -29,22 +44,21 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         return new(conn.ExecuteScalar<long>("SELECT count(*) FROM openiddict_authorizations"));
     }
 
-    public ValueTask<long> CountAsync<TResult>(
+    public async ValueTask<long> CountAsync<TResult>(
         Func<IQueryable<LolaAuthorization>, IQueryable<TResult>> query, CancellationToken cancellationToken)
-        => new(query(All()).LongCount());
+        => query(await AllAsync(cancellationToken)).LongCount();
 
-    public ValueTask<TResult?> GetAsync<TState, TResult>(
+    public async ValueTask<TResult?> GetAsync<TState, TResult>(
         Func<IQueryable<LolaAuthorization>, TState, IQueryable<TResult>> query,
         TState state, CancellationToken cancellationToken)
-        => new(query(All(), state).FirstOrDefault());
+        => query(await AllAsync(cancellationToken), state).FirstOrDefault();
 
     public async IAsyncEnumerable<TResult> ListAsync<TState, TResult>(
         Func<IQueryable<LolaAuthorization>, TState, IQueryable<TResult>> query,
         TState state, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        foreach (var item in query(All(), state))
+        foreach (var item in query(await AllAsync(cancellationToken), state))
             yield return item;
-        await Task.CompletedTask;
     }
 
     public async IAsyncEnumerable<LolaAuthorization> ListAsync(
@@ -54,15 +68,21 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         var rows = await conn.QueryAsync<LolaAuthorization>(
             $"SELECT {Columns} FROM openiddict_authorizations ORDER BY id LIMIT @count OFFSET @offset",
             new { count = count ?? int.MaxValue, offset = offset ?? 0 });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     public async ValueTask<LolaAuthorization?> FindByIdAsync(string identifier, CancellationToken cancellationToken)
     {
         using var conn = db.Open();
-        return await conn.QuerySingleOrDefaultAsync<LolaAuthorization>(
+        var row = await conn.QuerySingleOrDefaultAsync<LolaAuthorization>(
             $"SELECT {Columns} FROM openiddict_authorizations WHERE id = @identifier",
             new { identifier });
+        if (row is not null) await DecryptAsync(row, cancellationToken);
+        return row;
     }
 
     public async IAsyncEnumerable<LolaAuthorization> FindBySubjectAsync(
@@ -72,7 +92,11 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         var rows = await conn.QueryAsync<LolaAuthorization>(
             $"SELECT {Columns} FROM openiddict_authorizations WHERE subject = @subject",
             new { subject });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     public async IAsyncEnumerable<LolaAuthorization> FindByApplicationIdAsync(
@@ -82,7 +106,11 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         var rows = await conn.QueryAsync<LolaAuthorization>(
             $"SELECT {Columns} FROM openiddict_authorizations WHERE application_id = @identifier",
             new { identifier });
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     /// Composite lookup: every provided filter narrows the query; a
@@ -110,7 +138,11 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
             for (var i = 0; i < arr.Length; i++) p.Add($"s{i}", arr[i]);
 
         var rows = await conn.QueryAsync<LolaAuthorization>(sql, p);
-        foreach (var row in rows) yield return row;
+        foreach (var row in rows)
+        {
+            await DecryptAsync(row, cancellationToken);
+            yield return row;
+        }
     }
 
     // --- getters ------------------------------------------------------
@@ -127,8 +159,16 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
     public ValueTask<DateTimeOffset?> GetCreationDateAsync(LolaAuthorization authorization, CancellationToken cancellationToken)
         => new(OidcJson.TextToDate(authorization.CreationDate));
 
-    public ValueTask<ImmutableDictionary<string, JsonElement>> GetPropertiesAsync(LolaAuthorization authorization, CancellationToken cancellationToken)
-        => new(OidcJson.JsonToProperties(authorization.Properties));
+    /// DB-materialized entities carry ciphertext; in-flight entities
+    /// hold JSON — decrypt only the vault-envelope shape.
+    public async ValueTask<ImmutableDictionary<string, JsonElement>> GetPropertiesAsync(
+        LolaAuthorization authorization, CancellationToken cancellationToken)
+    {
+        var json = authorization.Properties;
+        if (json is not null && json.StartsWith("vault:", StringComparison.Ordinal))
+            json = await CpCrypto.DecryptGlobalAsync(cipher, json, cancellationToken);
+        return OidcJson.JsonToProperties(json);
+    }
 
     public ValueTask<ImmutableArray<string>> GetScopesAsync(LolaAuthorization authorization, CancellationToken cancellationToken)
         => new(OidcJson.JsonToArray(authorization.Scopes));
@@ -196,6 +236,8 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
             ? Guid.NewGuid().ToString("N")
             : authorization.Id;
         authorization.ConcurrencyToken = OidcJson.NewConcurrencyToken();
+        var properties = await CpCrypto.EncryptGlobalAsync(
+            cipher, authorization.Properties, cancellationToken);
         using var conn = db.Open();
         await conn.ExecuteAsync("""
             INSERT INTO openiddict_authorizations
@@ -203,11 +245,24 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
                  status, subject, type, concurrency_token)
             VALUES (@Id, @ApplicationId, @CreationDate, @Properties, @Scopes,
                  @Status, @Subject, @Type, @ConcurrencyToken)
-            """, authorization);
+            """, new
+        {
+            authorization.Id,
+            authorization.ApplicationId,
+            authorization.CreationDate,
+            Properties = properties,
+            authorization.Scopes,
+            authorization.Status,
+            authorization.Subject,
+            authorization.Type,
+            authorization.ConcurrencyToken
+        });
     }
 
     public async ValueTask UpdateAsync(LolaAuthorization authorization, CancellationToken cancellationToken)
     {
+        var properties = await CpCrypto.EncryptGlobalAsync(
+            cipher, authorization.Properties, cancellationToken);
         using var conn = db.Open();
         var token = OidcJson.NewConcurrencyToken();
         var affected = await conn.ExecuteAsync("""
@@ -220,7 +275,7 @@ public sealed class DapperOpenIddictAuthorizationStore(ControlPlaneDb db)
         {
             authorization.ApplicationId,
             authorization.CreationDate,
-            authorization.Properties,
+            Properties = properties,
             authorization.Scopes,
             authorization.Status,
             authorization.Subject,

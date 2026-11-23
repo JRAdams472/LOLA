@@ -28,7 +28,7 @@ public sealed class MarqueeE2ETests(OpenBaoFixture fixture)
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        var registry = new TenantRegistry(db);
+        var registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         var cipher = new TransitFieldCipher(fixture.Transit);
         var keys = new TransitKeyManager(fixture.Transit);
         var backupDir = Path.Combine(fixture.DataDir, "backups");
@@ -39,7 +39,7 @@ public sealed class MarqueeE2ETests(OpenBaoFixture fixture)
             new StubServiceClients(), runner, fixture.DataDir);
         var backup = new TenantBackupService(cipher, backupDir);
         var eraser = new TenantErasureService(
-            keys, registry, new ControlPlaneResiduals(db), backupDir);
+            keys, registry, new ControlPlaneResiduals(db, TestCrypto.Cipher, TestCrypto.Index), backupDir);
 
         var id = fixture.NewTenant();
         await svc.ProvisionAsync(new ProvisionRequest(id, id, "T"));

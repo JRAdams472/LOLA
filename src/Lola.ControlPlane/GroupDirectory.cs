@@ -1,13 +1,18 @@
 using Dapper;
 using Lola.Application.Errors;
 using Lola.Application.Identity;
+using Lola.Application.Security;
+using Lola.Domain.Classification;
 using Lola.Domain.Identity;
 
 namespace Lola.ControlPlane;
 
 /// Group directory over the control-plane DB — group→role→visibility
-/// is the only role assignment path (ADR-0005).
-public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
+/// is the only role assignment path (ADR-0005). `name`/`description`
+/// are ciphertext under the owning tenant's key (MPE-286) with a
+/// tenant-scoped `name_idx` blind index backing the unique constraint.
+public sealed class GroupDirectory(
+    ControlPlaneDb db, IFieldCipher cipher, IBlindIndex index) : IGroupDirectory
 {
     public async Task<IReadOnlyList<LolaGroup>> ListByTenantAsync(
         string tenantId, CancellationToken ct = default)
@@ -21,9 +26,10 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
             SELECT g.id, g.tenant_id AS TenantId, g.name, g.description,
                    g.system_kind AS SystemKind, gr.role AS Role
             FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
-            WHERE g.tenant_id = @tenantId ORDER BY g.name
+            WHERE g.tenant_id = @tenantId ORDER BY g.id
             """, new { tenantId }, cancellationToken: ct));
-        return ToGroups(rows);
+        var groups = await ToGroupsAsync(rows, ct);
+        return groups.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<LolaGroup?> FindByIdAsync(string id, CancellationToken ct = default)
@@ -35,7 +41,7 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
             FROM groups g LEFT JOIN group_roles gr ON gr.group_id = g.id
             WHERE g.id = @id
             """, new { id }, cancellationToken: ct));
-        return ToGroups(rows).FirstOrDefault();
+        return (await ToGroupsAsync(rows, ct)).FirstOrDefault();
     }
 
     public async Task<int> MemberCountAsync(string groupId, CancellationToken ct = default)
@@ -48,12 +54,23 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
 
     public async Task InsertAsync(LolaGroup group, CancellationToken ct = default)
     {
+        var nameCt = await CpCrypto.EncryptAsync(cipher, group.TenantId, group.Name, ct);
+        var descCt = await CpCrypto.EncryptAsync(cipher, group.TenantId, group.Description, ct);
+        var nameIdx = await CpCrypto.TenantIndexAsync(
+            index, group.TenantId, PiiClass.Other, group.Name, ct);
         using var conn = db.Open();
         using var tx = conn.BeginTransaction();
         await conn.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO groups (id, tenant_id, name, description)
-            VALUES (@Id, @TenantId, @Name, @Description)
-            """, new { group.Id, group.TenantId, group.Name, group.Description },
+            INSERT INTO groups (id, tenant_id, name, name_idx, description)
+            VALUES (@Id, @TenantId, @Name, @NameIdx, @Description)
+            """, new
+        {
+            group.Id,
+            group.TenantId,
+            Name = nameCt,
+            NameIdx = nameIdx,
+            Description = descCt
+        },
             transaction: tx, cancellationToken: ct));
         foreach (var role in group.Roles)
             await conn.ExecuteAsync(new CommandDefinition("""
@@ -67,13 +84,22 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         string id, string? name, string? description, CancellationToken ct = default)
     {
         using var conn = db.Open();
-        await RequireMutableAsync(conn, id, ct);
+        var tenantId = await TenantIdOfAsync(conn, id, ct);
+        // The name moves the blind index with it in one write — the idx
+        // can never describe a name the row no longer carries.
+        var nameCt = name is null ? null
+            : await CpCrypto.EncryptAsync(cipher, tenantId, name, ct);
+        var nameIdx = name is null ? null
+            : await CpCrypto.TenantIndexAsync(index, tenantId, PiiClass.Other, name, ct);
+        var descCt = description is null ? null
+            : await CpCrypto.EncryptAsync(cipher, tenantId, description, ct);
         await conn.ExecuteAsync(new CommandDefinition("""
             UPDATE groups SET
-                name = COALESCE(@name, name),
-                description = COALESCE(@description, description)
+                name = COALESCE(@nameCt, name),
+                name_idx = COALESCE(@nameIdx, name_idx),
+                description = COALESCE(@descCt, description)
             WHERE id = @id
-            """, new { id, name, description }, cancellationToken: ct));
+            """, new { id, nameCt, nameIdx, descCt }, cancellationToken: ct));
     }
 
     /// Role edits change authority for every member — bump their auth
@@ -115,18 +141,25 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
     /// Shared mutation boundary (MPE-273): a group carrying a
     /// system_kind is a protected invite target — never mutable
     /// through the admin directory no matter which caller got here.
-    private static async Task RequireMutableAsync(
+    /// Returns the owning tenant id so callers can key crypto writes.
+    private static async Task<string> RequireMutableAsync(
         Microsoft.Data.Sqlite.SqliteConnection conn, string groupId,
         CancellationToken ct)
     {
-        var kind = await conn.ExecuteScalarAsync<string?>(
+        var row = await conn.QuerySingleOrDefaultAsync<(string? Kind, string TenantId)>(
             new CommandDefinition(
-                "SELECT system_kind FROM groups WHERE id = @groupId",
+                "SELECT system_kind AS Kind, tenant_id AS TenantId " +
+                "FROM groups WHERE id = @groupId",
                 new { groupId }, cancellationToken: ct));
-        if (kind is not null)
+        if (row.Kind is not null)
             throw DomainException.Forbidden(
                 "system groups are protected from structural edits");
+        return row.TenantId;
     }
+
+    private static Task<string> TenantIdOfAsync(
+        Microsoft.Data.Sqlite.SqliteConnection conn, string groupId,
+        CancellationToken ct) => RequireMutableAsync(conn, groupId, ct);
 
     /// Membership changes alter effective roles — bump + revoke the
     /// user in the same transaction as the row write (MPE-275).
@@ -173,13 +206,22 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         string Id, string TenantId, string Name, string? Description,
         string? SystemKind, string? Role);
 
-    private static IReadOnlyList<LolaGroup> ToGroups(IEnumerable<GroupRoleRow> rows)
-        => rows.GroupBy(r => r.Id).Select(g =>
-            {
-                var first = g.First();
-                var roles = g.Where(r => r.Role is not null)
-                    .Select(r => Enum.Parse<LolaRole>(r.Role!)).ToList();
-                return new LolaGroup(first.Id, first.TenantId, first.Name,
-                    first.Description, roles, first.SystemKind);
-            }).ToList();
+    private async Task<IReadOnlyList<LolaGroup>> ToGroupsAsync(
+        IEnumerable<GroupRoleRow> rows, CancellationToken ct)
+    {
+        var groups = new List<LolaGroup>();
+        foreach (var g in rows.GroupBy(r => r.Id))
+        {
+            var first = g.First();
+            var roles = g.Where(r => r.Role is not null)
+                .Select(r => Enum.Parse<LolaRole>(r.Role!)).ToList();
+            var name = await CpCrypto.DecryptTenantAsync(
+                cipher, first.TenantId, first.Name, ct);
+            var desc = await CpCrypto.DecryptTenantAsync(
+                cipher, first.TenantId, first.Description, ct);
+            groups.Add(new LolaGroup(first.Id, first.TenantId, name!,
+                desc, roles, first.SystemKind));
+        }
+        return groups;
+    }
 }

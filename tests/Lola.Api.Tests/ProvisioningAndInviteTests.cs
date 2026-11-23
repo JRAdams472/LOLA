@@ -117,14 +117,15 @@ public sealed class ProvisioningAndInviteTests(LolaApiFactory factory)
         using (var conn = db.Open())
         {
             await conn.ExecuteAsync("""
-                INSERT INTO invites (id, tenant_id, email, role, token_hash,
+                INSERT INTO invites (id, tenant_id, email, email_idx, role, token_hash,
                                      expires_utc, created_by)
-                VALUES (@id, @t, @e, 'Borrower', @h, @exp, 'test')
+                VALUES (@id, @t, @e, @ei, 'Borrower', @h, @exp, 'test')
                 """, new
             {
                 id = $"i-{Guid.NewGuid():N}",
                 t = tenant,
-                e = $"expired-{tenant}@test.dev",
+                e = TestCrypto.Enc($"expired-{tenant}@test.dev"),
+                ei = TestCrypto.Idx($"expired-{tenant}@test.dev"),
                 h = hash,
                 exp = DateTimeOffset.UtcNow.AddHours(-1).ToString("O")
             });

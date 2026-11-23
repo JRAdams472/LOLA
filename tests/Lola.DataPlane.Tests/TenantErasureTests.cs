@@ -24,7 +24,7 @@ public sealed class TenantErasureTests(OpenBaoFixture fixture)
         var db = new ControlPlaneDb(
             Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
-        var registry = new TenantRegistry(db);
+        var registry = new TenantRegistry(db, TestCrypto.Cipher, TestCrypto.Index);
         var cipher = new TransitFieldCipher(fixture.Transit);
         var keys = new TransitKeyManager(fixture.Transit);
         var runner = new TenantMigrationRunner(
@@ -33,7 +33,7 @@ public sealed class TenantErasureTests(OpenBaoFixture fixture)
             registry, keys, new TenantDbProvisioner(cipher),
             new StubServiceClients(), runner, fixture.DataDir);
         var eraser = new TenantErasureService(
-            keys, registry, new ControlPlaneResiduals(db),
+            keys, registry, new ControlPlaneResiduals(db, TestCrypto.Cipher, TestCrypto.Index),
             Path.Combine(fixture.DataDir, "backups"));
         return (eraser, svc, registry, keys);
     }

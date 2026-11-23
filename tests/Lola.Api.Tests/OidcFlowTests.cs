@@ -71,6 +71,7 @@ public sealed class OidcFlowTests(LolaApiFactory factory)
         var login = await client.PostAsync("/account/login",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
+                ["org"] = tenant,
                 ["email"] = email,
                 ["password"] = Password,
                 ["returnUrl"] = authorize
