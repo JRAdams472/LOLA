@@ -15,4 +15,8 @@
     <Project Path="tests/Lola.Domain.Tests/Lola.Domain.Tests.csproj" />
     <Project Path="tests/Lola.Infrastructure.Tests/Lola.Infrastructure.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/" />
+  <Folder Name="/tools/cpconvert/">
+    <Project Path="tools/cpconvert/Lola.Tools.CpConvert.csproj" />
+  </Folder>
 </Solution>
