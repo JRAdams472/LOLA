@@ -24,7 +24,7 @@ public sealed class TaskQueueTests
     private static ControlPlaneDb TempDb()
     {
         var db = new ControlPlaneDb(Path.Combine(Path.GetTempPath(),
-            "lola-tests", $"tq-{Guid.NewGuid():N}.db"));
+            "lola-tests", $"tq-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return db;
     }

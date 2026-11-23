@@ -10,7 +10,7 @@ public class IdentityMigrationTests
     private static ControlPlaneDb TempDb()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(Path.GetTempPath(), "lola-tests", $"mig2-{Guid.NewGuid():N}.db"));
+            Path.Combine(Path.GetTempPath(), "lola-tests", $"mig2-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return db;
     }

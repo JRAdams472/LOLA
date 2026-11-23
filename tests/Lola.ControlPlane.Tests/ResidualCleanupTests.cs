@@ -15,7 +15,7 @@ public class ResidualCleanupTests
     private static ControlPlaneDb TempDb()
     {
         var db = new ControlPlaneDb(Path.Combine(
-            Path.GetTempPath(), "lola-tests", $"res-{Guid.NewGuid():N}.db"));
+            Path.GetTempPath(), "lola-tests", $"res-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return db;
     }

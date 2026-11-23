@@ -88,4 +88,20 @@ bao token create -policy=lola-api -period=24h \
 # token + unseal key stay 600 — only this scoped token is readable.
 chmod 644 "$OUT_DIR/api-token"
 
+# Control-plane file key (MPE-276 / Phase 7b): a dedicated transit key
+# wraps a random 32-byte file key; the api gets ONLY the wrapped blob —
+# the plaintext file key never touches the repo or the control db.
+if ! bao read lola-transit/keys/control-plane >/dev/null 2>&1; then
+  echo "openbao-init: creating control-plane transit key"
+  bao write -f lola-transit/keys/control-plane type=aes256-gcm96 >/dev/null
+fi
+if [ ! -f "$OUT_DIR/control-db-key" ]; then
+  echo "openbao-init: wrapping control-plane file key"
+  FILEKEY_B64=$(bao random 32 | tr -d '[:space:]')
+  bao write -field=ciphertext lola-transit/encrypt/control-plane \
+    plaintext="$(printf '%s' "$FILEKEY_B64" | base64 | tr -d '[:space:]')" \
+    | tr -d '[:space:]' > "$OUT_DIR/control-db-key"
+  chmod 644 "$OUT_DIR/control-db-key"
+fi
+
 echo "openbao-init: done"

@@ -20,7 +20,7 @@ public sealed class TenantConnectionFactoryTests(OpenBaoFixture fixture)
         var id = fixture.NewTenant();
         try
         {
-            var db = new ControlPlaneDb(Path.Combine(fixture.DataDir, $"c-{Guid.NewGuid():N}.db"));
+            var db = new ControlPlaneDb(Path.Combine(fixture.DataDir, $"c-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
             db.Migrate();
             var registry = new TenantRegistry(db);
             var cipher = new TransitFieldCipher(fixture.Transit);

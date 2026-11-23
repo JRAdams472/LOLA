@@ -95,7 +95,7 @@ public sealed class VaultLiveTests
         var cipher = new TransitFieldCipher(transit);
         var dir = Path.Combine(Path.GetTempPath(), "lola-vault-live",
             Guid.NewGuid().ToString("N"));
-        var db = new ControlPlaneDb(Path.Combine(dir, "control.db"));
+        var db = new ControlPlaneDb(Path.Combine(dir, "control.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return new Stack
         {

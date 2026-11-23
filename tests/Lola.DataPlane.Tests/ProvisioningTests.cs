@@ -22,7 +22,7 @@ public sealed class ProvisioningTests(OpenBaoFixture fixture)
     private (TenantProvisioningService svc, TenantRegistry registry) Sut()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"));
+            Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         var registry = new TenantRegistry(db);
         var cipher = new TransitFieldCipher(fixture.Transit);
