@@ -12,8 +12,8 @@ Each ADR has exactly one `**Status:**`, one `## Decision`, and one
 | [0001](0001-language-runtime.md) | C#/.NET 10 base language; free/OSS modules only |
 | [0002](0002-dapper-dbup-no-ef.md) | Dapper + DbUp migrations; **no EF Core** |
 | [0003](0003-sqlite-per-tenant.md) | SQLite file-per-tenant data plane; SQLite control plane |
-| [0004](0004-openbao-envelope-encryption.md) | OpenBao transit envelope encryption + blind indexes |
-| [0005](0005-openiddict-identity.md) | OpenIddict OIDC; custom Dapper stores |
+| [0004](0004-openbao-envelope-encryption.md) | OpenBao transit envelope encryption + blind indexes; control-plane file key + key domain |
+| [0005](0005-openiddict-identity.md) | OpenIddict OIDC; custom Dapper stores; tenant-scoped login lookup |
 | [0006](0006-document-store-hybrid.md) | MISMO documents in JSON1 columns + relational index (doc DB rejected) |
 | [0007](0007-adapter-seams.md) | `IPricingService`/`IFeeService`/`IDocumentService`/`IVendorAdapter` seams |
 | [0008](0008-masked-by-default.md) | Masked-by-default + role→visibility masking layer |
