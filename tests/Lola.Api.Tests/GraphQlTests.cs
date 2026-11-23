@@ -146,6 +146,12 @@ public class GraphQlTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory
             $"/api/admin/tenants/{tenant}/groups/{gid}/members",
             new { userId = uid })).StatusCode.ShouldBe(HttpStatusCode.OK);
 
+        // The member-add bumped the admin's own auth version and revoked
+        // their token (MPE-275) — re-login, then the read resolves.
+        admin.DefaultRequestHeaders.Authorization = new("Bearer",
+            await PkceLogin.TokenAsync(factory, tenant,
+                LolaRole.TenantAdmin, seed: false));
+
         var gql = await admin.PostAsJsonAsync("/graphql", new
         {
             query = $$"""

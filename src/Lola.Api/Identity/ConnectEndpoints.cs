@@ -21,7 +21,8 @@ public static class ConnectEndpoints
     public static void MapConnectEndpoints(this WebApplication app)
     {
         // --- authorization code + PKCE (passthrough) -------------------
-        app.MapGet("/connect/authorize", async (HttpContext ctx) =>
+        app.MapGet("/connect/authorize", async (HttpContext ctx,
+            IUserDirectory users, ITenantRegistry tenants) =>
         {
             var auth = await ctx.AuthenticateAsync(LoginScheme);
             if (!auth.Succeeded)
@@ -31,10 +32,30 @@ public static class ConnectEndpoints
                     $"/account/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
             }
 
+            // Revalidate the login cookie against the authority store
+            // (MPE-275): a stale or legacy (versionless) cookie is signed
+            // out and forced back through login rather than minting a
+            // code carrying authority the user no longer holds.
+            var live = await AuthorityGate.ValidateAsync(
+                auth.Principal, users, tenants, ctx.RequestAborted);
+            if (live is null)
+            {
+                await ctx.SignOutAsync(LoginScheme);
+                var returnUrl = ctx.Request.Path + ctx.Request.QueryString;
+                return Results.Redirect(
+                    $"/account/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
+            }
+
             var request = ctx.GetOpenIddictServerRequest()
                 ?? throw new InvalidOperationException("missing oidc request");
+            // Re-stamp the CURRENT version so downstream code/refresh
+            // checks compare against what was true at authorize time.
+            var claims = auth.Principal.Claims
+                .Where(c => c.Type != AuthorityGate.VersionClaim)
+                .Append(new Claim(
+                    AuthorityGate.VersionClaim, live.AuthVersion.ToString()));
             var identity = new ClaimsIdentity(
-                auth.Principal.Claims,
+                claims,
                 OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             identity.SetScopes(request.GetScopes());
             identity.SetResources("lola");
@@ -46,7 +67,8 @@ public static class ConnectEndpoints
         });
 
         // --- token (passthrough): client credentials + code + refresh --
-        app.MapPost("/connect/token", async (HttpContext ctx) =>
+        app.MapPost("/connect/token", async (HttpContext ctx,
+            IUserDirectory users, ITenantRegistry tenants) =>
         {
             var request = ctx.GetOpenIddictServerRequest()
                 ?? throw new InvalidOperationException("missing oidc request");
@@ -96,8 +118,22 @@ public static class ConnectEndpoints
                         [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
                 }
 
+                // The code/refresh grant was minted under the version it
+                // carries — deny redemption the moment authority moved
+                // (MPE-275). Legacy grants carry no version and fail here.
+                var live = await AuthorityGate.ValidateAsync(
+                    result.Principal, users, tenants, ctx.RequestAborted);
+                if (live is null)
+                {
+                    return Results.Forbid(authenticationSchemes:
+                        [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
+                }
+
                 var identity = new ClaimsIdentity(
-                    result.Principal.Claims,
+                    result.Principal.Claims
+                        .Where(c => c.Type != AuthorityGate.VersionClaim)
+                        .Append(new Claim(
+                            AuthorityGate.VersionClaim, live.AuthVersion.ToString())),
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
                 identity.SetResources("lola");
                 foreach (var claim in identity.Claims)
@@ -181,7 +217,8 @@ public static class ConnectEndpoints
                 new(Claims.Subject, user.Id),
                 new(Claims.Name, user.DisplayName),
                 new("tid", user.TenantId),
-                new(Claims.Email, user.Email)
+                new(Claims.Email, user.Email),
+                new(AuthorityGate.VersionClaim, user.AuthVersion.ToString())
             };
             claims.AddRange(roles.Select(r => new Claim(Claims.Role, r.ToString())));
 

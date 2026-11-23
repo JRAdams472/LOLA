@@ -76,12 +76,16 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
             """, new { id, name, description }, cancellationToken: ct));
     }
 
+    /// Role edits change authority for every member — bump their auth
+    /// versions and revoke their grants inside the same transaction
+    /// (MPE-275). The bump runs first while membership is still legible.
     public async Task SetRolesAsync(
         string groupId, IReadOnlyCollection<LolaRole> roles, CancellationToken ct = default)
     {
         using var conn = db.Open();
         await RequireMutableAsync(conn, groupId, ct);
         using var tx = conn.BeginTransaction();
+        await AuthorityBump.BumpGroupMembersAsync(conn, tx, groupId, ct);
         await conn.ExecuteAsync(new CommandDefinition(
             "DELETE FROM group_roles WHERE group_id = @groupId",
             new { groupId }, transaction: tx, cancellationToken: ct));
@@ -93,12 +97,19 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
         tx.Commit();
     }
 
+    /// Deletion removes members' authority — bump + revoke all current
+    /// members in the same transaction, before the cascade deletes the
+    /// membership rows (MPE-275).
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
         using var conn = db.Open();
         await RequireMutableAsync(conn, id, ct);
+        using var tx = conn.BeginTransaction();
+        await AuthorityBump.BumpGroupMembersAsync(conn, tx, id, ct);
         await conn.ExecuteAsync(new CommandDefinition(
-            "DELETE FROM groups WHERE id = @id", new { id }, cancellationToken: ct));
+            "DELETE FROM groups WHERE id = @id", new { id },
+            transaction: tx, cancellationToken: ct));
+        tx.Commit();
     }
 
     /// Shared mutation boundary (MPE-273): a group carrying a
@@ -117,23 +128,35 @@ public sealed class GroupDirectory(ControlPlaneDb db) : IGroupDirectory
                 "system groups are protected from structural edits");
     }
 
+    /// Membership changes alter effective roles — bump + revoke the
+    /// user in the same transaction as the row write (MPE-275).
+    /// No-ops (already a member / not a member) don't bump: no
+    /// authority moved, so no session should die.
     public async Task AddMemberAsync(
         string groupId, string userId, CancellationToken ct = default)
     {
         using var conn = db.Open();
-        await conn.ExecuteAsync(new CommandDefinition("""
+        using var tx = conn.BeginTransaction();
+        var changed = await conn.ExecuteAsync(new CommandDefinition("""
             INSERT OR IGNORE INTO user_groups (user_id, group_id)
             VALUES (@userId, @groupId)
-            """, new { userId, groupId }, cancellationToken: ct));
+            """, new { userId, groupId }, transaction: tx, cancellationToken: ct));
+        if (changed > 0)
+            await AuthorityBump.BumpUserAsync(conn, tx, userId, ct);
+        tx.Commit();
     }
 
     public async Task RemoveMemberAsync(
         string groupId, string userId, CancellationToken ct = default)
     {
         using var conn = db.Open();
-        await conn.ExecuteAsync(new CommandDefinition("""
+        using var tx = conn.BeginTransaction();
+        var changed = await conn.ExecuteAsync(new CommandDefinition("""
             DELETE FROM user_groups WHERE user_id = @userId AND group_id = @groupId
-            """, new { userId, groupId }, cancellationToken: ct));
+            """, new { userId, groupId }, transaction: tx, cancellationToken: ct));
+        if (changed > 0)
+            await AuthorityBump.BumpUserAsync(conn, tx, userId, ct);
+        tx.Commit();
     }
 
     public async Task<IReadOnlyList<string>> MemberIdsAsync(

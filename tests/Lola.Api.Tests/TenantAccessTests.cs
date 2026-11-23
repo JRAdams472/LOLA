@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Lola.Domain.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
 namespace Lola.Api.Tests;
@@ -110,8 +111,13 @@ public sealed class TenantAccessTests(LolaApiFactory factory)
     public async Task Inactive_tenant_token_is_403()
     {
         var tenant = $"t{Guid.NewGuid():N}"[..12];
-        // Provisioning-status tenant — resolution must refuse.
-        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin, tenantStatus: "provisioning");
+        // Mint while active, then suspend — issuance now refuses
+        // non-active tenants outright (MPE-275), and tenant resolution
+        // still refuses outstanding tokens for a non-active tenant.
+        var token = await PkceLogin.TokenAsync(factory, tenant, LolaRole.TenantAdmin);
+        var db = factory.Services.GetRequiredService<Lola.ControlPlane.ControlPlaneDb>();
+        await new Lola.ControlPlane.TenantRegistry(db)
+            .SetStatusAsync(tenant, "provisioning");
 
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", token);
