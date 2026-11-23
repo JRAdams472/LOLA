@@ -14,7 +14,7 @@ public class InvalidRoleGrantScanTests
     public void Reports_machine_role_grants_and_leaves_rows_untouched()
     {
         var db = new ControlPlaneDb(Path.Combine(
-            Path.GetTempPath(), "lola-tests", $"scan-{Guid.NewGuid():N}.db"));
+            Path.GetTempPath(), "lola-tests", $"scan-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         using var conn = db.Open();
         conn.Execute(
@@ -41,7 +41,7 @@ public class InvalidRoleGrantScanTests
     public void Clean_registry_reports_nothing()
     {
         var db = new ControlPlaneDb(Path.Combine(
-            Path.GetTempPath(), "lola-tests", $"scan-{Guid.NewGuid():N}.db"));
+            Path.GetTempPath(), "lola-tests", $"scan-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         InvalidRoleGrantScan.Run(db).ShouldBeEmpty();
     }

@@ -26,7 +26,7 @@ public sealed class DocRepositoryTests(OpenBaoFixture fixture)
         TenantConnectionFactory factory)> ProvisionAsync()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"));
+            Path.Combine(fixture.DataDir, $"control-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         var registry = new TenantRegistry(db);
         var cipher = new TransitFieldCipher(fixture.Transit);

@@ -16,7 +16,7 @@ public class InviteAcceptanceTests
     private static ControlPlaneDb TempDb()
     {
         var db = new ControlPlaneDb(Path.Combine(
-            Path.GetTempPath(), "lola-tests", $"acc-{Guid.NewGuid():N}.db"));
+            Path.GetTempPath(), "lola-tests", $"acc-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return db;
     }
@@ -265,8 +265,7 @@ public class InviteAcceptanceTests
             using var stream = asm.GetManifestResourceStream(resourceName)!;
             return new StreamReader(stream).ReadToEnd();
         }
-        using (var conn = new Microsoft.Data.Sqlite.SqliteConnection(
-            $"Data Source={path}"))
+        using (var conn = new ControlPlaneDb(path, TestDbKeys.ControlFileKeyHex).Open())
         {
             conn.Open();
             foreach (var n in scripts.Where(n => !n.Contains("0009")))
@@ -290,7 +289,7 @@ public class InviteAcceptanceTests
             conn.Execute(Sql(scripts.Single(n => n.Contains("0009"))));
         }
 
-        using var check = new ControlPlaneDb(path).Open();
+        using var check = new ControlPlaneDb(path, TestDbKeys.ControlFileKeyHex).Open();
         check.Query<(string id, string? kind)>(
                 "SELECT id, system_kind AS kind FROM groups ORDER BY id")
             .ShouldBe(

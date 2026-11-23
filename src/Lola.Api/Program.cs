@@ -138,8 +138,17 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 }));
 
 // Resolved lazily so test/config overrides (merged during Build) apply.
-builder.Services.AddSingleton(sp => new ControlPlaneDb(
-    ControlPlaneDb.ResolvePath(sp.GetRequiredService<IConfiguration>()["CONTROL_DB_PATH"])));
+// The file key unwraps at first resolve (Migrate() at startup) — a
+// wrapped blob + OpenBao outage fails the open, fail-closed (MPE-276).
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var keyHex = ControlPlaneKeyResolver.Resolve(config,
+        sp.GetService<OpenBaoTransitClient>(),
+        builder.Environment.IsProduction());
+    return new ControlPlaneDb(
+        ControlPlaneDb.ResolvePath(config["CONTROL_DB_PATH"]), keyHex);
+});
 
 builder.Services.AddLolaCrypto(builder.Configuration);
 builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();

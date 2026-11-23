@@ -15,7 +15,7 @@ public class OpenIddictStoreTests
     private static ControlPlaneDb TempDb()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(Path.GetTempPath(), "lola-tests", $"oidc-{Guid.NewGuid():N}.db"));
+            Path.Combine(Path.GetTempPath(), "lola-tests", $"oidc-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return db;
     }

@@ -44,6 +44,10 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             {
                 ["CONTROL_DB_PATH"] = Path.Combine(
                     Path.GetTempPath(), "lola-tests", $"control-{Guid.NewGuid():N}.db"),
+                // Raw-hex dev key — the whole API e2e (migrations, OIDC
+                // stores, health, seeders) runs on a KEYED control-plane
+                // file (MPE-276 / Phase 7b).
+                ["CONTROL_DB_KEY"] = TestDbKeys.ControlFileKeyHex,
                 ["OIDC_SEED_SVC_SECRET"] = "svc-secret-value",
                 ["OIDC_SEED_OPS_SECRET"] = "ops-secret-value",
                 ["TENANT_DATA_DIR"] = Path.Combine(

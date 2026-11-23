@@ -8,7 +8,7 @@ public class TenantRegistryTests
     private static TenantRegistry Sut()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(Path.GetTempPath(), "lola-tests", $"reg-{Guid.NewGuid():N}.db"));
+            Path.Combine(Path.GetTempPath(), "lola-tests", $"reg-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
         return new TenantRegistry(db);
     }

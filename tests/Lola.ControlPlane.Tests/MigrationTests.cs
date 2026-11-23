@@ -10,7 +10,7 @@ public class MigrationTests
     public void Migrate_creates_tenant_registry()
     {
         var db = new ControlPlaneDb(
-            Path.Combine(Path.GetTempPath(), "lola-tests", $"mig-{Guid.NewGuid():N}.db"));
+            Path.Combine(Path.GetTempPath(), "lola-tests", $"mig-{Guid.NewGuid():N}.db"), TestDbKeys.ControlFileKeyHex);
         db.Migrate();
 
         using var conn = db.Open();
