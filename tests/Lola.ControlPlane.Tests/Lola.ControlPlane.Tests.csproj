@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lola.ControlPlane\Lola.ControlPlane.csproj" />
+    <ProjectReference Include="..\..\tools\cpconvert\Lola.Tools.CpConvert.csproj" />
   </ItemGroup>
 
 </Project>
