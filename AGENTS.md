@@ -76,9 +76,21 @@ This is **protected personal data**. These rules outrank convenience:
   and PR titles must start with the Linear ticket number:
   `MPE-71: Phase 1 — tenant vaults`.
 - **Do not open a PR without a Linear ticket.**
-- **Always pause after opening a PR.** Present the PR link + proof, then
-  wait for the user's explicit approval — never self-merge, never merge
-  on a schedule, never assume approval carries over between PRs.
+- **Always pause after opening a PR** — unless it is in the
+  merge-on-green class below. Present the PR link + proof, then wait
+  for the user's explicit approval — never self-merge, never merge on
+  a schedule, never assume approval carries over between PRs.
+- **Merge-on-green class (narrow).** A PR may merge itself via CI —
+  no approval pause — only when ALL of these hold: the Linear ticket
+  carries the `automerge-eligible` label (applied by the user at
+  ticket creation), the PR carries the GitHub label of the same name
+  (the agent applies it at PR open only when the ticket carries it),
+  and the full diff classifies eligible via `node tools/mergecheck.mjs`
+  — non-control-plane docs (`*.md`, `docs/**` minus `docs/adr/`) and
+  additive-only test changes. `src/`, migrations, lockfiles,
+  `AGENTS.md`, `.devin/`, `.github/`, `tools/`, and `docs/adr/` never
+  qualify — the gate cannot amend itself. When in doubt, it isn't
+  eligible: wait for approval.
 - **Before every push: `node tools/verify.mjs` must be green** —
   adrcheck, format, build, test, and web lint/typecheck/test/build in
   one fail-fast pass (`--quick` skips test/build for tight loops, but a
@@ -182,5 +194,6 @@ executable form — follow it when the situation matches its description.
 ```bash
 node tools/verify.mjs            # full pre-push gate (adrcheck + format + build + test + web)
 node tools/adrcheck.mjs          # ADR structure gate only
+node tools/mergecheck.mjs        # is this branch's diff in the merge-on-green class?
 docker compose up --build        # openbao + seq + jaeger + minio + clamav (+ api/web when scaffolded)
 ```

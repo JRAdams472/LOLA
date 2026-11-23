@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+    # labeled/unlabeled re-run CI so the automerge job sees label changes.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -336,3 +338,43 @@ jobs:
             -e SONAR_HOST_URL=http://localhost:9000 \
             -v "$PWD:/usr/src" \
             sonarsource/sonar-scanner-cli
+
+  automerge:
+    name: Auto-merge (allowlisted diffs only)
+    needs: [docs, secrets, dotnet, web, sonarqube]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Classify diff
+        id: gate
+        run: |
+          git fetch --depth=1 origin "${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}"
+          set +e
+          node tools/mergecheck.mjs "origin/${GITHUB_BASE_REF}"
+          rc=$?
+          set -e
+          [ $rc -eq 2 ] && exit 2
+          echo "eligible=$([ $rc -eq 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if [ $rc -eq 1 ] && \
+             gh pr view "$GITHUB_HEAD_REF" --json labels -q '.labels[].name' \
+               | grep -qx automerge-eligible; then
+            echo "::warning::automerge-eligible label applied but diff is outside the class — scope creep? manual review required"
+          fi
+          exit 0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge when labeled + eligible
+        if: >-
+          steps.gate.outputs.eligible == 'true' &&
+          contains(github.event.pull_request.labels.*.name, 'automerge-eligible')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh pr merge ${{ github.event.pull_request.number }}
+          --merge --delete-branch
