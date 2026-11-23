@@ -8,6 +8,11 @@ namespace Lola.Application.Vault;
 
 /// Signed-URL TTL for vault downloads — default 15 minutes, the same
 /// presigned lifetime the doc-package download uses (MPE-202).
+/// `sig`-bound capability TTL. Phase-6 contract (MPE-275): auth-version
+/// bumps do NOT recall a minted presigned URL — a minted capability
+/// stays usable for up to TtlSeconds (15 min) after the uploader's
+/// authority changes. That residual window is bounded and audited at
+/// mint; it is a deliberate separate contract, not online revocation.
 public sealed record VaultUrlOptions(int TtlSeconds = 900);
 
 /// GET …/uploads/{docId}/download — mints a ≤15-min capability URL for

@@ -56,7 +56,8 @@ public sealed record LolaUser(
     bool MfaEnabled,
     string CreatedUtc,
     string? MfaSecretRef = null,
-    string? OrgName = null);
+    string? OrgName = null,
+    long AuthVersion = 1);
 
 public sealed record LolaGroup(
     string Id,

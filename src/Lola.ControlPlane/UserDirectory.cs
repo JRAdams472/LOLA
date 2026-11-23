@@ -11,7 +11,8 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
         "id, tenant_id AS TenantId, email, display_name AS DisplayName, " +
         "password_hash AS PasswordHash, status, " +
         "mfa_enabled AS MfaEnabled, created_utc AS CreatedUtc, " +
-        "mfa_secret_ref AS MfaSecretRef, org_name AS OrgName";
+        "mfa_secret_ref AS MfaSecretRef, org_name AS OrgName, " +
+        "auth_version AS AuthVersion";
 
     public async Task<LolaUser?> FindByIdAsync(string id, CancellationToken ct = default)
     {
@@ -88,33 +89,47 @@ public sealed class UserDirectory(ControlPlaneDb db) : IUserDirectory
         }, cancellationToken: ct));
     }
 
+    /// Password/security reset (MPE-275): the credential change, the
+    /// auth-version bump and the grant revocation commit together —
+    /// stale sessions die with the transaction, never after it.
     public async Task UpdatePasswordAsync(string userId, string passwordHash, string status, CancellationToken ct = default)
     {
         using var conn = db.Open();
+        using var tx = conn.BeginTransaction();
         await conn.ExecuteAsync(new CommandDefinition("""
             UPDATE users SET password_hash = @passwordHash, status = @status,
+                auth_version = auth_version + 1,
                 updated_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = @userId
-            """, new { userId, passwordHash, status }, cancellationToken: ct));
+            """, new { userId, passwordHash, status }, transaction: tx, cancellationToken: ct));
+        await AuthorityBump.RevokeSubjectTokensAsync(conn, tx, userId, ct);
+        tx.Commit();
     }
 
+    /// Any status transition (disable being the security-relevant one)
+    /// bumps the auth version and revokes outstanding grants in the
+    /// same transaction (MPE-275).
     public async Task SetStatusAsync(string userId, string status, CancellationToken ct = default)
     {
         using var conn = db.Open();
+        using var tx = conn.BeginTransaction();
         await conn.ExecuteAsync(new CommandDefinition("""
             UPDATE users SET status = @status,
+                auth_version = auth_version + 1,
                 updated_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = @userId
-            """, new { userId, status }, cancellationToken: ct));
+            """, new { userId, status }, transaction: tx, cancellationToken: ct));
+        await AuthorityBump.RevokeSubjectTokensAsync(conn, tx, userId, ct);
+        tx.Commit();
     }
 
     private sealed record UserRow(
         string Id, string TenantId, string Email, string DisplayName,
         string? PasswordHash, string Status, long MfaEnabled, string CreatedUtc,
-        string? MfaSecretRef, string? OrgName)
+        string? MfaSecretRef, string? OrgName, long AuthVersion)
     {
         public LolaUser ToUser() => new(Id, TenantId, Email, DisplayName, PasswordHash,
             Enum.Parse<UserStatus>(Status, ignoreCase: true), MfaEnabled != 0, CreatedUtc,
-            MfaSecretRef, OrgName);
+            MfaSecretRef, OrgName, AuthVersion);
     }
 }
