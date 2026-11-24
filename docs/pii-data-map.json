@@ -359,6 +359,12 @@
       "member": "Ssn",
       "piiClass": "Ssn",
       "location": "tenant-payload"
+    },
+    {
+      "type": "Lola.ControlPlane.BffSession",
+      "member": "Name",
+      "piiClass": "Name",
+      "location": "control-plane"
     }
   ]
 }

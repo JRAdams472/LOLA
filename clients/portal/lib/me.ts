@@ -16,7 +16,7 @@ type MeState =
 
 /**
  * The authenticated principal — `/auth/me` proxies the API's
- * `/connect/userinfo`. A 401 means the sealed session is gone (idle or
+ * `/connect/userinfo`. A 401 means the session handle is dead (idle or
  * absolute expiry) — bounce through the login flow. No react-query here:
  * the portal keeps its client surface small and fetches are one-shot.
  */

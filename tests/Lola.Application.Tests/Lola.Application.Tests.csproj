@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lola.Domain\Lola.Domain.csproj" />
     <ProjectReference Include="..\..\src\Lola.Application\Lola.Application.csproj" />
+    <ProjectReference Include="..\..\src\Lola.ControlPlane\Lola.ControlPlane.csproj" />
   </ItemGroup>
 
 </Project>

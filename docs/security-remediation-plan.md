@@ -1,6 +1,8 @@
 # LOLA security remediation plan
 
-Status: proposed implementation backlog, based on the LOLA review at `62f5516`.
+Status: phases 1–9 implemented and merged (MPE-271…MPE-290); phase 10
+release/recovery gate in flight under MPE-279. Based on the LOLA review
+at `62f5516`.
 This is not approval to change an ADR, migrate a deployment, or mark a finding fixed.
 Scope is LOLA only: its API, clients, stores, deployment configuration and tests.
 Do not inspect or modify sibling projects. Test integration contracts at LOLA's

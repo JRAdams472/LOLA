@@ -141,9 +141,11 @@ fail-closed before the crypto-shred.
 
 Officer console live (M11) — `clients/web` is a Next.js (App Router)
 loan-officer console over the live API, GitHub-dark and dense for
-internal-tool use. OIDC authorization-code + PKCE login mints an
-access token that **never reaches the browser**: a sealed JWE session
-cookie backs a same-origin BFF (`/bff/…`) that injects `Bearer`
+internal-tool use. OIDC authorization-code + PKCE login mints tokens
+that **never reach the browser**: the client holds only an opaque
+`__Host-` session handle resolved per-request against the API's
+`/bff-sessions` store (hashed handles, bounded idle/absolute expiry,
+revoked on logout), and a same-origin BFF (`/bff/…`) injects `Bearer`
 server-side — vendor endpoints (MPEx/Zara/ISPPr/MinIO) are provably
 unreachable from the page (e2e asserts zero direct calls, ADR-0007).
 Surfaces: a **Pipeline** of active loans with borrower, status, step,
@@ -165,9 +167,10 @@ Wolverine handlers as REST; mutations stay REST. See
 
 Borrower portal live (M12) — `clients/portal` is a second Next.js
 app on the same token-custody architecture, hardened for the public
-surface: sealed `lola_portal` JWE cookies, a **30-minute idle window**
-(sliding on traffic) under a **4-hour absolute bound** that refresh
-rotation cannot extend, and a borrower-only read plane — GraphQL
+surface: an opaque `lola_portal` `__Host-` handle resolved against the
+same server-side session store, a **30-minute idle window** (sliding
+on resolve) under a **4-hour absolute bound** that touches cannot
+extend, and a borrower-only read plane — GraphQL
 `portalLoan(s)` returns a masked, borrower-safe projection while every
 officer resolver and staff eval read (pricing, fees, steps, rate
 lock, ULDD export) refuses borrower tokens. Surfaces: **invite

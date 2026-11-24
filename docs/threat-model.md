@@ -11,7 +11,9 @@ as the deep-pass counterpart to the per-milestone hardening gates.
 - Cryptographic material — per-tenant file keys (SQLCipher), per-tenant
   DEKs (OpenBao transit), OpenBao unseal shares/root token, OIDC client
   secrets, vendor credentials, HMAC webhook secrets.
-- Identity artifacts — OIDC access/refresh tokens, sealed-JWE BFF sessions.
+- Identity artifacts — OIDC access/refresh tokens held server-side behind
+  opaque BFF session handles (control-plane `bff_sessions`, transit
+  ciphertext).
 - Audit chain — append-only hash-chained records proving who saw what.
 - Derived artifacts — document payloads (ISPPr/MinIO vault), backups,
   vendor result documents.
@@ -27,8 +29,8 @@ risk / follow-ups. Anchors: `INV-n` = AGENTS.md security invariant;
 
 ```
                         ┌───────────────────── INTERNET ─────────────────────┐
-  Officer ──TLS──▶ web BFF (Next) ──sealed JWE──┐                            │
-  Borrower ─TLS──▶ portal BFF (Next) ─sealed JWE┤                            │
+  Officer ──TLS──▶ web BFF (Next) ──opaque handle──┐                         │
+  Borrower ─TLS──▶ portal BFF (Next) ─opaque handle┤                         │
                         │                       ▼                            │
                         │              ┌───── LOLA api ──────┐               │
                         │              │ REST + GraphQL      │               │
@@ -62,7 +64,7 @@ document uploads, vendor webhook completions, admin tenant/user ops.
 
 | Threat | Vectors | Mitigations (anchor) | Residual |
 |---|---|---|---|
-| **S**poofing — forged officer/borrower identity | Stolen session, forged OIDC token, webhook forgery | OIDC login at BFF; sealed-JWE sessions server-side, tokens never reach browser (INV-7 custody); role claims checked server-side per handler (`isBorrower` early-outs); webhook HMAC `X-Vendor-Signature` over raw body, constant-time compare, per-tenant secret from OpenBao KV | Session theft via endpoint compromise — mitigated by sealed sessions; no proof-of-possession binding beyond TLS |
+| **S**poofing — forged officer/borrower identity | Stolen session, forged OIDC token, webhook forgery | OIDC login at BFF; session custody is an opaque `__Host-` handle — tokens live only in the control-plane `/bff-sessions` store as transit ciphertext and never reach the browser (INV-7 custody); handles are namespace-scoped (console handle can't resolve portal rows) and revocation is `auth_version`-checked; role claims checked server-side per handler (`isBorrower` early-outs); webhook HMAC `X-Vendor-Signature` over raw body, constant-time compare, per-tenant secret from OpenBao KV | Session theft via endpoint compromise — mitigated by opaque handles + server-side revocation; no proof-of-possession binding beyond TLS |
 | **T**ampering — mutated intake/upload payload in flight | MITM, replayed webhook, draft overwrite | TLS every hop (INV-5); webhook replay idempotent + external-id resolution (single-open→complete, all-terminal→duplicate, ≥2 open→409 Ambiguous); submitted snapshots immutable (INV-6); draft PATCH merge inside `BEGIN IMMEDIATE` tenant txn | Replay within rate-limit window is a no-op by design; multi-tab draft edits serialize but last-writer-wins semantics stand |
 | **R**epudiation — actor denies an action/reveal/read | "I didn't reveal that SSN" | Hash-chained append-only audit on every PII read/write/reveal — actor, tenant, entity, field class, reason (INV-4); audit rows never updated/deleted; forced-retention-erase writes `retention_override` | Audit proves API-attributed actor, not human identity beyond OIDC subject |
 | **I**nformation disclosure — over-read at ingress | Borrower reading staff surfaces, cross-tenant read | Tenant resolved once in middleware; every data-plane query scoped to that tenant's file — no path can name another file (convention); borrower early-outs return `null`/403 before handler runs; serialized-payload tests forbid vendor/result vocabulary in borrower DTOs | GraphQL field-level leakage is bounded by resolver guards; new resolvers must repeat the pattern (CI-tested via contract tests) |

@@ -14,7 +14,7 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3200",
   },
   // Auth setup logs in through the real OIDC flow once; other specs reuse
-  // the sealed session cookie via storageState. auth.spec exercises the
+  // the session handle cookie via storageState. auth.spec exercises the
   // login flow itself, so it runs state-free.
   projects: [
     { name: "setup", testMatch: /auth\.setup\.ts/ },
