@@ -73,6 +73,9 @@ public sealed class VaultLiveTests
 
     private static async Task<Stack> StackAsync()
     {
+        // Read env under the suite's env gate — a concurrent prod-profile
+        // test holds it while its env matrix is applied (MPE-277).
+        using var _env = LolaApiFactory.EnvReadScope();
         var transit = new OpenBaoTransitClient(new HttpClient(),
             Options.Create(new OpenBaoOptions
             {

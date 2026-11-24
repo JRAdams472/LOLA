@@ -26,4 +26,7 @@ public sealed class DomainException(
     public static DomainException Conflict(string detail,
         IReadOnlyDictionary<string, object?>? extensions = null)
         => new(409, detail, extensions);
+
+    public static DomainException Unavailable(string detail)
+        => new(503, detail);
 }

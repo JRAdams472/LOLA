@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Threading.RateLimiting;
 using HotChocolate.AspNetCore;
@@ -19,6 +20,8 @@ using Lola.Infrastructure.Identity;
 using Lola.Infrastructure.OpenBao;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.OpenApi;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -37,6 +40,46 @@ builder.Host.UseSerilog((ctx, lc) =>
     var seqUrl = ctx.Configuration["SEQ_URL"];
     if (!string.IsNullOrWhiteSpace(seqUrl)) lc.WriteTo.Seq(seqUrl);
 });
+
+// MPE-277 (security-remediation phase 8): fail-closed production
+// profile — every unsafe Production configuration throws here, before
+// a single service registers or a protected request can be served.
+// No-op outside Production; Development/CI stay usable untouched.
+Lola.Api.Hosting.ProductionProfile.Validate(
+    builder.Configuration, builder.Environment);
+
+// The lola.auth login cookie is sealed by Data Protection — persist
+// the keyring to a mounted dir or every restart silently invalidates
+// sessions. Required in Production (validated above).
+var dpKeyDir = builder.Configuration["DP_KEY_DIR"];
+if (!string.IsNullOrWhiteSpace(dpKeyDir))
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir));
+
+// Forwarded headers are trusted ONLY from explicitly configured
+// proxies (TRUSTED_PROXIES — IP/CIDR, strictly validated in
+// Production). Unset → the middleware never runs and X-Forwarded-* is
+// ignored: spoofed values can't rotate the rate-limit IP partition or
+// forge the scheme OIDC transport checks see.
+var trustedProxies = builder.Configuration["TRUSTED_PROXIES"];
+if (!string.IsNullOrWhiteSpace(trustedProxies))
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto;
+        foreach (var entry in trustedProxies.Split(',',
+                     StringSplitOptions.RemoveEmptyEntries
+                     | StringSplitOptions.TrimEntries))
+        {
+            var slash = entry.IndexOf('/');
+            if (slash >= 0
+                && IPAddress.TryParse(entry[..slash], out var net)
+                && int.TryParse(entry[(slash + 1)..], out var bits))
+                o.KnownIPNetworks.Add(new System.Net.IPNetwork(net, bits));
+            else if (IPAddress.TryParse(entry, out var proxy))
+                o.KnownProxies.Add(proxy);
+        }
+    });
 
 var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 builder.Services.AddOpenTelemetry()
@@ -176,6 +219,48 @@ builder.Services.AddSingleton<ITenantEraser>(sp => new TenantErasureService(
 // opaque access tokens + signed id_tokens; the api validates its own
 // tokens via UseLocalServer. Stores are the custom Dapper impls.
 builder.Services.AddAuthorization(LolaPolicies.Register);
+
+// OIDC key material (MPE-277): Production takes only protected sources
+// via OidcKeyMaterial — mounted PEM/RSAParameters files or
+// vault:-wrapped transit blobs — never the dev auto-create path. Dev
+// keeps DevSigningKey unless protected keys are explicitly configured
+// (so the production shape is exercisable locally).
+Microsoft.IdentityModel.Tokens.RsaSecurityKey oidcSigningKey,
+    oidcEncryptionKey;
+if (builder.Environment.IsProduction()
+    || (Lola.Api.Identity.OidcKeyMaterial.Configured(
+            builder.Configuration, "OIDC_SIGNING_KEY")
+        && Lola.Api.Identity.OidcKeyMaterial.Configured(
+            builder.Configuration, "OIDC_ENCRYPTION_KEY")))
+{
+    // Ad-hoc transit client for vault:-wrapped key material — the DI
+    // client isn't available this early in registration.
+    OpenBaoTransitClient? oidcTransit = null;
+    OpenBaoTransitClient Transit() => oidcTransit ??=
+        new OpenBaoTransitClient(new HttpClient(),
+            Microsoft.Extensions.Options.Options.Create(
+                new Lola.Infrastructure.OpenBao.OpenBaoOptions
+                {
+                    Address = builder.Configuration["OPENBAO_ADDR"],
+                    Token = builder.Configuration["OPENBAO_TOKEN"],
+                    TokenFile = builder.Configuration["OPENBAO_TOKEN_FILE"],
+                }));
+    oidcSigningKey = Lola.Api.Identity.OidcKeyMaterial.Resolve(
+        builder.Configuration, Transit(), "OIDC_SIGNING_KEY");
+    oidcEncryptionKey = Lola.Api.Identity.OidcKeyMaterial.Resolve(
+        builder.Configuration, Transit(), "OIDC_ENCRYPTION_KEY");
+}
+else
+{
+    oidcSigningKey = Lola.Api.Identity.DevSigningKey.LoadOrCreate(
+        builder.Configuration["OIDC_SIGNING_KEY_PATH"]
+            ?? "data/oidc/signing.json");
+    oidcEncryptionKey = Lola.Api.Identity.DevSigningKey.LoadOrCreate(
+        builder.Configuration["OIDC_ENCRYPTION_KEY_PATH"]
+            ?? "data/oidc/encryption.json",
+        "lola-dev-encryption");
+}
+
 builder.Services.AddAuthentication(
         OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
     .AddCookie(ConnectEndpoints.LoginScheme, o =>
@@ -235,15 +320,12 @@ builder.Services.AddOpenIddict()
                .SetRefreshTokenReuseLeeway(TimeSpan.Zero);
         options.UseReferenceAccessTokens()
                .DisableAccessTokenEncryption();
-        options.AddSigningKey(DevSigningKey.LoadOrCreate(
-            builder.Configuration["OIDC_SIGNING_KEY_PATH"] ?? "data/oidc/signing.json"));
+        options.AddSigningKey(oidcSigningKey);
         // Codes and refresh tokens are always encrypted payloads —
         // OpenIddict requires an encryption credential even when
-        // access tokens are opaque references. Same persisted-dev-key
-        // pattern; a distinct file + KeyId from the signing key.
-        options.AddEncryptionKey(DevSigningKey.LoadOrCreate(
-            builder.Configuration["OIDC_ENCRYPTION_KEY_PATH"] ?? "data/oidc/encryption.json",
-            "lola-dev-encryption"));
+        // access tokens are opaque references. Same source rules as
+        // the signing key; a distinct key id from it.
+        options.AddEncryptionKey(oidcEncryptionKey);
         options.UseAspNetCore()
                .EnableAuthorizationEndpointPassthrough()
                .EnableTokenEndpointPassthrough()
@@ -260,7 +342,10 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 builder.Services.AddHostedService<OidcClientSeeder>();
-builder.Services.AddHostedService<DevUserSeeder>();
+// Demo-tenant/user bootstrap is dev/e2e only — never registered in
+// Production (MPE-277); the profile validator also rejects DEV_SEED_*.
+if (!builder.Environment.IsProduction())
+    builder.Services.AddHostedService<DevUserSeeder>();
 builder.Services.AddSingleton<ITenantDbProvisioner, TenantDbProvisioner>();
 builder.Services.AddScoped<TenantConnectionFactory>();
 builder.Services.AddScoped<SchemaInfoRepository>();
@@ -316,6 +401,14 @@ if (builder.Configuration["PRICING_ADAPTER"]?.Equals("mpex",
         // recovery; a 100s default could stall a tenant's drain loop.
         .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
 }
+else if ("disabled".Equals(builder.Configuration["PRICING_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+{
+    // Explicitly off (MPE-277) — fail-closed 503, never simulated
+    // financial results.
+    builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
+        Lola.Infrastructure.Pricing.DisabledPricingService>();
+}
 else
 {
     builder.Services.AddSingleton<Lola.Application.Pricing.IPricingService,
@@ -345,6 +438,13 @@ if ("zara".Equals(builder.Configuration["FEE_ADAPTER"],
         // Eval calls must fail fast — the outbox retry/DLQ policy owns
         // recovery; a 100s default could stall a tenant's drain loop.
         .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
+}
+else if ("disabled".Equals(builder.Configuration["FEE_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+{
+    // Explicitly off (MPE-277) — fail-closed 503, never simulated fees.
+    builder.Services.AddSingleton<Lola.Application.Fees.IFeeService,
+        Lola.Infrastructure.Fees.DisabledFeeService>();
 }
 else
 {
@@ -405,6 +505,16 @@ if ("isppr".Equals(builder.Configuration["DOC_ADAPTER"],
             Lola.Infrastructure.Documents.MissingDocVendorAdmin>();
     }
 }
+else if ("disabled".Equals(builder.Configuration["DOC_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+{
+    // Explicitly off (MPE-277) — fail-closed 503 on both the document
+    // and vendor-admin seams; erasure/republish never silently skip.
+    builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
+        Lola.Infrastructure.Documents.DisabledDocumentService>();
+    builder.Services.AddSingleton<Lola.Application.Documents.IDocVendorAdmin,
+        Lola.Infrastructure.Documents.DisabledDocVendorAdmin>();
+}
 else
 {
     builder.Services.AddSingleton<Lola.Application.Documents.IDocumentService,
@@ -430,6 +540,9 @@ builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter>(
         "stub" => (Lola.Application.Vendors.IVendorAdapter)
             new Lola.Infrastructure.Vendors.StubVendorAdapter(
                 builder.Configuration["VENDOR_STUB_WEBHOOK_URL"]),
+        // Explicitly off (MPE-277) — required value in Production until
+        // a real vendor lands; fail-closed 503 on every call.
+        "disabled" => new Lola.Infrastructure.Vendors.DisabledVendorAdapter(),
         var other => throw new InvalidOperationException(
             $"unknown VENDOR_ADAPTER '{other}'")
     });
@@ -497,6 +610,18 @@ else if ("stub".Equals(
     builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault,
         Lola.Infrastructure.Vault.StubObjectVault>();
 }
+else if ("disabled".Equals(
+        builder.Configuration["VAULT_ADAPTER"],
+        StringComparison.OrdinalIgnoreCase))
+{
+    // Explicitly off (MPE-277) — uploads/reads fail closed 503, the
+    // scan verdict is Unavailable, and erasure's purge throws rather
+    // than silently skipping object cleanup. No vault provisioner.
+    builder.Services.AddSingleton<Lola.Application.Vault.IVirusScanner,
+        Lola.Infrastructure.Vault.DisabledScanner>();
+    builder.Services.AddSingleton<Lola.Application.Vault.IObjectVault,
+        Lola.Infrastructure.Vault.DisabledObjectVault>();
+}
 else
 {
     // Unknown adapters fail fast — a mistyped value must never
@@ -552,6 +677,10 @@ foreach (var grant in InvalidRoleGrantScan.Run(
 var version = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
 
+// Trusted proxies only — when TRUSTED_PROXIES is unset this call is
+// skipped entirely and X-Forwarded-* headers are ignored (MPE-277).
+if (!string.IsNullOrWhiteSpace(trustedProxies))
+    app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ProblemDetailsMiddleware>();
 app.UseRateLimiter();
@@ -566,6 +695,13 @@ app.UseAuthorization();
 // shape publicly in deployed environments (MPE-89).
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+// Liveness vs readiness (MPE-277): /healthz is the process-level
+// liveness probe; /readyz reports whether required dependencies
+// (control-plane file + migrations, key service, scanner) are usable —
+// sanitized component names only, never credentials or tenant data.
+app.MapGet("/readyz", async (IServiceProvider sp, CancellationToken ct)
+    => await Lola.Api.Hosting.Readiness.CheckAsync(
+        sp, app.Environment.IsProduction(), ct));
 app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, CancellationToken ct) =>
 {
     var dbUp = db.Healthy();

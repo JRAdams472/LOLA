@@ -40,12 +40,18 @@ namespace Lola.Api.Tests;
 /// ISPPR_* + OpenBao env rather than silently passing on stubs.
 public class DocMarqueeFactory : LolaApiFactory
 {
-    private readonly string _ispprBase = Require("ISPPR_BASE_URL");
-    private readonly string _adminEmail = Require("ISPPR_ADMIN_EMAIL");
-    private readonly string _adminPassword = Require("ISPPR_ADMIN_PASSWORD");
+    private readonly string _ispprBase;
+    private readonly string _adminEmail;
+    private readonly string _adminPassword;
 
     public DocMarqueeFactory()
     {
+        // Read env under the suite's env gate — a concurrent prod-profile
+        // test holds it while its env matrix is applied (MPE-277).
+        using var _env = EnvReadScope();
+        _ispprBase = Require("ISPPR_BASE_URL");
+        _adminEmail = Require("ISPPR_ADMIN_EMAIL");
+        _adminPassword = Require("ISPPR_ADMIN_PASSWORD");
         Require("OPENBAO_ADDR");
         if (Environment.GetEnvironmentVariable("OPENBAO_TOKEN") is null
             && Environment.GetEnvironmentVariable("OPENBAO_TOKEN_FILE") is null)

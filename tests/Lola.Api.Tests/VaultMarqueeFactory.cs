@@ -44,13 +44,20 @@ namespace Lola.Api.Tests;
 /// passing on stubs.
 public class VaultMarqueeFactory : LolaApiFactory
 {
-    private readonly string _s3Endpoint = Require("S3_ENDPOINT");
-    private readonly string _s3Key = Require("S3_ACCESS_KEY");
-    private readonly string _s3Secret = Require("S3_SECRET_KEY");
-    private readonly string _clamAddr = Require("CLAMAV_ADDR");
+    private readonly string _s3Endpoint;
+    private readonly string _s3Key;
+    private readonly string _s3Secret;
+    private readonly string _clamAddr;
 
     public VaultMarqueeFactory()
     {
+        // Read env under the suite's env gate — a concurrent prod-profile
+        // test holds it while its env matrix is applied (MPE-277).
+        using var _env = EnvReadScope();
+        _s3Endpoint = Require("S3_ENDPOINT");
+        _s3Key = Require("S3_ACCESS_KEY");
+        _s3Secret = Require("S3_SECRET_KEY");
+        _clamAddr = Require("CLAMAV_ADDR");
         Require("OPENBAO_ADDR");
         if (Environment.GetEnvironmentVariable("OPENBAO_TOKEN") is null
             && Environment.GetEnvironmentVariable("OPENBAO_TOKEN_FILE") is null)

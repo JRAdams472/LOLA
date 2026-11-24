@@ -9,6 +9,13 @@ namespace Lola.ControlPlane;
 /// before DbUp's journal read, never after (MPE-276 / Phase 7b).
 public static class ControlPlaneMigrator
 {
+    /// Number of embedded migration scripts — the readiness probe's
+    /// expected journal depth (MPE-277).
+    public static int ExpectedScriptCount
+        => typeof(ControlPlaneMigrator).Assembly.GetManifestResourceNames()
+            .Count(n => n.Contains(".Migrations.")
+                && n.EndsWith(".sql", StringComparison.Ordinal));
+
     public static void Migrate(string connectionString)
         => Migrate(connectionString, null, null);
 

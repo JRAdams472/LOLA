@@ -33,6 +33,30 @@ public sealed class ClamAvScanner(string host, int port,
         return new ClamAvScanner(address[..split], port);
     }
 
+    /// clamd PING → PONG readiness probe (MPE-277): same socket path as
+    /// zINSTREAM, returns false on any refusal/timeout/garbage — a dead
+    /// scanner must report not-ready, never silently degrade.
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        using var timeoutCts =
+            CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(_timeout);
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync(host, port, timeoutCts.Token);
+            await using var ns = client.GetStream();
+            await ns.WriteAsync("zPING\0"u8.ToArray(), timeoutCts.Token);
+            var resp = await ReadLineAsync(ns, timeoutCts.Token);
+            return resp.Equals("PONG", StringComparison.Ordinal);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException
+            || !ct.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
+
     public async Task<ScanVerdict> ScanAsync(Stream content,
         CancellationToken ct = default)
     {

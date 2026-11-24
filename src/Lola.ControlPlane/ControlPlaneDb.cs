@@ -108,5 +108,23 @@ public sealed class ControlPlaneDb
         }
     }
 
+    /// Readiness probe (MPE-277): true when the DbUp journal holds at
+    /// least every script the assembly ships — a file behind the schema
+    /// is not-ready, never silently tolerated. Throws → false.
+    public bool MigrationsCurrent()
+    {
+        try
+        {
+            using var conn = Open();
+            return conn.ExecuteScalar<int>(
+                "SELECT count(*) FROM SchemaVersions")
+                >= ControlPlaneMigrator.ExpectedScriptCount;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public void Migrate() => ControlPlaneMigrator.Migrate(_connectionString, _dbPath, _fileKeyHex);
 }

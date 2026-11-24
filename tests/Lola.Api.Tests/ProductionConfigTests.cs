@@ -24,6 +24,9 @@ public sealed class ProductionConfigTests(LolaApiFactory factory)
     [Fact]
     public async Task Production_hides_openapi_document()
     {
+        // Production hosts now require the full fail-closed profile
+        // (MPE-277) — ProdProfileEnv supplies it with disposable keys.
+        using var env = ProdProfileEnv.Apply();
         using var prod = factory.WithWebHostBuilder(
             b => b.UseEnvironment("Production"));
         var resp = await prod.CreateClient().GetAsync("/openapi/v1.json");
@@ -38,6 +41,7 @@ public sealed class ProductionConfigTests(LolaApiFactory factory)
             .Get(ConnectEndpoints.LoginScheme);
         dev.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.SameAsRequest);
 
+        using var env = ProdProfileEnv.Apply();
         using var prodFactory = factory.WithWebHostBuilder(
             b => b.UseEnvironment("Production"));
         _ = prodFactory.Server; // force host build so options resolve

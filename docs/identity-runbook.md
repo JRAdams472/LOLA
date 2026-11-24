@@ -43,9 +43,12 @@ corrupt file. Deleting a key file rotates it on next boot — all
 outstanding tokens issued under the old key become invalid (dev: fine;
 prod: needs a proper key source — see below).
 
-**Production note:** file keys are dev-only. A real deployment should
-source signing/encryption material from a KMS/HSM or mounted secret —
-the seam is `options.AddSigningKey`/`AddEncryptionKey` in `Program.cs`.
+**Production (MPE-277):** `DevSigningKey.LoadOrCreate` never runs in
+Production — `OidcKeyMaterial` resolves protected material from
+`OIDC_{SIGNING,ENCRYPTION}_KEY`/`_FILE` (PEM, RSAParameters JSON, or a
+`vault:v1:` transit-wrapped blob under `oidc-signing`/`oidc-encryption`)
+and fails the boot on anything missing/corrupt. Rotation and recovery:
+`docs/deployment-runbook.md`.
 
 ## Tenant provisioning
 
@@ -88,17 +91,26 @@ token (the unique constraint is on `token_hash`, not email).
 
 ## Deployment requirements
 
+- **Production profile is validated at boot (MPE-277).**
+  `ProductionProfile.Validate` requires https issuer/callbacks,
+  protected OIDC key material, scoped OpenBao, `DP_KEY_DIR`, real-or-
+  `disabled` adapters, and no dev affordances — see
+  `docs/deployment-runbook.md` for the full matrix, and `.env.example`'s
+  PRODUCTION PROFILE block.
 - **TLS at the edge is mandatory (invariant 5).** The OpenIddict server
   disables its own transport-security check because Kestrel sees plain
   HTTP in dev/tests and behind a TLS-terminating proxy — tokens would
   flow plaintext if the API were ever exposed over bare HTTP. Never
   bind the API directly to an untrusted network without TLS in front.
+  `TRUSTED_PROXIES` is the only way the app honors `X-Forwarded-*` —
+  explicit IPs/CIDRs, validated at boot, ignored otherwise.
 - **`lola.auth` session cookie** is `Secure` outside Development; the
   same edge-TLS assumption applies.
 - **OpenAPI document** is served in Development only.
-- **Key material:** file-based dev keys under `data/oidc/` are not for
-  production — source signing/encryption keys from a KMS/HSM or mounted
-  secret via `options.AddSigningKey`/`AddEncryptionKey` (see above).
+- **Key material:** file-based dev keys under `data/oidc/` are dev-only.
+  Production resolves via `OidcKeyMaterial` (see above); seed clients
+  use `OIDC_*_CALLBACK_URI`/`*_POST_LOGOUT_URI`, never hardcoded hosts,
+  and `DevUserSeeder`/`DEV_SEED_*` are rejected outside Development.
 
 ## Related docs
 
