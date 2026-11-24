@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { clearSession, CLIENT_ID } from "@/lib/auth";
+import { endSession, CLIENT_ID } from "@/lib/auth";
 
 const ISSUER = process.env.OIDC_ISSUER ?? "http://localhost:8200";
 
@@ -11,7 +11,7 @@ const ISSUER = process.env.OIDC_ISSUER ?? "http://localhost:8200";
  * signs out (a lingering IdP cookie would silently re-issue a code).
  */
 export async function GET(req: NextRequest) {
-  await clearSession();
+  await endSession();
   const back = new URL("/auth/login", req.nextUrl.origin).toString();
   const url = new URL("/connect/logout", ISSUER);
   url.searchParams.set("post_logout_redirect_uri", back);

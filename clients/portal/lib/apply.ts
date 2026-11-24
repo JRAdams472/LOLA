@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiPatch, apiPost, gql } from "@/lib/api";
 import { getPath, isMasked, type Doc } from "@/lib/doc";
@@ -157,8 +157,16 @@ export function errorsBySection(
 
 export function useWizard(tid: string | null | undefined) {
   const [state, setState] = useState<WizardState>({ kind: "loading" });
+  // `liveRef` mirrors state synchronously inside dispatch — a click can
+  // outrun the render that carries the last keystroke's edit, and a
+  // stale closure reading `state` would silently drop it from the PATCH.
+  const liveRef = useRef<WizardState>({ kind: "loading" });
   const dispatch = useCallback(
-    (a: Action) => setState((s) => reduce(s, a)), [],
+    (a: Action) => {
+      liveRef.current = reduce(liveRef.current, a);
+      setState((s) => reduce(s, a));
+    },
+    [],
   );
 
   const load = useCallback(async () => {
@@ -200,6 +208,7 @@ export function useWizard(tid: string | null | undefined) {
 
   const startApplication = useCallback(async () => {
     if (!tid) return;
+    liveRef.current = { kind: "loading" };
     setState({ kind: "loading" });
     const res = await apiPost(`/api/tenants/${tid}/applications`, {});
     if (res.status >= 400) {
@@ -210,12 +219,13 @@ export function useWizard(tid: string | null | undefined) {
   }, [tid, load, dispatch]);
 
   const save = useCallback(async (): Promise<boolean> => {
-    if (state.kind !== "ready" || !tid) return false;
-    const patch = patchFor(state);
+    const s = liveRef.current;
+    if (s.kind !== "ready" || !tid) return false;
+    const patch = patchFor(s);
     if (Object.keys(patch).length === 0) return true; // nothing to save
     dispatch({ t: "saving", on: true });
     const res = await apiPatch(
-      `/api/tenants/${tid}/applications/${state.appId}`,
+      `/api/tenants/${tid}/applications/${s.appId}`,
       { patch },
     );
     if (res.status === 422) {
@@ -230,16 +240,17 @@ export function useWizard(tid: string | null | undefined) {
     }
     dispatch({ t: "saved" });
     return true;
-  }, [state, tid, dispatch]);
+  }, [tid, dispatch]);
 
   const submit = useCallback(async (): Promise<
     { result: "ok" } | { result: "errors"; errors: FieldError[] } | { result: "fail" }
   > => {
-    if (state.kind !== "ready" || !tid) return { result: "fail" };
+    const s = liveRef.current;
+    if (s.kind !== "ready" || !tid) return { result: "fail" };
     if (!(await save())) return { result: "fail" }; // flush pending edits first
     dispatch({ t: "saving", on: true });
     const res = await apiPost(
-      `/api/tenants/${tid}/applications/${state.appId}/submit`,
+      `/api/tenants/${tid}/applications/${s.appId}/submit`,
     );
     if (res.status === 422) {
       const errs = (res.data as { errors?: FieldError[] }).errors ?? [];
@@ -253,10 +264,11 @@ export function useWizard(tid: string | null | undefined) {
     }
     await load(); // re-read — status is now Under review
     return { result: "ok" };
-  }, [state, tid, save, load, dispatch]);
+  }, [tid, save, load, dispatch]);
 
+  const peek = useCallback(() => liveRef.current, []);
   return useMemo(
-    () => ({ state, dispatch, load, startApplication, save, submit }),
-    [state, dispatch, load, startApplication, save, submit],
+    () => ({ state, peek, dispatch, load, startApplication, save, submit }),
+    [state, peek, dispatch, load, startApplication, save, submit],
   );
 }

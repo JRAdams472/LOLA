@@ -103,7 +103,12 @@ if ! bao read lola-transit/keys/control-plane-idx >/dev/null 2>&1; then
 fi
 if [ ! -f "$OUT_DIR/control-db-key" ]; then
   echo "openbao-init: wrapping control-plane file key"
-  FILEKEY_B64=$(bao random 32 | tr -d '[:space:]')
+  # 32 random bytes as base64; the stored plaintext is the base64
+  # TEXT itself (encoded once more for transit), so the resolver's
+  # decrypt → FromBase64String → hex yields the raw key.
+  # `bao random` doesn't exist on this CLI; /dev/urandom is fine
+  # inside the throwaway init container.
+  FILEKEY_B64=$(head -c 32 /dev/urandom | base64 | tr -d '[:space:]')
   bao write -field=ciphertext lola-transit/encrypt/control-plane \
     plaintext="$(printf '%s' "$FILEKEY_B64" | base64 | tr -d '[:space:]')" \
     | tr -d '[:space:]' > "$OUT_DIR/control-db-key"

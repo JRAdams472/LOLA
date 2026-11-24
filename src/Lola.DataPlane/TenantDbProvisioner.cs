@@ -54,7 +54,7 @@ public sealed class TenantDbProvisioner(IFieldCipher cipher) : ITenantDbProvisio
         {
             conn.Open();
             conn.Execute($"""
-                PRAGMA key = "x'{fileKeyHex}'";
+                PRAGMA key = "x'{fileKeyHex.ToUpperInvariant()}'";
                 PRAGMA secure_delete=ON;
                 PRAGMA auto_vacuum=FULL;
                 PRAGMA journal_mode=WAL;

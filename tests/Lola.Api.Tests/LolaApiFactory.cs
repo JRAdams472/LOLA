@@ -30,6 +30,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
     private static readonly SemaphoreSlim EnvGate =
         new(EnvGateSlots, EnvGateSlots);
     private static readonly AsyncLocal<bool> EnvWriter = new();
+    /// Writers drain the 64 read slots one at a time; two overlapping
+    /// writers would each hold a subset and deadlock on the rest.
+    /// This mutex serializes acquisition so only one drain is ever
+    /// in flight — parallel prod-profile tests queue instead of
+    /// interleaving.
+    private static readonly SemaphoreSlim EnvWriterMutex = new(1, 1);
 
     /// Take every read slot — no host build may proceed until the
     /// returned token is disposed. Marks the ambient async context so
@@ -37,7 +43,16 @@ public class LolaApiFactory : WebApplicationFactory<Program>
     /// a slot) pass through.
     internal static IDisposable AcquireEnvWriteLock()
     {
-        for (var i = 0; i < EnvGateSlots; i++) EnvGate.Wait();
+        EnvWriterMutex.Wait();
+        try
+        {
+            for (var i = 0; i < EnvGateSlots; i++) EnvGate.Wait();
+        }
+        catch
+        {
+            EnvWriterMutex.Release();
+            throw;
+        }
         EnvWriter.Value = true;
         return new WriteRelease();
     }
@@ -48,6 +63,7 @@ public class LolaApiFactory : WebApplicationFactory<Program>
         {
             EnvWriter.Value = false;
             EnvGate.Release(EnvGateSlots);
+            EnvWriterMutex.Release();
         }
     }
 

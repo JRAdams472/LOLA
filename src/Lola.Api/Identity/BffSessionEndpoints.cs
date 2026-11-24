@@ -42,8 +42,13 @@ public static class BffSessionEndpoints
 
     public static void MapBffSessionEndpoints(this WebApplication app)
     {
+        // Server-to-server calls ride the bff-store credential check —
+        // exempt from the global 200/min bucket so BFF resolve traffic
+        // (one call per user request) can't starve browser-facing
+        // endpoints that share it.
         var g = app.MapGroup("/bff-sessions")
-            .RequireAuthorization(LolaPolicies.BffStore);
+            .RequireAuthorization(LolaPolicies.BffStore)
+            .DisableRateLimiting();
 
         g.MapPost("/", async (
             HttpContext ctx, CreateRequest req, BffSessionStore store,
@@ -118,8 +123,13 @@ public static class BffSessionEndpoints
         }
         var now = NowMs();
         if (now < s.AtExpMs - RefreshMarginMs)
+        {
+            // Resolving is live traffic — slide the idle window
+            // (throttled), never the absolute bound.
+            await store.SlideIdleAsync(ns, hash, now, ct);
             return Results.Ok(new ResolvedResponse(
                 s.AccessToken, s.AtExpMs, s.Subject, s.Name));
+        }
         if (s.RefreshToken is null || (s.RtExpMs is { } re && now >= re))
         {
             await store.MarkRevokedAsync(ns, hash, now, ct);

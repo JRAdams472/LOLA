@@ -108,7 +108,11 @@ test("reveal unmasks PII behind a required reason, writes audit, and re-masks", 
   await page.getByRole("button", { name: "Reveal PII" }).click();
   const confirm = page.getByRole("button", { name: "Reveal", exact: true });
   await expect(confirm).toBeDisabled();
-  await page.getByLabel(/Reason/).fill("borrower called about their application");
+  // Reason is a fixed-code Select (reveal.*) — open the combobox and pick.
+  await page.getByLabel(/Reason/).click();
+  await page
+    .getByRole("option", { name: /Borrower request/ })
+    .click();
   await confirm.click();
 
   // Audited banner + plaintext now visible in the input.

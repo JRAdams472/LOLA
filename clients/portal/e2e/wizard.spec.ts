@@ -98,7 +98,14 @@ test("wizard saves, shows masked resume, maps 422s, and submits",
     // Fill a field + navigate — the draft saves on nav; after reload the
     // PII field resumes in masked-confirm form.
     await page.getByLabel("Last Name *").fill("E2ESample");
+    // The nav save is awaited in-app but the click resolves first — wait
+    // for the PATCH to land before reloading or the fetch is aborted.
+    const navSaved = page.waitForResponse(
+      (r) => r.request().method() === "PATCH"
+        && r.url().includes(`/applications/${id}`),
+    );
     await page.getByRole("button", { name: "Employment & income" }).click();
+    await navSaved;
     await page.reload();
     await expect(page.getByText("•••mple")).toBeVisible();
 
@@ -142,6 +149,7 @@ test("partial draft survives logout and login", async ({ page }) => {
   await page.goto("/auth/logout");
   await page.goto("/auth/login");
   await expect(page).toHaveURL(/account\/login/);
+  await page.fill('input[name="org"]', "demo");
   await page.fill('input[name="email"]', creds.email);
   await page.fill('input[name="password"]', creds.password);
   await page.click('button[type="submit"]');

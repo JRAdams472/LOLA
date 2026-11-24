@@ -337,6 +337,41 @@ public sealed class BffSessionTests(LolaApiFactory factory)
             .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Resolve_slides_idle_window_throttled()
+    {
+        var client = factory.CreateClient();
+        var token = await BffTokenAsync(client, "lola-bff-portal", PortalSecret);
+        var user = await UserAsync("slide");
+        var handle = NewHandle();
+        var hash = HashOf(handle);
+        (await CreateSessionAsync(client, token, handle, user))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        // Backdate activity past the 60s throttle — the next resolve
+        // must move last_active forward (it IS live traffic).
+        await ExecSqlAsync(
+            "UPDATE bff_sessions SET last_active_ms = @t WHERE handle_hash = @h",
+            new { t = NowMs() - 120_000, h = hash });
+        var before = NowMs();
+        (await client.SendAsync(Call(HttpMethod.Post,
+            "/bff-sessions/resolve", token, new { handle })))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        var slid = await ScalarAsync(
+            "SELECT last_active_ms FROM bff_sessions WHERE handle_hash = @h",
+            new { h = hash });
+        slid.ShouldNotBeNull();
+        slid!.Value.ShouldBeGreaterThanOrEqualTo(before);
+
+        // A second resolve inside the throttle window rewrites nothing.
+        (await client.SendAsync(Call(HttpMethod.Post,
+            "/bff-sessions/resolve", token, new { handle })))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ScalarAsync(
+            "SELECT last_active_ms FROM bff_sessions WHERE handle_hash = @h",
+            new { h = hash })).ShouldBe(slid);
+    }
+
     private async Task<long?> ScalarAsync(string sql, object p)
     {
         var db = factory.Services.GetRequiredService<ControlPlaneDb>();

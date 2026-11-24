@@ -23,7 +23,7 @@ contract:
 | DataProtection | `DP_KEY_DIR` — persistent, access-controlled key-ring dir |
 | Adapters | `PRICING/FEE/DOC/VAULT/VENDOR_ADAPTER` = a real selection or `disabled`; enabled adapters need their full egress config |
 | Transport | Every enabled egress https. Loopback-only http requires the env var named in `INSECURE_ENDPOINT_ALLOWLIST` |
-| BFFs | `SESSION_SECRET` ≥32 bytes, `SESSION_SECURE=1`, all OIDC/`API_URL`s https. `ALLOW_INSECURE_SESSION_ENV` exists only for the dev compose stack |
+| BFFs | `BFF_CLIENT_ID` (`lola-bff-*`) + `BFF_CLIENT_SECRET` (real secret matching the API's `OIDC_BFF_*_SECRET`), `SESSION_SECURE=1`, all OIDC/`API_URL`s https. `ALLOW_INSECURE_SESSION_ENV` exists only for the dev compose stack |
 
 Forbidden in production: `DEV_SEED_*`, `VENDOR_STUB_WEBHOOK_URL`,
 `DOC_CLASSIFIER=stub`, wildcard `TRUSTED_PROXIES`, `stub`/unset
@@ -42,8 +42,10 @@ adapters.
 - **Root/unseal material**: never at runtime, never in the repo,
   never in the service env. OpenBao root token and unseal shares live
   in the offline key ceremony store.
-- **BFF `SESSION_SECRET`s**: independent per app — the console secret
-  and portal secret must not be equal or derived.
+- **BFF session-store credentials** (`BFF_CLIENT_SECRET` per app, matched
+  by the API's `OIDC_BFF_CONSOLE_SECRET`/`OIDC_BFF_PORTAL_SECRET`):
+  independent per app — the console client and portal client are distinct
+  (their `lola_bff_ns` claims pin each to its own session namespace).
 - Rotation of any secret: roll the env/file, restart. Every reader
   resolves at boot (`OidcKeyMaterial`, `ControlPlaneKeyResolver`,
   `OpenBaoOptions`) — no hot reload, no stale cache.

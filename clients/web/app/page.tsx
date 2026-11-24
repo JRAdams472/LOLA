@@ -144,7 +144,7 @@ export default function PipelinePage() {
           <Button onClick={() => setNewOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            disabled={create.isPending}
+            disabled={create.isPending || !me?.tid}
             onClick={() =>
               create.mutate(undefined, {
                 onSuccess: (res) => {

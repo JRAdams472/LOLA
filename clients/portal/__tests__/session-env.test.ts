@@ -4,12 +4,15 @@ import {
 } from "@/lib/session-env";
 
 /**
- * MPE-277: the BFF production session gate — strict by default on a
- * production build, relaxed ONLY by the explicit dev opt-out flag.
+ * MPE-277 / MPE-290: the BFF production session gate — strict by
+ * default on a production build, relaxed ONLY by the explicit dev
+ * opt-out flag. MPE-290 swapped SESSION_SECRET (sealed-cookie key) for
+ * the session-store client credentials.
  */
 const PROD_BASE = {
   NODE_ENV: "production",
-  SESSION_SECRET: "real-prod-secret-material-0123456789abcdef",
+  BFF_CLIENT_ID: "lola-bff-console",
+  BFF_CLIENT_SECRET: "real-prod-client-secret-0123456789abcdef",
   SESSION_SECURE: "1",
   OIDC_ISSUER: "https://idp.example.com",
   OIDC_TOKEN_URL: "https://api.example.com/connect/token",
@@ -39,15 +42,17 @@ describe("assertSessionEnv", () => {
   });
 
   it.each([
-    ["missing SESSION_SECRET", { SESSION_SECRET: undefined }],
-    ["short SESSION_SECRET", { SESSION_SECRET: "too-short" }],
+    ["missing BFF_CLIENT_ID", { BFF_CLIENT_ID: undefined }],
+    ["wrong-namespace BFF_CLIENT_ID", { BFF_CLIENT_ID: "lola-svc" }],
+    ["missing BFF_CLIENT_SECRET", { BFF_CLIENT_SECRET: undefined }],
+    ["short BFF_CLIENT_SECRET", { BFF_CLIENT_SECRET: "too-short" }],
     [
-      "dev-default SESSION_SECRET",
-      { SESSION_SECRET: "dev-session-secret-not-for-prod" },
+      "console dev-default BFF_CLIENT_SECRET",
+      { BFF_CLIENT_SECRET: "lola-bff-console-dev" },
     ],
     [
-      "portal dev-default SESSION_SECRET",
-      { SESSION_SECRET: "dev-portal-session-secret-not-for-prod" },
+      "portal dev-default BFF_CLIENT_SECRET",
+      { BFF_CLIENT_SECRET: "lola-bff-portal-dev" },
     ],
     ["SESSION_SECURE unset", { SESSION_SECURE: undefined }],
     ["SESSION_SECURE=0", { SESSION_SECURE: "0" }],
@@ -93,7 +98,7 @@ describe("assertSessionEnv", () => {
       ...PROD_BASE,
       ALLOW_INSECURE_SESSION_ENV: "1",
       SESSION_SECURE: undefined,
-      SESSION_SECRET: "dev-session-secret-not-for-prod",
+      BFF_CLIENT_SECRET: "lola-bff-console-dev",
       OIDC_ISSUER: "http://localhost:8200",
       API_URL: "http://api:8200",
     };

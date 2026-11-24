@@ -80,6 +80,7 @@ async function officerLogin(browser: Browser): Promise<Page> {
   const officer = await ctx.newPage();
   await officer.goto(OFFICER_BASE);
   await expect(officer).toHaveURL(/account\/login/);
+  await officer.fill('input[name="org"]', "demo");
   await officer.fill('input[name="email"]', OFFICER_EMAIL);
   await officer.fill('input[name="password"]', OFFICER_PASSWORD);
   await officer.click('button[type="submit"]');
@@ -112,7 +113,8 @@ test("marquee: invite → apply → submit → package → documents → downloa
     await page.fill("#confirm", PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.getByRole("link", { name: "Sign in" }).click();
-    await page.fill('input[name="email"]', EMAIL);
+    await page.fill('input[name="org"]', "demo");
+  await page.fill('input[name="email"]', EMAIL);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     await expect(
@@ -126,8 +128,17 @@ test("marquee: invite → apply → submit → package → documents → downloa
     await page.getByLabel("First Name *").fill("Marina");
     await page.getByLabel("Last Name *").fill("MarqueeSample");
     await page.getByLabel("SSN *").fill("000123456");
+    // The fields are controlled inputs — the edit must reach wizard
+    // state before the save or the PATCH would carry nothing.
+    await expect(page.getByLabel("SSN *")).toHaveValue("000123456");
+    const savePatch = page.waitForResponse(
+      (r) => r.request().method() === "PATCH"
+        && r.url().includes("/applications/"),
+    );
     await page.getByRole("button", { name: "Save draft" }).click();
-    // The button re-enables only while dirty — saved state = disabled.
+    // Disabled alone can't prove a save — an empty patch disables the
+    // button too. The PATCH response is the real signal.
+    await expect(savePatch).resolves.toBeTruthy();
     await expect(
       page.getByRole("button", { name: "Save draft" }),
     ).toBeDisabled({ timeout: 10_000 });
@@ -137,7 +148,8 @@ test("marquee: invite → apply → submit → package → documents → downloa
     await page.goto("/auth/logout");
     await page.goto("/");
     await expect(page).toHaveURL(/account\/login/);
-    await page.fill('input[name="email"]', EMAIL);
+    await page.fill('input[name="org"]', "demo");
+  await page.fill('input[name="email"]', EMAIL);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     await expect(
@@ -145,6 +157,13 @@ test("marquee: invite → apply → submit → package → documents → downloa
     ).toBeVisible();
     await page.getByRole("link", { name: "Continue application" }).click();
     // Masked-confirm resume — the borrower's own PII renders masked.
+    // Assert only after the draft doc lands: /apply fires portalLoans
+    // then portalLoan(tenantId, appId) — the detail call is the one that
+    // carries docJson, so wait for it before looking for masked text.
+    await page.waitForResponse(
+      (r) => r.url().includes("/bff/graphql")
+        && (r.request().postData() ?? "").includes("portalLoan("),
+    );
     await expect(page.getByText("•••3456")).toBeVisible();
     await expect(page.getByText("•••rina")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/04-resume.png` });

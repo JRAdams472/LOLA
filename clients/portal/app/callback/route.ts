@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { finishLogin } from "@/lib/auth";
 import { safeNextPath } from "@/lib/nav";
 
-/** IdP redirect target: verify state, exchange code, seal the session. */
+/** IdP redirect target: verify state, exchange code, create the server-side session. */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");

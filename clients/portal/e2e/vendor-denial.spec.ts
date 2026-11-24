@@ -20,6 +20,7 @@ async function officerContext(browser: Browser) {
   const page = await context.newPage();
   await page.goto(OFFICER_BASE);
   await expect(page).toHaveURL(/account\/login/);
+  await page.fill('input[name="org"]', "demo");
   await page.fill('input[name="email"]', OFFICER_EMAIL);
   await page.fill('input[name="password"]', OFFICER_PASSWORD);
   await page.click('button[type="submit"]');

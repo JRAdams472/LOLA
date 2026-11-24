@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { HANDLE_COOKIE } from "@/lib/session-cookies";
+
 /**
- * Bounce unauthenticated page loads to the login flow. Presence-only check —
- * the JWE is verified server-side in the BFF/auth routes (a stale cookie
- * fails there and the client bounces back to login on the 401).
+ * Bounce unauthenticated page loads to the login flow. Presence-only
+ * check on the opaque `__Host-` handle — the API session store is the
+ * arbiter; a stale or foreign handle still lands on login (the BFF/auth
+ * routes resolve it server-side and a dead handle bounces back on 401).
  */
 export function proxy(req: NextRequest) {
-  // The session JWE is chunked across lola_session.N cookies — presence of
-  // the first chunk (or a legacy unchunked cookie) counts as a session.
-  if (
-    req.cookies
-      .getAll()
-      .some((c) => c.name === "lola_session" || c.name.startsWith("lola_session."))
-  ) {
+  if (req.cookies.getAll().some((c) => c.name === HANDLE_COOKIE)) {
     return NextResponse.next();
   }
   const url = req.nextUrl.clone();

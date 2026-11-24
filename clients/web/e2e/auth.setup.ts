@@ -22,6 +22,7 @@ async function login(
   await page.goto("/");
   // proxy.ts → /auth/login → authorize → API login form.
   await expect(page).toHaveURL(/account\/login/);
+  await page.fill('input[name="org"]', "demo");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');

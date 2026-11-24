@@ -16,9 +16,9 @@ if (args2.Length < 4 || args2[2] != "--key")
 }
 
 var keyArg = args2[3];
-var destKey = keyArg.StartsWith('@')
+var destKey = (keyArg.StartsWith('@')
     ? (await File.ReadAllTextAsync(keyArg[1..])).Trim()
-    : keyArg;
+    : keyArg).ToUpperInvariant();
 if (destKey.Length != 64)
 {
     Console.Error.WriteLine("destination key must be 64 hex chars");
@@ -36,7 +36,7 @@ var token = Environment.GetEnvironmentVariable("OPENBAO_TOKEN")
 
 var http = new HttpClient { BaseAddress = new Uri(addr) };
 var transit = new OpenBaoTransitClient(http,
-    Options.Create(new OpenBaoOptions { Token = token }));
+    Options.Create(new OpenBaoOptions { Address = addr, Token = token }));
 var converter = new CpConverter(
     new TransitFieldCipher(transit), new TransitBlindIndex(transit));
 
