@@ -95,6 +95,10 @@ services:
     build: .
     ports: ["8200:8200"]
     environment:
+      # Dev stack, explicitly — unset would default to Production, where
+      # the MPE-277 fail-closed profile rejects every http/stub value
+      # below (and the dev seeders never register).
+      ASPNETCORE_ENVIRONMENT: Development
       CORS_ORIGIN: http://localhost:3200
       # Canonical issuer: browser authorize hops hit localhost:8200 while
       # the web containers exchange tokens at api:8200 — without a fixed
@@ -194,6 +198,11 @@ services:
       OIDC_CLIENT_ID: lola-officer-console
       OIDC_REDIRECT_URI: http://localhost:3200/callback
       SESSION_SECRET: dev-session-secret-not-for-prod
+      # Dev stack opt-out of the production session-env gate (MPE-277):
+      # this BFF image is a production build (NODE_ENV=production), so
+      # strictness is on by default — only an explicit insecure flag
+      # relaxes it for http dev. Never set in real deployments.
+      ALLOW_INSECURE_SESSION_ENV: "1"
     depends_on:
       api:
         condition: service_healthy
@@ -212,6 +221,8 @@ services:
       OIDC_CLIENT_ID: lola-borrower-portal
       OIDC_REDIRECT_URI: http://localhost:3300/callback
       SESSION_SECRET: dev-portal-session-secret-not-for-prod
+      # Same dev-only opt-out as the console (MPE-277) — never in prod.
+      ALLOW_INSECURE_SESSION_ENV: "1"
       PORTAL_SESSION_IDLE_MIN: "30"
       PORTAL_SESSION_MAX_H: "4"
     depends_on:

@@ -7,8 +7,10 @@ using Lola.Domain.Identity;
 using Lola.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -16,6 +18,73 @@ namespace Lola.Api.Tests;
 
 public class LolaApiFactory : WebApplicationFactory<Program>
 {
+    /// Host builds read process env vars eagerly (OIDC key paths,
+    /// adapter switches, the MPE-277 production profile) — so
+    /// ProdProfileEnv must mutate them under a write gate while every
+    /// host build takes a read slot. Without this, a prod host test's
+    /// env leaks into concurrently-built dev hosts and silently
+    /// changes seeded callback URIs / adapter registrations.
+    /// SemaphoreSlim + AsyncLocal, not ReaderWriterLockSlim: write
+    /// holds span awaits, so release lands on a different thread.
+    private const int EnvGateSlots = 64;
+    private static readonly SemaphoreSlim EnvGate =
+        new(EnvGateSlots, EnvGateSlots);
+    private static readonly AsyncLocal<bool> EnvWriter = new();
+
+    /// Take every read slot — no host build may proceed until the
+    /// returned token is disposed. Marks the ambient async context so
+    /// the holder's OWN host builds (which would deadlock waiting for
+    /// a slot) pass through.
+    internal static IDisposable AcquireEnvWriteLock()
+    {
+        for (var i = 0; i < EnvGateSlots; i++) EnvGate.Wait();
+        EnvWriter.Value = true;
+        return new WriteRelease();
+    }
+
+    private sealed class WriteRelease : IDisposable
+    {
+        public void Dispose()
+        {
+            EnvWriter.Value = false;
+            EnvGate.Release(EnvGateSlots);
+        }
+    }
+
+    private sealed class ReadRelease : IDisposable
+    {
+        public void Dispose() => EnvGate.Release();
+    }
+
+    private sealed class Noop : IDisposable
+    {
+        public static readonly Noop Instance = new();
+        public void Dispose() { }
+    }
+
+    /// Hold one read slot while reading process env directly —
+    /// live-test fixtures read OPENBAO/S3/ISPPR env outside any host
+    /// build and must not observe a partially-applied production
+    /// matrix either.
+    internal static IDisposable EnvReadScope()
+    {
+        if (EnvWriter.Value) return Noop.Instance;
+        EnvGate.Wait();
+        return new ReadRelease();
+    }
+
+    // Every entry point (CreateClient/Server/Services) funnels through
+    // EnsureServer → CreateHost → builder.Build() → Program.cs
+    // top-level — where env vars are read. One read slot here covers
+    // all of them; the active writer bypasses (it holds them all).
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        if (EnvWriter.Value) return base.CreateHost(builder);
+        EnvGate.Wait();
+        try { return base.CreateHost(builder); }
+        finally { EnvGate.Release(); }
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // The signing-key path is read eagerly during service

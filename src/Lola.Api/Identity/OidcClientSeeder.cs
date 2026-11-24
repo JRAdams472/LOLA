@@ -26,12 +26,22 @@ public sealed class OidcClientSeeder(
                 Resources = { "lola" }
             }, cancellationToken);
 
+        // Public-client origins come from config so Production can
+        // register the real https callbacks (MPE-277) — localhost
+        // defaults keep dev/compose unchanged; the production profile
+        // validator requires every override to be https.
         await EnsurePublicClient(applications, "lola-officer-console",
-            "Officer console", "http://localhost:3200/callback",
-            "http://localhost:3200/auth/login", cancellationToken);
+            "Officer console",
+            config["OIDC_CONSOLE_CALLBACK_URI"]
+                ?? "http://localhost:3200/callback",
+            config["OIDC_CONSOLE_POST_LOGOUT_URI"]
+                ?? "http://localhost:3200/auth/login", cancellationToken);
         await EnsurePublicClient(applications, "lola-borrower-portal",
-            "Borrower portal", "http://localhost:3300/callback",
-            "http://localhost:3300/auth/login", cancellationToken);
+            "Borrower portal",
+            config["OIDC_PORTAL_CALLBACK_URI"]
+                ?? "http://localhost:3300/callback",
+            config["OIDC_PORTAL_POST_LOGOUT_URI"]
+                ?? "http://localhost:3300/auth/login", cancellationToken);
 
         // Service client — confidential; the secret comes from env and
         // is hashed by the manager (never stored plaintext).

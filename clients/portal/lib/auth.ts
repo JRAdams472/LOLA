@@ -11,6 +11,7 @@ import {
   sessionMaxAgeS,
   ABSOLUTE_MS,
 } from "@/lib/session-policy";
+import { assertSessionEnv, isStrictSessionEnv } from "@/lib/session-env";
 
 /**
  * Server-side auth for the borrower portal's BFF: auth-code+PKCE against
@@ -31,7 +32,9 @@ const AUTHORIZE_URL =
 export const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "lola-borrower-portal";
 export const REDIRECT_URI =
   process.env.OIDC_REDIRECT_URI ?? "http://localhost:3300/callback";
-const SECURE = process.env.SESSION_SECURE === "1";
+// Secure is forced under the production session-env gate (MPE-277) —
+// SESSION_SECURE=1 is required there regardless.
+const SECURE = process.env.SESSION_SECURE === "1" || isStrictSessionEnv();
 // No fallback: a compiled-in default would let anyone forge session JWEs.
 // Evaluated lazily so `next build` (which imports this module) never throws.
 const SECRET = process.env.SESSION_SECRET;
@@ -55,6 +58,7 @@ const RECENT_TTL = 60_000;
 const RECENT_CAP = 512;
 
 function sessionKey(): Buffer {
+  assertSessionEnv();
   if (!SECRET) {
     throw new Error(
       "SESSION_SECRET is required — set it in .env / clients/portal/.env.local",
@@ -96,6 +100,7 @@ function newPkce() {
 
 /** Build the authorize URL and remember PKCE + state (+ post-login target). */
 export async function beginLogin(next: string) {
+  assertSessionEnv();
   const { verifier, challenge, state } = newPkce();
   const store = await cookies();
   store.set(PKCE_COOKIE, verifier, { ...cookieOpts, maxAge: 300 });

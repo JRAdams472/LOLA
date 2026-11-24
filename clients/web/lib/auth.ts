@@ -4,6 +4,8 @@ import { createHash, randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { decodeJwt, EncryptJWT, jwtDecrypt } from "jose";
 
+import { assertSessionEnv, isStrictSessionEnv } from "@/lib/session-env";
+
 /**
  * Server-side auth for the BFF: auth-code+PKCE against the LOLA
  * OpenIddict issuer, tokens sealed into an httpOnly JWE cookie.
@@ -18,7 +20,9 @@ const AUTHORIZE_URL =
 export const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? "lola-officer-console";
 export const REDIRECT_URI =
   process.env.OIDC_REDIRECT_URI ?? "http://localhost:3200/callback";
-const SECURE = process.env.SESSION_SECURE === "1";
+// Secure is forced under the production session-env gate (MPE-277) —
+// SESSION_SECURE=1 is required there regardless.
+const SECURE = process.env.SESSION_SECURE === "1" || isStrictSessionEnv();
 // No fallback: a compiled-in default would let anyone forge session JWEs.
 // Evaluated lazily so `next build` (which imports this module) never throws.
 const SECRET = process.env.SESSION_SECRET;
@@ -46,6 +50,7 @@ const RECENT_TTL = 60_000;
 const RECENT_CAP = 512;
 
 function sessionKey(): Buffer {
+  assertSessionEnv();
   if (!SECRET) {
     throw new Error(
       "SESSION_SECRET is required — set it in .env / clients/web/.env.local",
@@ -83,6 +88,7 @@ function newPkce() {
 
 /** Build the authorize URL and remember PKCE + state (+ post-login target). */
 export async function beginLogin(next: string) {
+  assertSessionEnv();
   const { verifier, challenge, state } = newPkce();
   const store = await cookies();
   store.set(PKCE_COOKIE, verifier, { ...cookieOpts, maxAge: 300 });

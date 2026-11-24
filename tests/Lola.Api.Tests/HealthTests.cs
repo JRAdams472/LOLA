@@ -22,6 +22,18 @@ public class HealthTests(LolaApiFactory factory) : IClassFixture<LolaApiFactory>
     }
 
     [Fact]
+    public async Task Readyz_reports_ready_in_dev()
+    {
+        // Dev shape: real migrated control db is ready; the OpenBao
+        // value depends on ambient env (unconfigured/unsealed) so only
+        // the env-independent checks are asserted.
+        var body = await factory.CreateClient().GetStringAsync("/readyz");
+        body.ShouldContain("\"status\":\"ready\"");
+        body.ShouldContain("\"controlDb\":\"ok\"");
+        body.ShouldContain("\"migrations\":\"current\"");
+    }
+
+    [Fact]
     public async Task Security_headers_present()
     {
         var resp = await factory.CreateClient().GetAsync("/healthz");
