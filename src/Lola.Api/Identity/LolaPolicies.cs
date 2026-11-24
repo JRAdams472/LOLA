@@ -42,6 +42,11 @@ public static class LolaPolicies
     /// claim; tenant-bound Service principals are denied.
     public const string PlatformOps = "platform-ops";
 
+    /// BFF session store (MPE-289): only the two dedicated confidential
+    /// clients — their minted `lola_bff_ns` claim pins the namespace,
+    /// so a foreign token (user AT, svc-*, lola-ops) is denied.
+    public const string BffStore = "bff-store";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(TenantAdmin, p => p.RequireAssertion(
@@ -77,6 +82,9 @@ public static class LolaPolicies
                 Domain.Identity.LolaRole.LoanOfficer)));
         options.AddPolicy(PlatformOps, p => p.RequireAssertion(
             ctx => PlatformAuthority.IsPlatformPrincipal(ctx.User)));
+        options.AddPolicy(BffStore, p => p.RequireAssertion(
+            ctx => ctx.User.FindFirst(BffSessionEndpoints.NamespaceClaim)
+                ?.Value is "console" or "portal"));
     }
 
     /// Row-scope discriminant fed to application-bound commands (M19)

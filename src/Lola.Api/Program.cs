@@ -196,6 +196,8 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddLolaCrypto(builder.Configuration);
 builder.Services.AddSingleton<ITenantRegistry, TenantRegistry>();
 builder.Services.AddSingleton<IUserDirectory, UserDirectory>();
+builder.Services.AddSingleton<BffSessionStore>();
+builder.Services.AddHttpClient(BffSessionEndpoints.TokenClient);
 builder.Services.AddSingleton<IGroupDirectory, GroupDirectory>();
 builder.Services.AddSingleton<IInviteDirectory, InviteDirectory>();
 builder.Services.AddSingleton<IInviteAcceptance, InviteAcceptance>();
@@ -306,7 +308,8 @@ builder.Services.AddOpenIddict()
             OpenIddictConstants.Scopes.Email,
             OpenIddictConstants.Scopes.Roles,
             OpenIddictConstants.Scopes.OfflineAccess,
-            "lola-api");
+            "lola-api",
+            BffSessionEndpoints.Scope);
         options.AllowAuthorizationCodeFlow()
                .RequireProofKeyForCodeExchange()
                .AllowClientCredentialsFlow()
@@ -714,6 +717,7 @@ app.MapGet("/api/health", async (ControlPlaneDb db, OpenBaoTransitClient bao, Ca
 });
 app.MapGraphQL("/graphql");
 app.MapConnectEndpoints();
+app.MapBffSessionEndpoints();
 app.MapAdminEndpoints();
 app.MapApplicationEndpoints();
 app.MapConditionEndpoints();

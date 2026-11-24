@@ -119,6 +119,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 ["CONTROL_DB_KEY"] = TestDbKeys.ControlFileKeyHex,
                 ["OIDC_SEED_SVC_SECRET"] = "svc-secret-value",
                 ["OIDC_SEED_OPS_SECRET"] = "ops-secret-value",
+                ["OIDC_BFF_CONSOLE_SECRET"] = "bff-console-secret-value",
+                ["OIDC_BFF_PORTAL_SECRET"] = "bff-portal-secret-value",
+                // The session store's self-calls (refresh/revoke) ride
+                // the in-memory TestServer — see the handler override
+                // below; the base only shapes the request URI.
+                ["BFF_API_BASE"] = "http://localhost",
                 ["TENANT_DATA_DIR"] = Path.Combine(
                     Path.GetTempPath(), "lola-tests", "tenants")
             }));
@@ -236,6 +242,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 LoopbackFieldCipher>();
             services.AddSingleton<Lola.Application.Security.IBlindIndex>(
                 _ => TestCrypto.Index);
+            // BFF session refresh/revoke self-calls run through the
+            // in-memory TestServer — a real socket to localhost would
+            // miss the host entirely (MPE-289).
+            services.AddHttpClient(
+                    Lola.Api.Identity.BffSessionEndpoints.TokenClient)
+                .ConfigurePrimaryHttpMessageHandler(_ => Server.CreateHandler());
             // Download-URL signer (MPE-202): hermetic HMAC instead of
             // transit — same verify contract, on a clock the test can
             // age for the expired-signature case.
