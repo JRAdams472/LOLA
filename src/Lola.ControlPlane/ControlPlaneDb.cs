@@ -41,7 +41,10 @@ public sealed class ControlPlaneDb
         // matches the data-plane discipline.
         _connectionString = new SqliteConnectionStringBuilder
         { DataSource = dbPath, Pooling = false }.ToString();
-        _fileKeyHex = fileKeyHex;
+        // SQLCipher decodes the x'…' pragma literal case-sensitively —
+        // normalize to the codebase convention (uppercase hex) so
+        // caller-supplied casing can't silently key a different file.
+        _fileKeyHex = fileKeyHex?.ToUpperInvariant();
     }
 
     public string ConnectionString => _connectionString;

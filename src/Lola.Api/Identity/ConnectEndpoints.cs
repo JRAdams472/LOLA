@@ -166,6 +166,10 @@ public static class ConnectEndpoints
                 [Claims.Subject] = p.FindFirst(Claims.Subject)?.Value,
                 [Claims.Name] = p.FindFirst(Claims.Name)?.Value,
                 ["tid"] = p.FindFirst("tid")?.Value,
+                // The caller's own authority version — the session-store
+                // resolve bar (MPE-290) needs it to seed sessions.
+                [AuthorityGate.VersionClaim] =
+                    p.FindFirst(AuthorityGate.VersionClaim)?.Value,
                 ["roles"] = p.FindAll(Claims.Role).Select(c => c.Value).ToArray()
             });
         }).RequireAuthorization();

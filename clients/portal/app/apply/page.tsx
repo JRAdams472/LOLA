@@ -34,9 +34,10 @@ export default function ApplyPage() {
   const isFirst = step === 0;
 
   async function goTo(next: number) {
-    if (state.kind !== "ready") return;
+    const s = wiz.peek();
+    if (s.kind !== "ready") return;
     // Save-draft on every navigation — the atomic PATCH composes.
-    if (state.dirty && !(await wiz.save())) return;
+    if (s.dirty && !(await wiz.save())) return;
     setStep(next);
   }
 

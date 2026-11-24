@@ -38,20 +38,23 @@ test("dashboard shows own loan with friendly status and masked PII",
     expect(patch.ok()).toBeTruthy();
 
     await page.reload();
+    // Scope to this draft's card — prior specs leave stage-0 drafts on
+    // the shared borrower, so unscoped text matches multiply.
+    const card = page.getByRole("region", { name: `Application ${appId}` });
     await expect(
-      page.getByText("Application in progress"),
+      card.getByText("Application in progress"),
     ).toBeVisible();
 
     // Borrower vocabulary — never the internal step names.
-    await expect(page.getByText("Under review")).toBeVisible();
-    await expect(page.getByText("Decision")).toBeVisible();
-    await expect(page.getByText(/POSIntake|PPE/)).toHaveCount(0);
+    await expect(card.getByText("Under review")).toBeVisible();
+    await expect(card.getByText("Decision")).toBeVisible();
+    await expect(card.getByText(/POSIntake|PPE/)).toHaveCount(0);
 
     // Masked-confirm: the name renders masked; the SSN never appears.
-    await expect(page.getByText(/•••/)).toBeVisible();
-    await expect(page.getByText(/000123456|123456/)).toHaveCount(0);
+    await expect(card.getByText(/•••/)).toBeVisible();
+    await expect(card.getByText(/000123456|123456/)).toHaveCount(0);
 
     await expect(
-      page.getByText("Finish and submit your application."),
+      card.getByText("Finish and submit your application."),
     ).toBeVisible();
   });

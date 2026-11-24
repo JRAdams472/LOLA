@@ -1,7 +1,9 @@
 /**
- * Production session-env gate (MPE-277): a production build of the BFF
- * must have explicitly safe session configuration — real independent
- * SESSION_SECRET, Secure cookies, https on every OIDC/API hop.
+ * Production session-env gate (MPE-277, revised MPE-290): a production
+ * build of the BFF must have explicitly safe session configuration —
+ * real confidential-client credentials for the API session store,
+ * Secure cookies, https on every OIDC/API hop. SESSION_SECRET is gone —
+ * the browser holds an opaque handle now; there is nothing to seal.
  *
  * `next start` sets NODE_ENV=production, and the dev compose runs those
  * same production-built images — so NODE_ENV alone can't distinguish a
@@ -10,13 +12,13 @@
  * by the dev compose) relaxes it — fail-closed, never opt-in-safe.
  *
  * Pure functions for table-driven jest tests; auth.ts calls
- * assertSessionEnv lazily from sessionKey()/beginLogin so `next build`
+ * assertSessionEnv lazily from beginLogin()/getSession() so `next build`
  * module imports never throw.
  */
 
 const DEV_SECRETS = new Set([
-  "dev-session-secret-not-for-prod",
-  "dev-portal-session-secret-not-for-prod",
+  "lola-bff-console-dev",
+  "lola-bff-portal-dev",
 ]);
 
 const REQUIRED_HTTPS_KEYS = [
@@ -42,17 +44,23 @@ export function assertSessionEnv(env: Env = process.env): void {
   if (!isStrictSessionEnv(env)) return;
   const problems: string[] = [];
 
-  const secret = env.SESSION_SECRET;
-  if (!secret || Buffer.byteLength(secret) < 32 || DEV_SECRETS.has(secret))
+  const clientId = env.BFF_CLIENT_ID;
+  if (!clientId || !clientId.startsWith("lola-bff-"))
     problems.push(
-      "SESSION_SECRET must be >=32 bytes of real key material " +
+      "BFF_CLIENT_ID must name this BFF's session-store client (lola-bff-*)",
+    );
+
+  const secret = env.BFF_CLIENT_SECRET;
+  if (!secret || Buffer.byteLength(secret) < 16 || DEV_SECRETS.has(secret))
+    problems.push(
+      "BFF_CLIENT_SECRET must be real secret material " +
         "(not a repo dev default — BFFs each need their own)",
     );
 
   if (env.SESSION_SECURE !== "1")
     problems.push(
-      "SESSION_SECURE=1 is required — the sealed session cookie " +
-        "must be Secure in production",
+      "SESSION_SECURE=1 is required — browser cookies must be " +
+        "Secure in production",
     );
 
   for (const key of REQUIRED_HTTPS_KEYS) {

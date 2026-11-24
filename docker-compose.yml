@@ -159,6 +159,10 @@ services:
       # values match data/run-api-dev.sh. Absent in real deployments.
       OIDC_SEED_SVC_SECRET: ${OIDC_SEED_SVC_SECRET:-lola-svc-dev}
       OIDC_SEED_OPS_SECRET: ${OIDC_SEED_OPS_SECRET:-lola-ops-dev}
+      # BFF session-store clients (MPE-289/290) — each BFF resolves its
+      # opaque handles through its own confidential client.
+      OIDC_BFF_CONSOLE_SECRET: ${OIDC_BFF_CONSOLE_SECRET:-lola-bff-console-dev}
+      OIDC_BFF_PORTAL_SECRET: ${OIDC_BFF_PORTAL_SECRET:-lola-bff-portal-dev}
     volumes:
       - lola-data:/app/data
       - ./data/openbao:/run/openbao:ro
@@ -197,7 +201,10 @@ services:
       OIDC_TOKEN_URL: http://api:8200/connect/token
       OIDC_CLIENT_ID: lola-officer-console
       OIDC_REDIRECT_URI: http://localhost:3200/callback
-      SESSION_SECRET: dev-session-secret-not-for-prod
+      # Session-store client (MPE-290) — the browser carries only an
+      # opaque handle; this BFF resolves it through the API.
+      BFF_CLIENT_ID: lola-bff-console
+      BFF_CLIENT_SECRET: lola-bff-console-dev
       # Dev stack opt-out of the production session-env gate (MPE-277):
       # this BFF image is a production build (NODE_ENV=production), so
       # strictness is on by default — only an explicit insecure flag
@@ -220,7 +227,8 @@ services:
       OIDC_TOKEN_URL: http://api:8200/connect/token
       OIDC_CLIENT_ID: lola-borrower-portal
       OIDC_REDIRECT_URI: http://localhost:3300/callback
-      SESSION_SECRET: dev-portal-session-secret-not-for-prod
+      BFF_CLIENT_ID: lola-bff-portal
+      BFF_CLIENT_SECRET: lola-bff-portal-dev
       # Same dev-only opt-out as the console (MPE-277) — never in prod.
       ALLOW_INSECURE_SESSION_ENV: "1"
       PORTAL_SESSION_IDLE_MIN: "30"

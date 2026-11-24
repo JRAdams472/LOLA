@@ -116,6 +116,21 @@ public sealed class BffSessionStore(ControlPlaneDb db, IFieldCipher cipher)
             new { ns, hash = handleHash, nowMs }, cancellationToken: ct)) > 0;
     }
 
+    /// Activity slide on resolve — a resolving BFF is live traffic, so
+    /// the idle window moves with it. Throttled to one write/minute:
+    /// idle accuracy stays ±60s without a WAL write per request.
+    public async Task SlideIdleAsync(
+        string ns, string handleHash, long nowMs, CancellationToken ct)
+    {
+        using var conn = db.Open();
+        await conn.ExecuteAsync(new CommandDefinition("""
+            UPDATE bff_sessions SET last_active_ms = @nowMs
+            WHERE namespace = @ns AND handle_hash = @hash
+              AND revoked_at_ms IS NULL AND last_active_ms <= @nowMs - 60000
+            """,
+            new { ns, hash = handleHash, nowMs }, cancellationToken: ct));
+    }
+
     /// CAS rotation: succeeds only when the row still sits at
     /// `expectedRev` — a contender that already rotated wins the race
     /// and this write is a no-op the caller detects by re-reading.

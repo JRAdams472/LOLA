@@ -23,6 +23,7 @@ async function login(page: Page) {
   await page.goto("/");
   await expect(page).toHaveURL(/account\/login/);
   await page.screenshot({ path: `${SHOTS}/01-login.png` });
+  await page.fill('input[name="org"]', "demo");
   await page.fill('input[name="email"]', "officer@lola.dev");
   await page.fill('input[name="password"]', "lola-officer-dev");
   await page.click('button[type="submit"]');
@@ -224,7 +225,11 @@ test("marquee — full officer journey end to end", async ({ page }) => {
   await expect(page.getByText("•••").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(ssn);
   await page.getByRole("button", { name: "Reveal PII" }).click();
-  await page.getByLabel(/Reason/).fill("marquee borrower verification");
+  // Reason is a fixed-code Select (reveal.*) — open the combobox and pick.
+  await page.getByLabel(/Reason/).click();
+  await page
+    .getByRole("option", { name: /Borrower request/ })
+    .click();
   await page.getByRole("button", { name: "Reveal", exact: true }).click();
   await expect(
     page.locator(`input[value="${ssn}"]`).first(),

@@ -30,6 +30,7 @@ setup("invite + authenticate as borrower", async ({ page, browser }) => {
   const officer = await officerContext.newPage();
   await officer.goto(OFFICER_BASE);
   await expect(officer).toHaveURL(/account\/login/);
+  await officer.fill('input[name="org"]', "demo");
   await officer.fill('input[name="email"]', OFFICER_EMAIL);
   await officer.fill('input[name="password"]', OFFICER_PASSWORD);
   await officer.click('button[type="submit"]');
@@ -61,6 +62,7 @@ setup("invite + authenticate as borrower", async ({ page, browser }) => {
   // 3. Sign in through the real OIDC flow.
   await page.getByRole("link", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/account\/login/);
+  await page.fill('input[name="org"]', "demo");
   await page.fill('input[name="email"]', BORROWER_EMAIL);
   await page.fill('input[name="password"]', BORROWER_PASSWORD);
   await page.click('button[type="submit"]');

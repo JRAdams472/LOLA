@@ -160,7 +160,7 @@ public sealed class TenantBackupService(
             Pooling = false
         }.ToString());
         conn.Open();
-        conn.Execute($"PRAGMA key = \"x'{fileKeyHex}'\"");
+        conn.Execute($"PRAGMA key = \"x'{fileKeyHex.ToUpperInvariant()}'\"");
         return conn;
     }
 
