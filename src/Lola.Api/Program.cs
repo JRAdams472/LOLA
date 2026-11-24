@@ -461,6 +461,8 @@ else
 // the registered client carries AllowAutoRedirect=false.
 builder.Services.AddScoped<Lola.Application.Documents.IDocumentRepository,
     DocRepository>();
+builder.Services.AddScoped<Lola.Application.Compliance.IToleranceRepository,
+    ToleranceRepository>();
 builder.Services.AddSingleton<Lola.Api.Documents.DocOutboxProcessor>();
 builder.Services.AddSingleton<Lola.Application.Documents.IDocumentCredentialSource,
     Lola.Infrastructure.Documents.TenantDocCredentialSource>();

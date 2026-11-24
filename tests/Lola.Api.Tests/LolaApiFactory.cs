@@ -222,6 +222,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
                 sp => sp.GetRequiredService<FakeDocumentRepository>());
             services.AddSingleton<Lola.Application.Documents.IDocumentService,
                 AltStubDocumentService>();
+            // TRID tolerance (MPE-298) — hermetic mirror; the Dapper
+            // impl is proven in Lola.DataPlane.Tests.
+            services.AddSingleton(new FakeToleranceRepository());
+            services.AddSingleton<Lola.Application.Compliance
+                .IToleranceRepository>(
+                sp => sp.GetRequiredService<FakeToleranceRepository>());
             // Vendor seam (MPE-227) — hermetic registry + credential
             // source + second adapter: implementing IVendorAdapter is
             // the whole swap contract.

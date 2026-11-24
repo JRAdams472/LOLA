@@ -940,3 +940,89 @@ public sealed class FakeApplicationPartnerRepository(
             .OrderByDescending(kv => kv.Value.LinkedUtc)
             .Select(kv => kv.Value).ToList());
 }
+
+/// Hermetic tolerance store for the API e2e (MPE-298) — mirrors
+/// ToleranceRepository semantics: version insert stamps pending
+/// resets to the new version (one fact, never torn), seq assigns
+/// monotonically per app+kind like MAX(seq)+1.
+public sealed class FakeToleranceRepository
+    : Lola.Application.Compliance.IToleranceRepository
+{
+    public List<Lola.Application.Compliance.DisclosureVersionRecord>
+        Versions
+    { get; } = [];
+    public List<Lola.Application.Compliance.ToleranceResetRecord>
+        Resets
+    { get; } = [];
+    public Dictionary<string,
+        Lola.Application.Compliance.ToleranceClassRecord>
+        Classes
+    { get; } = new();
+
+    public Task<Lola.Application.Compliance.DisclosureVersionRecord>
+        AddVersionAsync(string appId, string kind, string evalId,
+            string? docId, string? resetOfVersionId,
+            CancellationToken ct)
+    {
+        var v = new Lola.Application.Compliance.DisclosureVersionRecord(
+            $"dver-{Versions.Count + 1}", appId, kind, evalId, docId,
+            Versions.Count(v2 =>
+                v2.ApplicationId == appId && v2.Kind == kind) + 1,
+            resetOfVersionId, "2026-01-01T00:00:00.000Z");
+        Versions.Add(v);
+        foreach (var r in Resets
+            .Where(r => r.ApplicationId == appId &&
+                r.RebasedVersionId is null).ToList())
+            Resets[Resets.IndexOf(r)] = r with
+            { RebasedVersionId = v.VersionId };
+        return Task.FromResult(v);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.DisclosureVersionRecord>>
+        ListVersionsAsync(string appId, string kind,
+            CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.DisclosureVersionRecord>>(
+            Versions.Where(v => v.ApplicationId == appId &&
+                v.Kind == kind).OrderBy(v => v.Seq).ToList());
+
+    public Task<Lola.Application.Compliance.DisclosureVersionRecord?>
+        GetVersionByDocAsync(string docId, CancellationToken ct)
+        => Task.FromResult(Versions
+            .FirstOrDefault(v => v.DocId == docId));
+
+    public Task<IReadOnlyDictionary<string,
+        Lola.Application.Compliance.ToleranceClassRecord>>
+        GetClassesAsync(CancellationToken ct)
+        => Task.FromResult<IReadOnlyDictionary<string,
+            Lola.Application.Compliance.ToleranceClassRecord>>(Classes);
+
+    public Task<Lola.Application.Compliance.ToleranceResetRecord>
+        AddResetAsync(string appId, string reasonCode,
+            string feeCodesJson, string actor, CancellationToken ct)
+    {
+        var r = new Lola.Application.Compliance.ToleranceResetRecord(
+            $"tres-{Resets.Count + 1}", appId, reasonCode,
+            feeCodesJson, null, actor, "2026-01-01T00:00:00.000Z");
+        Resets.Add(r);
+        return Task.FromResult(r);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.ToleranceResetRecord>>
+        ListResetsAsync(string appId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.ToleranceResetRecord>>(
+            Resets.Where(r => r.ApplicationId == appId).ToList());
+
+    public Task StampResetAsync(string resetId,
+        string rebasedVersionId, CancellationToken ct)
+    {
+        var i = Resets.FindIndex(r => r.ResetId == resetId);
+        if (i >= 0)
+            Resets[i] = Resets[i] with
+            { RebasedVersionId = rebasedVersionId };
+        return Task.CompletedTask;
+    }
+}

@@ -210,6 +210,8 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                    i.section AS Section, i.base AS Base,
                    i.adjustments_json AS AdjustmentsJson,
                    i.total AS Total, i.created_utc AS CreatedUtc,
+                   i.paid_to AS PaidTo,
+                   i.selected_from_list AS SelectedFromList,
                    e.application_id AS ApplicationId,
                    e.variant AS Variant
             FROM fee_items i JOIN fee_evals e ON e.eval_id=i.eval_id
@@ -218,14 +220,15 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
         return row is null ? null : new FeeItemLookup(
             new FeeItemRecord(row.ItemId, row.EvalId, row.FeeCode,
                 row.Label, row.Section, row.Base, row.AdjustmentsJson,
-                row.Total, row.CreatedUtc), row.ApplicationId,
+                row.Total, row.CreatedUtc, row.PaidTo,
+                row.SelectedFromList), row.ApplicationId,
             row.Variant);
     }
     private sealed record ItemJoin(
         string ItemId, string EvalId, string FeeCode, string? Label,
         string Section, double Base, string AdjustmentsJson,
         double Total, string? CreatedUtc, string ApplicationId,
-        string Variant);
+        string Variant, string? PaidTo, long? SelectedFromList);
 
     public async Task<IReadOnlyList<FeeItemRecord>> ListItemsAsync(
         string evalId, CancellationToken ct = default)
@@ -235,7 +238,9 @@ public sealed class FeeRepository(TenantConnectionFactory factory)
                    fee_code AS FeeCode, label AS Label,
                    section AS Section, base AS Base,
                    adjustments_json AS AdjustmentsJson,
-                   total AS Total, created_utc AS CreatedUtc
+                   total AS Total, created_utc AS CreatedUtc,
+                   paid_to AS PaidTo,
+                   selected_from_list AS SelectedFromList
             FROM fee_items WHERE eval_id=@evalId ORDER BY item_id
             """, new { evalId }, ct);
 

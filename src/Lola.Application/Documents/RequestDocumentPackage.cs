@@ -28,6 +28,7 @@ public static class RequestDocumentPackageHandler
         IDocumentRepository docs, IDocumentService adapter,
         IRateLockRepository locks, IFeeRepository fees,
         ITenantRegistry registry, ITenantAuditLog audit,
+        Compliance.IToleranceRepository tolerance,
         CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
@@ -51,6 +52,7 @@ public static class RequestDocumentPackageHandler
         var lock_ = c.Kind == DisclosurePayloadBuilder.LePackage
             ? await locks.GetActiveAsync(c.AppId, ct) : null;
         FeeBreakdownDto? breakdown = null;
+        string? evalId = null;
         if (c.Kind == DisclosurePayloadBuilder.LePackage)
         {
             var evals = await fees.GetLatestBatchEvalsAsync(c.AppId, ct);
@@ -61,6 +63,7 @@ public static class RequestDocumentPackageHandler
                 ?? evals.FirstOrDefault(e => e.Status == "done");
             if (eval is not null)
             {
+                evalId = eval.EvalId;
                 var items = await fees.ListItemsAsync(eval.EvalId, ct);
                 var overrides = await fees.ListOverridesAsync(
                     c.AppId, ct);
@@ -86,10 +89,31 @@ public static class RequestDocumentPackageHandler
         var result = await docs.EnqueueAsync(
             doc, $"ob-{Guid.NewGuid():N}", "generate", payloadJson, ct);
         if (!result.Deduplicated)
+        {
+            // TRID tolerance (M21): bind this issuance to the eval it
+            // rendered. A pending changed circumstance makes this
+            // version the rebased baseline for its fees — the repo
+            // stamps both facts in one transaction.
+            var disclosureKind = Compliance.DisclosureKind.Of(c.Kind);
+            if (disclosureKind is not null && evalId is not null)
+            {
+                var pendingBaseline = (await tolerance.ListVersionsAsync(
+                        c.AppId, disclosureKind, ct))
+                    .OrderByDescending(v => v.Seq).FirstOrDefault();
+                var resets = await tolerance.ListResetsAsync(
+                    c.AppId, ct);
+                var resetOf = resets.Any(r =>
+                        r.RebasedVersionId is null)
+                    ? pendingBaseline?.VersionId : null;
+                await tolerance.AddVersionAsync(c.AppId,
+                    disclosureKind, evalId,
+                    result.DocId, resetOf, ct);
+            }
             await audit.WriteAsync(c.ActorId, "doc_generate",
                 "application", c.AppId,
                 AuditFields.InDoc(app.Doc),
                 $"{c.Kind} generation requested", ct);
+        }
         return new DocAccepted(result.DocId, result.Deduplicated);
     }
 }

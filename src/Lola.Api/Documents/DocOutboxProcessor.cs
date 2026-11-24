@@ -58,15 +58,16 @@ public sealed class DocOutboxProcessor(
                 Now(), BatchSize, ct);
             ct.ThrowIfCancellationRequested();
             await Task.WhenAll(rows.Select(
-                row => ProcessRowAsync(repo, adapter, row, ct)));
+                row => ProcessRowAsync(scope.ServiceProvider,
+                    repo, adapter, row, ct)));
             processed += rows.Count;
         }
         return processed;
     }
 
-    private async Task ProcessRowAsync(IDocumentRepository repo,
-        IDocumentService adapter, DocOutboxRow row,
-        CancellationToken ct)
+    private async Task ProcessRowAsync(IServiceProvider sp,
+        IDocumentRepository repo, IDocumentService adapter,
+        DocOutboxRow row, CancellationToken ct)
     {
         var attempts = row.Attempts + 1;
         try
@@ -96,6 +97,26 @@ public sealed class DocOutboxProcessor(
                 case "completed":
                     await repo.CompleteAsync(row.OutboxId, row.DocId,
                         gen.RequestId, gen.Filename, Now(), ct);
+                    // TRID tolerance (M21): a completed disclosure
+                    // version diffs against its baseline — violations
+                    // surface as events + a blocking cure condition.
+                    if (row.Kind is "le-package" or "cd-package")
+                    {
+                        var doc = await repo.GetDocAsync(row.DocId, ct);
+                        if (doc is not null)
+                            await Lola.Application.Compliance
+                            .EvaluateDisclosureTolerance.Handle(
+                                doc.ApplicationId, row.DocId,
+                                "system:doc-drain",
+                                sp.GetRequiredService<Lola.Application
+                                    .Compliance.IToleranceRepository>(),
+                                sp.GetRequiredService<Lola.Application
+                                    .Fees.IFeeRepository>(),
+                                sp.GetRequiredService<Lola.Application
+                                    .Events.IConditionRepository>(),
+                                sp.GetRequiredService<Lola.Application
+                                    .Events.ILoanEventLog>(), ct);
+                    }
                     break;
                 case "failed":
                     await repo.DeadLetterAsync(row.OutboxId, row.DocId,
