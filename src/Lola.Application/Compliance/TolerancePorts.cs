@@ -52,7 +52,7 @@ public sealed record ToleranceResetRecord(
 
 /// One `tolerance_classes` registry row.
 public sealed record ToleranceClassRecord(
-    string FeeCode, string Bucket, bool Shoppable);
+    string FeeCode, string Bucket, long Shoppable);
 
 /// Package kind → disclosure kind mapping ('le-package'→'le').
 public static class DisclosureKind

@@ -159,6 +159,19 @@ public class Query(IMessageBus bus)
             new GetApplicationDocumentsQuery(tenantId, appId, actor, scope), ct);
     }
 
+    /// TRID tolerance posture (M21 P3) — same staff-scoped handler as
+    /// the REST GET; non-staff sees null like every other read here.
+    public Task<Lola.Application.Compliance.ToleranceReportDto?> Tolerance(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff)
+            return Task.FromResult<Lola.Application.Compliance.ToleranceReportDto?>(null);
+        return bus.InvokeAsync<Lola.Application.Compliance.ToleranceReportDto?>(
+            new Lola.Application.Compliance.GetApplicationToleranceQuery(
+                tenantId, appId, actor, scope), ct);
+    }
+
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {

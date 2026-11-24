@@ -35,6 +35,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import ErrorPanel from "@/components/ErrorPanel";
 import StatusChip from "@/components/StatusChip";
+import TolerancePanel from "@/components/TolerancePanel";
 import { useMe } from "@/lib/me";
 import { useApplication } from "@/lib/loans";
 import {
@@ -48,7 +49,9 @@ import {
   usePrice,
   usePricing,
   useRateLock,
+  useRecordCure,
   useRequestPackage,
+  useTolerance,
   useUnlockRate,
   useUploads,
   type FeeLine,
@@ -96,6 +99,7 @@ export default function ClosingPage() {
   const fees = useFees(tid, appId, polling);
   const documents = useDocuments(tid, appId, polling);
   const uploads = useUploads(tid, appId);
+  const tolerance = useTolerance(tid, appId, polling);
 
   const latestEval = fees.data?.evals?.[fees.data.evals.length - 1];
   const products = pricing.data?.result?.products ?? [];
@@ -120,6 +124,7 @@ export default function ClosingPage() {
   const lockRate = useLockRate(tid, appId);
   const unlockRate = useUnlockRate(tid, appId);
   const requestPackage = useRequestPackage(tid, appId);
+  const recordCure = useRecordCure(tid, appId);
 
   const [overrideFor, setOverrideFor] = useState<FeeLine | null>(null);
   const [overrideAmount, setOverrideAmount] = useState("");
@@ -335,6 +340,25 @@ export default function ClosingPage() {
                   no longer appears in the latest eval.
                 </Alert>
               )}
+            </>
+          )}
+          {tolerance.data && tolerance.data.versions.length > 0 && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                TRID tolerance
+              </Typography>
+              <TolerancePanel
+                report={tolerance.data}
+                canCure={isStaff}
+                curePending={recordCure.isPending}
+                onRecordCure={(reason) =>
+                  recordCure.mutate(
+                    { reason },
+                    { onError: (e) => setPageError(`${e}`) },
+                  )
+                }
+              />
             </>
           )}
         </Paper>

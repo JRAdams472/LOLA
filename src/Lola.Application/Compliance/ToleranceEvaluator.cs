@@ -120,7 +120,7 @@ public static class ToleranceEvaluator
                     item.PaidTo, item.SelectedFromList is null or > 0,
                     classes.TryGetValue(item.FeeCode, out var cls)
                         ? new TridTolerance.ToleranceClass(
-                            cls.Bucket, cls.Shoppable) : null),
+                            cls.Bucket, cls.Shoppable != 0) : null),
                 amount);
         }
     }
