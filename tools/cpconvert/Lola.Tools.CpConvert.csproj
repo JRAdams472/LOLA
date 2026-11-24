@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="11.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.14" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
