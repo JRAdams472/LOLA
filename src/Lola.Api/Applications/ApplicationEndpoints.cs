@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Lola.Api.Identity;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
+using Lola.Application.Compliance;
 using Lola.Application.Documents;
 using Lola.Application.Fees;
 using Lola.Application.Interop;
@@ -308,6 +309,33 @@ public static class ApplicationEndpoints
                 new GetRateLockQuery(id, appId,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
+        // TRID tolerance (M21 P2, MPE-298) — posture report, changed
+        // circumstances, and cure recording. Staff-only (the handlers
+        // re-check scope).
+        group.MapGet("/{appId}/tolerance", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ToleranceReportDto>(
+                new GetApplicationToleranceQuery(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/tolerance/resets", async (string id,
+                string appId, ToleranceResetRequest body,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ToleranceResetRecord>(
+                new RecordChangedCircumstanceCommand(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user),
+                    body.ReasonCode, body.FeeCodes), ct)));
+
+        group.MapPost("/{appId}/tolerance/cure", async (string id,
+                string appId, ToleranceCureRequest body,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<CureResult>(
+                new RecordToleranceCureCommand(id, appId, Actor(user),
+                    LolaPolicies.ScopeFor(user), body.Reason), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
@@ -430,4 +458,7 @@ public static class ApplicationEndpoints
     public sealed record UnlockRequest(string Reason);
     public sealed record PackageRequest(
         string Kind, IReadOnlyList<string>? ReasonCodes = null);
+    public sealed record ToleranceResetRequest(
+        string ReasonCode, IReadOnlyList<string> FeeCodes);
+    public sealed record ToleranceCureRequest(string Reason);
 }

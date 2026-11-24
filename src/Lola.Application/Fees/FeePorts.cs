@@ -83,10 +83,13 @@ public sealed record FeeOutboxRow(
 
 /// One fee line of a completed eval (tenant-file `fee_items`,
 /// MPE-183) — the stable identity Phase 3 overrides key off.
+/// `PaidTo`/`SelectedFromList` (MPE-297) are the TRID tolerance
+/// classification inputs — null until an adapter supplies them.
 public sealed record FeeItemRecord(
     string ItemId, string EvalId, string FeeCode, string? Label,
     string Section, double Base, string AdjustmentsJson,
-    double Total, string? CreatedUtc);
+    double Total, string? CreatedUtc,
+    string? PaidTo = null, long? SelectedFromList = null);
 
 /// Enqueue outcome — a duplicated request returns the ORIGINAL eval
 /// id with `Deduplicated = true` instead of inserting (idempotency).
