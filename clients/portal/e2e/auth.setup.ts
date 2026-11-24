@@ -16,12 +16,12 @@ const BORROWER_PASSWORD =
 /**
  * The full invite path, once: officer logs into the console and issues an
  * invite → borrower accepts (sets name + password) → borrower logs in
- * through the OIDC flow. Every other spec reuses the sealed session via
+ * through the OIDC flow. Every other spec reuses the session handle via
  * storageState. Requires the dev stack (API + officer console) with
  * DEV_SEED_* set.
  */
 setup("invite + authenticate as borrower", async ({ page, browser }) => {
-  // 1. Officer login on the console — reuse its sealed session to call
+  // 1. Officer login on the console — reuse its session to call
   //    the admin invite endpoint through the console BFF. This MUST be a
   //    separate browser context: the IdP cookie is shared per-origin, so
   //    an officer session in the same context would silently SSO into

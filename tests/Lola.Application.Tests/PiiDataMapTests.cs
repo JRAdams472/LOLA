@@ -14,7 +14,8 @@ public sealed class PiiDataMapTests
     private static readonly Assembly[] MemberAssemblies =
     [
         typeof(PiiClassAttribute).Assembly,       // Lola.Domain
-        typeof(Admin.Users.AdminUserDto).Assembly // Lola.Application
+        typeof(Admin.Users.AdminUserDto).Assembly,// Lola.Application
+        typeof(ControlPlane.BffSession).Assembly  // Lola.ControlPlane
     ];
 
     [Fact]

@@ -17,11 +17,19 @@ Endpoints (all behind `auth-tight` per-IP rate limits where noted):
 | `GET /connect/logout` | end session |
 | `POST /connect/revoke` | token revocation |
 | `GET|POST /account/login` | dev login form (Argon2 verify → `lola.auth` cookie) |
+| `POST /bff-sessions` | create a BFF session row (opaque handle → grant custody) |
+| `POST /bff-sessions/resolve` | handle → usable access token; revalidates `auth_version` live |
+| `POST /bff-sessions/touch` | slide the idle bound on live traffic |
+| `DELETE /bff-sessions/{handle}` | revoke the row + upstream refresh grant (logout) |
 
 Seeded clients (`OidcClientSeeder`, idempotent at boot):
 
 - `lola-officer-console` — public, `http://localhost:3200/callback`, PKCE required
 - `lola-borrower-portal` — public, `http://localhost:3300/callback`, PKCE required
+- `lola-bff-console` / `lola-bff-portal` — confidential, client-credentials
+  + `lola-bff` scope; minted tokens carry a `lola_bff_ns` claim pinning
+  the session namespace (ADR-0005, MPE-289). Secrets from
+  `OIDC_BFF_{CONSOLE,PORTAL}_SECRET`.
 - `lola-svc` — confidential, client-credentials, secret from `OIDC_SEED_SVC_SECRET`
 - `svc-{tenant}` — confidential, created per tenant by the provisioning
   pipeline; its tokens carry `tid={tenant}` and scope to that tenant only
@@ -29,6 +37,15 @@ Seeded clients (`OidcClientSeeder`, idempotent at boot):
 Registering a new client: insert via `IOpenIddictApplicationManager`
 (the seeder and `TenantServiceClientProvisioner` show the pattern) —
 secrets are hashed by the manager, never stored plaintext.
+
+**BFF session custody (MPE-289/290):** the browser holds only an opaque
+`__Host-` handle; access/refresh tokens live in control-plane
+`bff_sessions` rows as transit ciphertext. The `/bff-sessions` surface
+requires the `BffStore` policy (a `lola-bff`-scoped client-credentials
+token carrying `lola_bff_ns`) and is exempt from the global limiter —
+resolve traffic scales with user requests. Handles are looked up by
+SHA-256 hash; a resolve revalidates the stored `auth_version` against
+the live user directory and revokes on drift.
 
 Refresh tokens rotate; a redeemed refresh is refused **immediately**
 (`RefreshTokenReuseLeeway = 0`) — strict reuse detection is an M3

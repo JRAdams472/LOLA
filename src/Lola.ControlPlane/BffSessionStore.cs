@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Dapper;
 using Lola.Application.Security;
+using Lola.Domain.Classification;
 
 namespace Lola.ControlPlane;
 
@@ -11,7 +12,8 @@ namespace Lola.ControlPlane;
 /// alone). `rt` is the IdP refresh grant the API holds in custody.
 public sealed record BffSession(
     string Namespace, string Subject, string TenantId, long AuthVersion,
-    string AccessToken, string? RefreshToken, string? Name,
+    string AccessToken, string? RefreshToken,
+    [property: PiiClass(PiiClass.Name)] string? Name,
     long AtExpMs, long? RtExpMs, long LastActiveMs, long AbsExpMs,
     long? IdleMs, long Rev, long? RevokedAtMs);
 

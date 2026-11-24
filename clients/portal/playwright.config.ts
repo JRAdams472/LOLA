@@ -19,7 +19,7 @@ export default defineConfig({
   },
   // Auth setup issues an invite via the officer console, accepts it, and
   // logs the borrower in through the real OIDC flow once; other specs
-  // reuse the sealed session cookie via storageState. auth.spec exercises
+  // reuse the session handle cookie via storageState. auth.spec exercises
   // the login/invite flow itself, so it runs state-free.
   projects: [
     { name: "setup", testMatch: /auth\.setup\.ts/ },

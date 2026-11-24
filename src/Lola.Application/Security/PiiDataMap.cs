@@ -60,7 +60,8 @@ public static class PiiDataMap
                 ["member"] = member,
                 ["piiClass"] = cls,
                 ["location"] = type.Namespace?.Contains(".Admin") == true ||
-                               type.Namespace?.Contains(".Identity") == true
+                               type.Namespace?.Contains(".Identity") == true ||
+                               type.Namespace?.Contains(".ControlPlane") == true
                     ? "control-plane" : "tenant-payload"
             });
         }

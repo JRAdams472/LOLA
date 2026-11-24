@@ -1,6 +1,7 @@
-// Same-origin BFF — the access token lives in the sealed session
-// cookie and /bff attaches it server-side. A 401 means the session
-// expired (idle or absolute): bounce through the login flow.
+// Same-origin BFF — the access token lives in the API's bff_sessions
+// store behind the opaque handle cookie and /bff attaches it
+// server-side. A 401 means the session expired (idle or absolute):
+// bounce through the login flow.
 const BFF = "/bff";
 
 function bounceOn401(res: Response) {
