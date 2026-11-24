@@ -40,6 +40,8 @@ public sealed class ProductionProfileTests
         ["OIDC_PORTAL_POST_LOGOUT_URI"] = "https://portal.example.com/auth/login",
         ["OIDC_SEED_SVC_SECRET"] = "svc-prod-secret-0123456789",
         ["OIDC_SEED_OPS_SECRET"] = "ops-prod-secret-0123456789",
+        ["OIDC_BFF_CONSOLE_SECRET"] = "bff-console-prod-secret-012",
+        ["OIDC_BFF_PORTAL_SECRET"] = "bff-portal-prod-secret-0123",
         ["DP_KEY_DIR"] = "/run/dpkeys",
         ["PRICING_ADAPTER"] = "disabled",
         ["FEE_ADAPTER"] = "disabled",
@@ -116,6 +118,12 @@ public sealed class ProductionProfileTests
         yield return Row("ops seed is dev default",
             ValidDisabled(), O("OIDC_SEED_OPS_SECRET", "lola-ops-dev"),
             "OIDC_SEED_OPS_SECRET");
+        yield return Row("bff console secret missing",
+            ValidDisabled(), O("OIDC_BFF_CONSOLE_SECRET", null),
+            "OIDC_BFF_CONSOLE_SECRET");
+        yield return Row("bff portal secret is dev default",
+            ValidDisabled(), O("OIDC_BFF_PORTAL_SECRET", "change-me"),
+            "OIDC_BFF_PORTAL_SECRET");
 
         // --- dev affordances ------------------------------------------
         yield return Row("dev seed present",

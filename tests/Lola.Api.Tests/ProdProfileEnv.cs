@@ -25,6 +25,7 @@ internal sealed class ProdProfileEnv : IDisposable
         "OIDC_CONSOLE_CALLBACK_URI", "OIDC_PORTAL_CALLBACK_URI",
         "OIDC_CONSOLE_POST_LOGOUT_URI", "OIDC_PORTAL_POST_LOGOUT_URI",
         "OIDC_SEED_SVC_SECRET", "OIDC_SEED_OPS_SECRET",
+        "OIDC_BFF_CONSOLE_SECRET", "OIDC_BFF_PORTAL_SECRET",
         "DP_KEY_DIR", "PORTAL_BASE_URL", "CORS_ORIGIN",
         "TRUSTED_PROXIES", "INSECURE_ENDPOINT_ALLOWLIST",
         "PRICING_ADAPTER", "FEE_ADAPTER", "DOC_ADAPTER",
@@ -92,6 +93,8 @@ internal sealed class ProdProfileEnv : IDisposable
             "https://portal.example.com/auth/login");
         Set("OIDC_SEED_SVC_SECRET", $"svc-{Guid.NewGuid():N}-secret-value");
         Set("OIDC_SEED_OPS_SECRET", $"ops-{Guid.NewGuid():N}-secret-value");
+        Set("OIDC_BFF_CONSOLE_SECRET", $"bffc-{Guid.NewGuid():N}-secret");
+        Set("OIDC_BFF_PORTAL_SECRET", $"bffp-{Guid.NewGuid():N}-secret");
         Set("DP_KEY_DIR", Path.Combine(_dir, "dpkeys"));
         Set("PORTAL_BASE_URL", "https://portal.example.com");
         Set("PRICING_ADAPTER", "disabled");

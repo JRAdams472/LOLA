@@ -89,6 +89,10 @@ public static class ProductionProfile
         // --- OIDC service-client bootstrap ------------------------------
         RequireSecret(config, "OIDC_SEED_SVC_SECRET", violations);
         RequireSecret(config, "OIDC_SEED_OPS_SECRET", violations);
+        // BFF session-store clients (MPE-289) — the custody surface
+        // denies callers without a minted namespace claim.
+        RequireSecret(config, "OIDC_BFF_CONSOLE_SECRET", violations);
+        RequireSecret(config, "OIDC_BFF_PORTAL_SECRET", violations);
 
         // --- dev affordances that must be absent -----------------------
         foreach (var key in DevSeedKeys)

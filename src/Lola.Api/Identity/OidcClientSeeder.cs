@@ -26,6 +26,16 @@ public sealed class OidcClientSeeder(
                 Resources = { "lola" }
             }, cancellationToken);
 
+        // BFF session store (MPE-289) — confidential server-side
+        // clients only; browsers and user grants never request it.
+        if (await scopes.FindByNameAsync("lola-bff", cancellationToken) is null)
+            await scopes.CreateAsync(new OpenIddictScopeDescriptor
+            {
+                Name = "lola-bff",
+                DisplayName = "LOLA BFF session store",
+                Resources = { "lola" }
+            }, cancellationToken);
+
         // Public-client origins come from config so Production can
         // register the real https callbacks (MPE-277) — localhost
         // defaults keep dev/compose unchanged; the production profile
@@ -86,6 +96,38 @@ public sealed class OidcClientSeeder(
                 }
             }, cancellationToken);
         }
+
+        // BFF session-store callers (MPE-289): one confidential client
+        // per BFF — the minted `lola_bff_ns` claim pins which session
+        // namespace each may reach (console cannot read portal rows).
+        await EnsureBffClient(applications, "lola-bff-console",
+            "Officer-console session store",
+            config["OIDC_BFF_CONSOLE_SECRET"], cancellationToken);
+        await EnsureBffClient(applications, "lola-bff-portal",
+            "Borrower-portal session store",
+            config["OIDC_BFF_PORTAL_SECRET"], cancellationToken);
+    }
+
+    private static async Task EnsureBffClient(
+        IOpenIddictApplicationManager applications,
+        string clientId, string displayName, string? secret, CancellationToken ct)
+    {
+        if (await applications.FindByClientIdAsync(clientId, ct) is not null
+            || string.IsNullOrWhiteSpace(secret))
+            return;
+        await applications.CreateAsync(new OpenIddictApplicationDescriptor
+        {
+            ClientId = clientId,
+            ClientSecret = secret,
+            ClientType = ClientTypes.Confidential,
+            DisplayName = displayName,
+            Permissions =
+            {
+                Permissions.Endpoints.Token,
+                Permissions.GrantTypes.ClientCredentials,
+                Permissions.Prefixes.Scope + "lola-bff"
+            }
+        }, ct);
     }
 
     private static async Task EnsurePublicClient(

@@ -94,6 +94,13 @@ public static class ConnectEndpoints
                     && PlatformAuthority.DesignatedClientIds.Contains(request.ClientId))
                     identity.AddClaim(new Claim(
                         PlatformAuthority.Claim, PlatformAuthority.Value));
+                // BFF session-store clients get their namespace minted
+                // into the token — the /bff-sessions surface keys every
+                // lookup on it, so a handle from one client can never
+                // resolve through the other's credentials (MPE-289).
+                if (BffSessionEndpoints.NamespaceFor(request.ClientId) is { } bffNs)
+                    identity.AddClaim(new Claim(
+                        BffSessionEndpoints.NamespaceClaim, bffNs));
                 if (request.ClientId?.StartsWith("svc-", StringComparison.Ordinal) == true
                     && request.ClientId.Length > 4)
                     identity.AddClaim(new Claim("tid", request.ClientId[4..]));
