@@ -27,7 +27,10 @@ public sealed class DocWorkerTests
             .AddSingleton(adapter)
             .BuildServiceProvider();
         return (new Lola.Api.Documents.DocOutboxProcessor(
-            services, new FakeRegistry(), TimeProvider.System), repo);
+            services, new FakeRegistry(), TimeProvider.System,
+            Microsoft.Extensions.Logging.Abstractions
+                .NullLogger<Lola.Api.Documents.DocOutboxProcessor>
+                .Instance), repo);
     }
 
     private static async Task EnqueueAsync(FakeDocumentRepository repo)

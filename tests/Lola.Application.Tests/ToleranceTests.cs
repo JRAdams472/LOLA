@@ -278,7 +278,7 @@ public sealed class ToleranceTests
         fees.Items["e1"] = [Item("e1", "origination", "A", 900)];
         fees.Items["e2"] = [Item("e2", "origination", "A", 950)];
         tol.Classes["origination"] =
-            new("origination", "zero", false);
+            new("origination", "zero", 0);
 
         await EvaluateDisclosureTolerance.Handle("app-1", "doc-2",
             "system:doc-drain", tol, fees, conds, events, default);
@@ -307,7 +307,7 @@ public sealed class ToleranceTests
         fees.Items["e2"] = [Item("e2", "origination", "A", 950)];
         fees.Items["e3"] = [Item("e3", "origination", "A", 990)];
         tol.Classes["origination"] =
-            new("origination", "zero", false);
+            new("origination", "zero", 0);
 
         await EvaluateDisclosureTolerance.Handle("app-1", "doc-2",
             "actor", tol, fees, conds, events, default);
@@ -338,7 +338,7 @@ public sealed class ToleranceTests
         fees.Items["e1"] = [Item("e1", "origination", "A", 900)];
         fees.Items["e2"] = [Item("e2", "origination", "A", 1200)];
         tol.Classes["origination"] =
-            new("origination", "zero", false);
+            new("origination", "zero", 0);
 
         await EvaluateDisclosureTolerance.Handle("app-1", "doc-2",
             "actor", tol, fees, conds, events, default);
@@ -371,9 +371,9 @@ public sealed class ToleranceTests
             Item("e2", "credit-report", "B", 60), // uncovered — violates
         ];
         tol.Classes["origination"] =
-            new("origination", "zero", false);
+            new("origination", "zero", 0);
         tol.Classes["credit-report"] =
-            new("credit-report", "zero", false);
+            new("credit-report", "zero", 0);
 
         await EvaluateDisclosureTolerance.Handle("app-1", "doc-2",
             "actor", tol, fees, conds, events, default);
@@ -516,7 +516,7 @@ public sealed class ToleranceTests
         fees.Evals["e2"] = new FeeEvalRecord("e2", "app-1", "stub",
             "h", "{}", "done", null, null, "a", null, null);
         tol.Classes["origination"] =
-            new("origination", "zero", false);
+            new("origination", "zero", 0);
 
         var report = await GetApplicationToleranceHandler.Handle(
             new GetApplicationToleranceQuery("t1", "app-1",

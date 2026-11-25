@@ -19,7 +19,8 @@ namespace Lola.Api.Documents;
 /// permanently-stuck package can't drain forever.
 public sealed class DocOutboxProcessor(
     IServiceProvider services, ITenantRegistry registry,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<DocOutboxProcessor> log)
 {
     private const int BatchSize = 25;
     private const int MaxAttempts = 20;
@@ -100,22 +101,25 @@ public sealed class DocOutboxProcessor(
                     // TRID tolerance (M21): a completed disclosure
                     // version diffs against its baseline — violations
                     // surface as events + a blocking cure condition.
-                    if (row.Kind is "le-package" or "cd-package")
+                    // `doc.Kind` is the package kind; `row.Kind` is the
+                    // outbox job kind ("generate").
+                    var doc = await repo.GetDocAsync(row.DocId, ct);
+                    if (doc is not null &&
+                        Lola.Application.Compliance.DisclosureKind
+                            .Of(doc.Kind) is not null)
                     {
-                        var doc = await repo.GetDocAsync(row.DocId, ct);
-                        if (doc is not null)
-                            await Lola.Application.Compliance
-                            .EvaluateDisclosureTolerance.Handle(
-                                doc.ApplicationId, row.DocId,
-                                "system:doc-drain",
-                                sp.GetRequiredService<Lola.Application
-                                    .Compliance.IToleranceRepository>(),
-                                sp.GetRequiredService<Lola.Application
-                                    .Fees.IFeeRepository>(),
-                                sp.GetRequiredService<Lola.Application
-                                    .Events.IConditionRepository>(),
-                                sp.GetRequiredService<Lola.Application
-                                    .Events.ILoanEventLog>(), ct);
+                        await Lola.Application.Compliance
+                        .EvaluateDisclosureTolerance.Handle(
+                            doc.ApplicationId, row.DocId,
+                            "system:doc-drain",
+                            sp.GetRequiredService<Lola.Application
+                                .Compliance.IToleranceRepository>(),
+                            sp.GetRequiredService<Lola.Application
+                                .Fees.IFeeRepository>(),
+                            sp.GetRequiredService<Lola.Application
+                                .Events.IConditionRepository>(),
+                            sp.GetRequiredService<Lola.Application
+                                .Events.ILoanEventLog>(), ct);
                     }
                     break;
                 case "failed":
@@ -149,6 +153,9 @@ public sealed class DocOutboxProcessor(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            log.LogWarning(ex,
+                "doc outbox row {OutboxId} reschedules after unexpected error",
+                row.OutboxId);
             if (attempts >= MaxAttempts)
                 await repo.DeadLetterAsync(row.OutboxId, row.DocId,
                     attempts, $"unexpected: {ex.Message}", ct);

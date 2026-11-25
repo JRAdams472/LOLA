@@ -275,6 +275,7 @@ const invalidateClosing = (
     qc.invalidateQueries({ queryKey: ["fees", tid, appId] }),
     qc.invalidateQueries({ queryKey: ["documents", tid, appId] }),
     qc.invalidateQueries({ queryKey: ["uploads", tid, appId] }),
+    qc.invalidateQueries({ queryKey: ["tolerance", tid, appId] }),
   ]);
 
 export function usePrice(tid: string | null | undefined, appId: string) {
@@ -323,6 +324,97 @@ export function useUnlockRate(tid: string | null | undefined, appId: string) {
   return useMutation({
     mutationFn: (reason: string) =>
       apiPost(`${APP(tid!, appId)}/unlock`, { reason }),
+    onSuccess: () => invalidateClosing(qc, tid, appId),
+  });
+}
+
+// ---------- TRID tolerance (M21 P3) ----------
+
+export interface ToleranceReport {
+  versions: ToleranceVersion[];
+  resets: ToleranceReset[];
+  buckets: BucketVariance[];
+  violations: ToleranceViolation[];
+  openCureConditionId: string | null;
+}
+
+export interface ToleranceVersion {
+  versionId: string;
+  kind: string;
+  evalId: string;
+  docId: string | null;
+  seq: number;
+  resetOfVersionId: string | null;
+  createdUtc: string | null;
+}
+
+export interface ToleranceReset {
+  resetId: string;
+  reasonCode: string;
+  affectedFeeCodes: string[];
+  rebasedVersionId: string | null;
+  actor: string;
+  createdUtc: string | null;
+}
+
+export interface BucketVariance {
+  bucket: string;
+  baseline: number;
+  compare: number;
+  lines: ToleranceLine[];
+}
+
+export interface ToleranceLine {
+  feeCode: string;
+  baseline: number;
+  compare: number;
+  delta: number;
+}
+
+export interface ToleranceViolation {
+  bucket: string;
+  feeCode: string | null;
+  baseline: number;
+  compare: number;
+  allowed: number;
+  rule: string;
+}
+
+/** Tolerance posture via GraphQL — staff-scoped handler, null for
+ *  non-staff and unbound applications. */
+export function useTolerance(
+  tid: string | null | undefined,
+  appId: string,
+  poll = false,
+) {
+  return useQuery({
+    queryKey: ["tolerance", tid, appId],
+    enabled: !!tid,
+    refetchInterval: poll ? 1500 : false,
+    queryFn: () =>
+      gql<{ tolerance: ToleranceReport | null }>(
+        `query Tolerance${GQL_APP} {
+          tolerance(tenantId: $t, appId: $id) {
+            versions { versionId kind evalId docId seq
+                       resetOfVersionId createdUtc }
+            resets { resetId reasonCode affectedFeeCodes
+                     rebasedVersionId actor createdUtc }
+            buckets { bucket baseline compare
+                      lines { feeCode baseline compare delta } }
+            violations { bucket feeCode baseline compare allowed rule }
+            openCureConditionId
+          }
+        }`,
+        { t: tid, id: appId },
+      ).then((d) => d.tolerance),
+  });
+}
+
+export function useRecordCure(tid: string | null | undefined, appId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { reason: string }) =>
+      apiPost(`${APP(tid!, appId)}/tolerance/cure`, vars),
     onSuccess: () => invalidateClosing(qc, tid, appId),
   });
 }
