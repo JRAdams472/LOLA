@@ -1026,3 +1026,59 @@ public sealed class FakeToleranceRepository
         return Task.CompletedTask;
     }
 }
+
+/// Hermetic ATR/QM store for the API e2e (MPE-307) — mirrors
+/// AtrQmRepository semantics: results append and list newest-first;
+/// registries are test-controlled defaults (empty APOR/state rows
+/// mean warn-verdict fixtures by construction).
+public sealed class FakeAtrQmRepository
+    : Lola.Application.Compliance.IAtrQmRepository
+{
+    public List<Lola.Application.Compliance.AtrResultRecord> Results
+    { get; } = [];
+    public List<Lola.Application.Compliance.AporRateRecord> Apors
+    { get; } = [new("2025-01-01", 6.50m)];
+    public Dictionary<string,
+        Lola.Application.Compliance.PfClassRecord> PfClasses
+    { get; } = new();
+    public Dictionary<string,
+        Lola.Application.Compliance.StateHighCostRecord> StateRules
+    { get; } = new();
+
+    public Task<Lola.Application.Compliance.AtrResultRecord>
+        AddResultAsync(string appId, string? evalId,
+            decimal? dti, decimal? apr, decimal? apor,
+            string verdictsJson, string actor, CancellationToken ct)
+    {
+        var r = new Lola.Application.Compliance.AtrResultRecord(
+            $"atr-{Results.Count + 1}", appId, evalId, dti, apr, apor,
+            verdictsJson, actor, "2026-01-01T00:00:00.000Z");
+        Results.Add(r);
+        return Task.FromResult(r);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.AtrResultRecord>>
+        ListResultsAsync(string appId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.AtrResultRecord>>(
+            Results.Where(r => r.ApplicationId == appId)
+                .OrderByDescending(r => r.CreatedUtc).ToList());
+
+    public Task<Lola.Application.Compliance.AporRateRecord?>
+        GetAporAsync(CancellationToken ct)
+        => Task.FromResult(Apors
+            .OrderByDescending(a => a.EffectiveDate)
+            .FirstOrDefault());
+
+    public Task<IReadOnlyDictionary<string,
+        Lola.Application.Compliance.PfClassRecord>>
+        GetPfClassesAsync(CancellationToken ct)
+        => Task.FromResult<IReadOnlyDictionary<string,
+            Lola.Application.Compliance.PfClassRecord>>(PfClasses);
+
+    public Task<Lola.Application.Compliance.StateHighCostRecord?>
+        GetStateRuleAsync(string stateCode, CancellationToken ct)
+        => Task.FromResult(StateRules.TryGetValue(
+            stateCode.ToUpperInvariant(), out var r) ? r : null);
+}

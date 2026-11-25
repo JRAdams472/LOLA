@@ -336,6 +336,22 @@ public static class ApplicationEndpoints
                 new RecordToleranceCureCommand(id, appId, Actor(user),
                     LolaPolicies.ScopeFor(user), body.Reason), ct)));
 
+        // ATR/QM + high-cost (M22 P2, MPE-307) — evaluation posture
+        // and explicit re-runs. Staff-only (handlers re-check scope).
+        group.MapGet("/{appId}/atr", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<AtrQmReportDto>(
+                new GetApplicationAtrQuery(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/atr/evaluate", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<AtrEvaluationDto>(
+                new EvaluateAtrQmCommand(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
