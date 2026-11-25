@@ -175,3 +175,38 @@ public class ServicingTransferTests
             sendBy.AddDays(1)).ShouldBeTrue();
     }
 }
+
+/// M23 P1 — catalog regression proof: the nine new RESPA paths resolve
+/// in the field catalog. `UpdateDraft`/`CorrectApplication` reject a
+/// patch path exactly when `Catalog.SpecFor(path)` is null, so these
+/// resolutions are the "no unknown-path rejection" acceptance proof.
+public class RespaCatalogTests
+{
+    [Theory]
+    [InlineData("escrow.current_balance")]
+    [InlineData("escrow.monthly_payment")]
+    [InlineData("escrow.annual_property_tax")]
+    [InlineData("escrow.annual_hazard_insurance")]
+    [InlineData("escrow.annual_pmi")]
+    [InlineData("escrow.annual_hoa")]
+    public void Escrow_inputs_resolve_as_decimal_catalog_paths(string path)
+    {
+        var spec = Lola.Domain.Applications.FieldCatalog.Current.SpecFor(path);
+        spec.ShouldNotBeNull($"path '{path}' must resolve — PATCH would reject it otherwise");
+        spec.Type.ShouldBe("decimal");
+    }
+
+    [Theory]
+    [InlineData("settlement_provider[0].service_type")]
+    [InlineData("settlement_provider[0].provider_name")]
+    [InlineData("settlement_provider[0].affiliated_with_lender")]
+    public void Settlement_provider_afba_inputs_resolve(string path)
+        => Lola.Domain.Applications.FieldCatalog.Current.SpecFor(path)
+            .ShouldNotBeNull($"path '{path}' must resolve — PATCH would reject it otherwise");
+
+    [Fact]
+    public void Repeating_settlement_provider_indexes_resolve_past_zero()
+        => Lola.Domain.Applications.FieldCatalog.Current
+            .SpecFor("settlement_provider[3].affiliated_with_lender")
+            .ShouldNotBeNull("repeating containers must normalize past the template index");
+}
