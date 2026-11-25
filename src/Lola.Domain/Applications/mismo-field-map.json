@@ -677,6 +677,95 @@
       "type": "bool",
       "required": false,
       "core": false
+    },
+    {
+      "path": "escrow.current_balance",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/ESCROW/EscrowAccountBalanceAmount",
+      "ulddField": "ESCROW/AccountBalance",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.monthly_payment",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/ESCROW/EscrowMonthlyPaymentAmount",
+      "ulddField": "ESCROW/MonthlyPayment",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.annual_property_tax",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/TAXES/AnnualPropertyTaxAmount",
+      "ulddField": "PROPERTY/AnnualTaxAmount",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.annual_hazard_insurance",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/INSURANCE/AnnualHazardInsuranceAmount",
+      "ulddField": "PROPERTY/AnnualHazardInsuranceAmount",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.annual_pmi",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/MI/AnnualMiPremiumAmount",
+      "ulddField": "MI/AnnualPremiumAmount",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.annual_hoa",
+      "mismoPath": "LOAN_APPLICATION/SUBJECT_PROPERTY/HOA/AnnualHoaDuesAmount",
+      "ulddField": "PROPERTY/AnnualHoaAmount",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "escrow.cushion_months",
+      "mismoPath": "LOAN_APPLICATION/LOANS/LOAN/ESCROW/EscrowCushionMonthsCount",
+      "ulddField": "ESCROW/CushionMonths",
+      "type": "int",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "settlement_provider[0].service_type",
+      "mismoPath": "LOAN_APPLICATION/SETTLEMENT/SERVICES/SERVICE[0]/ServiceType",
+      "ulddField": "SETTLEMENT/ServiceType",
+      "type": "enum",
+      "enum": [
+        "title",
+        "appraisal",
+        "credit",
+        "insurance",
+        "attorney",
+        "inspection",
+        "other"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "settlement_provider[0].provider_name",
+      "mismoPath": "LOAN_APPLICATION/SETTLEMENT/SERVICES/SERVICE[0]/Provider/Name",
+      "ulddField": "SETTLEMENT/ProviderName",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "settlement_provider[0].affiliated_with_lender",
+      "mismoPath": "LOAN_APPLICATION/SETTLEMENT/SERVICES/SERVICE[0]/AffiliatedWithLenderIndicator",
+      "ulddField": "SETTLEMENT/AffiliatedWithLenderIndicator",
+      "type": "bool",
+      "required": false,
+      "core": false
     }
   ]
 }

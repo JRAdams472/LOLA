@@ -693,6 +693,104 @@ export const FIELDS: FieldSpec[] = [
     "piiClass": null,
     "required": false,
     "section": "loan"
+  },
+  {
+    "path": "escrow.current_balance",
+    "label": "Current Balance",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.monthly_payment",
+    "label": "Monthly Payment",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.annual_property_tax",
+    "label": "Annual Property Tax",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.annual_hazard_insurance",
+    "label": "Annual Hazard Insurance",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.annual_pmi",
+    "label": "Annual Pmi",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.annual_hoa",
+    "label": "Annual Hoa",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "escrow.cushion_months",
+    "label": "Cushion Months",
+    "type": "int",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "settlement_provider[0].service_type",
+    "label": "Service Type",
+    "type": "enum",
+    "enum": [
+      "title",
+      "appraisal",
+      "credit",
+      "insurance",
+      "attorney",
+      "inspection",
+      "other"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "settlement_provider[0].provider_name",
+    "label": "Provider Name",
+    "type": "string",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "settlement_provider[0].affiliated_with_lender",
+    "label": "Affiliated With Lender",
+    "type": "bool",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
   }
 ];
 
