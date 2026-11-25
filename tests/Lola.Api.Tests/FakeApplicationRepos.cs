@@ -1037,7 +1037,7 @@ public sealed class FakeAtrQmRepository
     public List<Lola.Application.Compliance.AtrResultRecord> Results
     { get; } = [];
     public List<Lola.Application.Compliance.AporRateRecord> Apors
-    { get; } = [new("2025-01-01", 6.50m)];
+    { get; } = [new("2025-01-01", 6.50)];
     public Dictionary<string,
         Lola.Application.Compliance.PfClassRecord> PfClasses
     { get; } = new();
@@ -1051,7 +1051,8 @@ public sealed class FakeAtrQmRepository
             string verdictsJson, string actor, CancellationToken ct)
     {
         var r = new Lola.Application.Compliance.AtrResultRecord(
-            $"atr-{Results.Count + 1}", appId, evalId, dti, apr, apor,
+            $"atr-{Results.Count + 1}", appId, evalId, (double?)dti,
+            (double?)apr, (double?)apor,
             verdictsJson, actor, "2026-01-01T00:00:00.000Z");
         Results.Add(r);
         return Task.FromResult(r);

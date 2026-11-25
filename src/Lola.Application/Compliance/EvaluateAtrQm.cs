@@ -49,7 +49,7 @@ public static class EvaluateAtrQmHandler
         var apr = Domain.Compliance.AtrQm.Apr(input);
 
         var record = await atr.AddResultAsync(c.AppId, eval?.EvalId,
-            dti, apr, apor is null ? null : apor.Apor,
+            dti, apr, apor is null ? (decimal?)null : (decimal)apor.Apor,
             AtrQmEvaluator.VerdictsJson(results), c.ActorId, ct);
 
         var summary = string.Join("; ", results.Select(r =>
@@ -60,7 +60,8 @@ public static class EvaluateAtrQmHandler
             null, summary), ct);
 
         return new AtrEvaluationDto(record.ResultId, record.EvalId,
-            record.Dti, record.Apr, record.Apor,
+            (decimal?)record.Dti, (decimal?)record.Apr,
+            (decimal?)record.Apor,
             results.Select(r => new AtrVerdictDto(r.Test,
                 r.Verdict.ToString().ToLowerInvariant(), r.Detail))
                 .ToList(),

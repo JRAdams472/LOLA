@@ -25,7 +25,8 @@ public static class GetApplicationAtrHandler
 
         var rows = await atr.ListResultsAsync(q.AppId, ct);
         var all = rows.Select(r => new AtrEvaluationDto(
-            r.ResultId, r.EvalId, r.Dti, r.Apr, r.Apor,
+            r.ResultId, r.EvalId, (decimal?)r.Dti, (decimal?)r.Apr,
+            (decimal?)r.Apor,
             AtrQmEvaluator.ParseVerdicts(r.VerdictsJson),
             r.Actor, r.CreatedUtc)).ToList();
         return new AtrQmReportDto(all.Count == 0 ? null : all[0], all);
