@@ -21,7 +21,7 @@ public sealed class AtrTests
     {
         public List<AtrResultRecord> Results { get; } = [];
         public List<AporRateRecord> Apors { get; } =
-            [new("2025-01-01", 6.50m)];
+            [new("2025-01-01", 6.50)];
         public Dictionary<string, PfClassRecord> PfClasses { get; }
             = new();
         public Dictionary<string, StateHighCostRecord> StateRules
@@ -32,7 +32,8 @@ public sealed class AtrTests
             string verdictsJson, string actor, CancellationToken ct)
         {
             var r = new AtrResultRecord($"atr-{Results.Count + 1}",
-                appId, evalId, dti, apr, apor, verdictsJson, actor,
+                appId, evalId, (double?)dti, (double?)apr, (double?)apor,
+                verdictsJson, actor,
                 "2026-01-01T00:00:00.000Z");
             Results.Add(r);
             return Task.FromResult(r);
@@ -424,7 +425,7 @@ public sealed class AtrTests
     {
         using var _ = Scope();
         var atr = new FakeAtr();
-        atr.StateRules["NY"] = new("NY", 6.5m, 5.0m, 50_000m, null);
+        atr.StateRules["NY"] = new("NY", 6.5, 5.0, 50_000, null);
         var fees = new FakeFees();
         var events = new FakeEventLog();
         var doc = CleanDoc();

@@ -31,11 +31,11 @@ public interface IAtrQmRepository
 /// One `atr_results` row.
 public sealed record AtrResultRecord(
     string ResultId, string ApplicationId, string? EvalId,
-    decimal? Dti, decimal? Apr, decimal? Apor, string VerdictsJson,
+    double? Dti, double? Apr, double? Apor, string VerdictsJson,
     string Actor, string? CreatedUtc);
 
 /// One `apor_rates` row.
-public sealed record AporRateRecord(string EffectiveDate, decimal Apor);
+public sealed record AporRateRecord(string EffectiveDate, double Apor);
 
 /// One `pf_classes` registry row.
 public sealed record PfClassRecord(string FeeCode, string Category,
@@ -43,7 +43,7 @@ public sealed record PfClassRecord(string FeeCode, string Category,
 
 /// One `state_high_cost_rules` row.
 public sealed record StateHighCostRecord(string StateCode,
-    decimal RateSpread, decimal PfPct, decimal PfFloor, string? Notes);
+    double RateSpread, double PfPct, double PfFloor, string? Notes);
 
 /// GET …/atr report — latest evaluation's per-test verdicts + figures,
 /// plus the lineage of prior evaluations.

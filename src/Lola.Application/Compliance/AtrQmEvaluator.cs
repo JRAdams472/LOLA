@@ -70,11 +70,11 @@ public static class AtrQmEvaluator
             ProductType: Str(doc, "loan.product_type"),
             MonthlyIncome: anyIncome ? income : null,
             MonthlyDebts: anyDebt ? debts : null,
-            Apor: apor?.Apor,
+            Apor: (decimal?)apor?.Apor,
             PfLines: pfLines,
             State: state is null ? null : new AtrQm.StateRule(
-                state.StateCode, state.RateSpread,
-                state.PfPct, state.PfFloor));
+                state.StateCode, (decimal)state.RateSpread,
+                (decimal)state.PfPct, (decimal)state.PfFloor));
     }
 
     /// Serialize the battery output for `atr_results.verdicts_json` —

@@ -29,6 +29,8 @@ import StatusChip from "@/components/StatusChip";
 import TridCountdown from "@/components/TridCountdown";
 import FieldInput from "@/components/FieldInput";
 import RevealDialog from "@/components/RevealDialog";
+import AtrQmPanel from "@/components/AtrQmPanel";
+import { useAtr, useEvaluateAtr } from "@/lib/atr";
 import { useMe } from "@/lib/me";
 import { mutationError } from "@/lib/api";
 import {
@@ -46,7 +48,7 @@ import {
 import { FIELD_MAP, fieldsFor, SECTIONS, type SectionId } from "@/lib/field-map";
 import { getPath, setPath, type Doc } from "@/lib/doc";
 
-type TabId = SectionId | "steps" | "audit";
+type TabId = SectionId | "steps" | "audit" | "atr";
 
 /// Loan workspace — tabbed catalog-driven 1003. The doc arrives masked
 /// per the caller's visibility (DocMasker); editable while `draft`, and
@@ -65,6 +67,8 @@ export default function LoanWorkspacePage() {
   const steps = useSteps(tid, appId, tab === "steps");
   const vendors = useVendorOrders(tid, appId, isStaff && tab === "steps");
   const audit = useApplicationAudit(tid, appId, isStaff && tab === "audit");
+  const atr = useAtr(tid, appId, isStaff && tab === "atr");
+  const evaluateAtr = useEvaluateAtr(tid, appId);
   const patchDraft = usePatchDraft(tid, appId);
   const submit = useSubmit(tid, appId);
   const correct = useCorrect(tid, appId);
@@ -278,6 +282,7 @@ export default function LoanWorkspacePage() {
           ))}
           <Tab value="steps" label="Steps" />
           {isStaff && <Tab value="audit" label="Audit" />}
+          {isStaff && <Tab value="atr" label="ATR/QM" />}
         </Tabs>
 
         {SECTIONS.map(
@@ -413,6 +418,21 @@ export default function LoanWorkspacePage() {
                 </ListItem>
               ))}
             </List>
+          </Box>
+        )}
+
+        {tab === "atr" && isStaff && (
+          <Box sx={{ p: 2 }}>
+            {atr.isLoading && <Skeleton variant="rectangular" height={120} />}
+            {atr.isError && <ErrorPanel title="ATR/QM posture failed" error={atr.error} />}
+            {atr.isSuccess && (
+              <AtrQmPanel
+                report={atr.data}
+                canEvaluate={isStaff}
+                evaluatePending={evaluateAtr.isPending}
+                onEvaluate={() => evaluateAtr.mutate()}
+              />
+            )}
           </Box>
         )}
 

@@ -36,8 +36,9 @@ public sealed class AtrQmRepository(TenantConnectionFactory factory)
                 actor,
                 created
             }, ct);
-        return new AtrResultRecord(resultId, appId, evalId, dti, apr,
-            apor, verdictsJson, actor, created);
+        return new AtrResultRecord(resultId, appId, evalId,
+            (double?)dti, (double?)apr, (double?)apor,
+            verdictsJson, actor, created);
     }
 
     private const string ResultColumns = """

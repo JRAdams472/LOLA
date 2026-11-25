@@ -172,6 +172,19 @@ public class Query(IMessageBus bus)
                 tenantId, appId, actor, scope), ct);
     }
 
+    /// ATR/QM battery posture (M22 P3) — same staff-scoped handler as
+    /// the REST GET; non-staff sees null (ADR-0011).
+    public Task<Lola.Application.Compliance.AtrQmReportDto?> Atr(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff)
+            return Task.FromResult<Lola.Application.Compliance.AtrQmReportDto?>(null);
+        return bus.InvokeAsync<Lola.Application.Compliance.AtrQmReportDto?>(
+            new Lola.Application.Compliance.GetApplicationAtrQuery(
+                tenantId, appId, actor, scope), ct);
+    }
+
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
