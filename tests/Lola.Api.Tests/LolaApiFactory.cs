@@ -228,6 +228,10 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<Lola.Application.Compliance
                 .IToleranceRepository>(
                 sp => sp.GetRequiredService<FakeToleranceRepository>());
+            services.AddSingleton(new FakeAtrQmRepository());
+            services.AddSingleton<Lola.Application.Compliance
+                .IAtrQmRepository>(
+                sp => sp.GetRequiredService<FakeAtrQmRepository>());
             // Vendor seam (MPE-227) — hermetic registry + credential
             // source + second adapter: implementing IVendorAdapter is
             // the whole swap contract.

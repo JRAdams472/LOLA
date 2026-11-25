@@ -23,6 +23,7 @@ public static class LoanEventKind
     public const string ToleranceViolation = "tolerance_violation";
     public const string ToleranceCure = "tolerance_cure_event";
     public const string ToleranceReset = "tolerance_reset";
+    public const string AtrQmResult = "atr_qm_result";
 }
 
 /// One append-only mutation event. `BeforeVal`/`AfterVal` carry
