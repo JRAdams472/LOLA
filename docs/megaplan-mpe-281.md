@@ -38,13 +38,13 @@ silent flags.
 
 | # | Deliverable | Ticket | Deps |
 |---|---|---|---|
-| M21 | TRID tolerance engine — fee→bucket classification (0% / 10% / unlimited); LE↔CD version diffing; changed-circumstance reset tracking; tolerance-violation events + cure workflow hooks (conditions/task integration); officer surface for variance status | MPE-TBD | M20 |
-| M22 | ATR/QM + high-cost engine — ATR exemption/QM tests, HOEPA points-and-fees triggers, Section 35 thresholds, state high-cost rules (threshold table per state), HUD QM rate-and-fee tests; pass/fail/warn result events | MPE-TBD | M21 |
-| M23 | RESPA servicing/escrow — escrow account analysis records, anti-kickback (Section 8) affiliated-business disclosure flags, servicing-transfer notice tracking | MPE-TBD | M21 |
-| M24 | HMDA — LAR field catalog paths + collection UI/validation, edit checks (syntactical/validity/quality tiers), pipe-delimited LAR export, reporting-year snapshots | MPE-TBD | M21 |
-| M25 | AUS adapters — DU + LPA submission/response implementations behind `VendorKind.Aus`; per-vendor `VendorEgress` allowlists; findings→conditions auto-population; contract fixtures | MPE-TBD | M21 |
-| M26 | Credit tri-merge + AVM — bureau adapter behind `VendorKind.Credit` (tri-merge merge rules, VantageScore 4.0 / FICO 10T model tagging); `VendorKind.Avm` seam extension + adapter (value/confidence normalization into the application doc) | MPE-TBD | M25 |
-| M27 | Compliance hardening, UAT & close-out — threat-model delta (regulatory data surface + new egress kinds), UAT matrix extension, wiki/runbook refresh, program gate, close-out tickets | MPE-TBD | M21–M26 |
+| M21 | TRID tolerance engine — fee→bucket classification (0% / 10% / unlimited); LE↔CD version diffing; changed-circumstance reset tracking; tolerance-violation events + cure workflow hooks (conditions/task integration); officer surface for variance status | MPE-296 | M20 |
+| M22 | ATR/QM + high-cost engine — ATR exemption/QM tests, HOEPA points-and-fees triggers, Section 35 thresholds, state high-cost rules (threshold table per state), HUD QM rate-and-fee tests; pass/fail/warn result events | MPE-300 | M21 |
+| M23 | RESPA servicing/escrow — escrow account analysis records, anti-kickback (Section 8) affiliated-business disclosure flags, servicing-transfer notice tracking | MPE-301 | M21 |
+| M24 | HMDA — LAR field catalog paths + collection UI/validation, edit checks (syntactical/validity/quality tiers), pipe-delimited LAR export, reporting-year snapshots | MPE-302 | M21 |
+| M25 | AUS adapters — DU + LPA submission/response implementations behind `VendorKind.Aus`; per-vendor `VendorEgress` allowlists; findings→conditions auto-population; contract fixtures | MPE-303 | M21 |
+| M26 | Credit tri-merge + AVM — bureau adapter behind `VendorKind.Credit` (tri-merge merge rules, VantageScore 4.0 / FICO 10T model tagging); `VendorKind.Avm` seam extension + adapter (value/confidence normalization into the application doc) | MPE-304 | M25 |
+| M27 | Compliance hardening, UAT & close-out — threat-model delta (regulatory data surface + new egress kinds), UAT matrix extension, wiki/runbook refresh, program gate, close-out tickets | MPE-305 | M21–M26 |
 
 ## Per-milestone ADR/invariant mapping
 
