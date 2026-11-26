@@ -185,6 +185,17 @@ public class Query(IMessageBus bus)
                 tenantId, appId, actor, scope), ct);
     }
 
+    public Task<Lola.Application.Compliance.RespaReportDto?> Respa(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff)
+            return Task.FromResult<Lola.Application.Compliance.RespaReportDto?>(null);
+        return bus.InvokeAsync<Lola.Application.Compliance.RespaReportDto?>(
+            new Lola.Application.Compliance.GetApplicationRespaQuery(
+                tenantId, appId, actor, scope), ct);
+    }
+
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {

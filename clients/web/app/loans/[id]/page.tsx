@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import TextField from "@mui/material/TextField";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Paper from "@mui/material/Paper";
@@ -30,7 +35,15 @@ import TridCountdown from "@/components/TridCountdown";
 import FieldInput from "@/components/FieldInput";
 import RevealDialog from "@/components/RevealDialog";
 import AtrQmPanel from "@/components/AtrQmPanel";
+import RespaPanel from "@/components/RespaPanel";
 import { useAtr, useEvaluateAtr } from "@/lib/atr";
+import {
+  useMarkNoticeReceived,
+  useMarkNoticeSent,
+  useRecordTransfer,
+  useRespa,
+  useRunEscrowAnalysis,
+} from "@/lib/respa";
 import { useMe } from "@/lib/me";
 import { mutationError } from "@/lib/api";
 import {
@@ -48,7 +61,7 @@ import {
 import { FIELD_MAP, fieldsFor, SECTIONS, type SectionId } from "@/lib/field-map";
 import { getPath, setPath, type Doc } from "@/lib/doc";
 
-type TabId = SectionId | "steps" | "audit" | "atr";
+type TabId = SectionId | "steps" | "audit" | "atr" | "respa";
 
 /// Loan workspace — tabbed catalog-driven 1003. The doc arrives masked
 /// per the caller's visibility (DocMasker); editable while `draft`, and
@@ -69,6 +82,12 @@ export default function LoanWorkspacePage() {
   const audit = useApplicationAudit(tid, appId, isStaff && tab === "audit");
   const atr = useAtr(tid, appId, isStaff && tab === "atr");
   const evaluateAtr = useEvaluateAtr(tid, appId);
+  const respa = useRespa(tid, appId, isStaff && tab === "respa");
+  const analyzeEscrow = useRunEscrowAnalysis(tid, appId);
+  const recordTransfer = useRecordTransfer(tid, appId);
+  const markNoticeSent = useMarkNoticeSent(tid, appId);
+  const markNoticeReceived = useMarkNoticeReceived(tid, appId);
+  const [transferOpen, setTransferOpen] = useState(false);
   const patchDraft = usePatchDraft(tid, appId);
   const submit = useSubmit(tid, appId);
   const correct = useCorrect(tid, appId);
@@ -283,6 +302,7 @@ export default function LoanWorkspacePage() {
           <Tab value="steps" label="Steps" />
           {isStaff && <Tab value="audit" label="Audit" />}
           {isStaff && <Tab value="atr" label="ATR/QM" />}
+          {isStaff && <Tab value="respa" label="RESPA" />}
         </Tabs>
 
         {SECTIONS.map(
@@ -436,6 +456,37 @@ export default function LoanWorkspacePage() {
           </Box>
         )}
 
+        {tab === "respa" && isStaff && (
+          <Box sx={{ p: 2 }}>
+            {respa.isLoading && <Skeleton variant="rectangular" height={120} />}
+            {respa.isError && <ErrorPanel title="RESPA posture failed" error={respa.error} />}
+            {respa.isSuccess && (
+              <>
+                <RespaPanel
+                  report={respa.data}
+                  canAct={isStaff}
+                  analyzePending={analyzeEscrow.isPending}
+                  transferPending={recordTransfer.isPending}
+                  onAnalyze={() => analyzeEscrow.mutate()}
+                  onRecordTransfer={() => setTransferOpen(true)}
+                  onMarkSent={(noticeId) => markNoticeSent.mutate(noticeId)}
+                  onMarkReceived={(noticeId) => markNoticeReceived.mutate(noticeId)}
+                />
+                <TransferDialog
+                  open={transferOpen}
+                  pending={recordTransfer.isPending}
+                  onClose={() => setTransferOpen(false)}
+                  onSubmit={(body) =>
+                    recordTransfer.mutate(body, {
+                      onSuccess: () => setTransferOpen(false),
+                    })
+                  }
+                />
+              </>
+            )}
+          </Box>
+        )}
+
         {tab === "audit" && isStaff && (
           <Box sx={{ p: 2 }}>
             {audit.isLoading && <Skeleton variant="rectangular" height={120} />}
@@ -489,5 +540,75 @@ export default function LoanWorkspacePage() {
         error={mutationError(reveal)}
       />
     </>
+  );
+}
+
+/// M23 P3 — record-servicing-transfer dialog: effective date + both
+/// servicer labels; the handler creates both statutory notices.
+function TransferDialog({
+  open,
+  pending,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onSubmit: (body: {
+    transferEffective: string;
+    transferorLabel: string;
+    transfereeLabel: string;
+  }) => void;
+}) {
+  const [effective, setEffective] = useState("");
+  const [transferor, setTransferor] = useState("");
+  const [transferee, setTransferee] = useState("");
+  const valid =
+    /^\d{4}-\d{2}-\d{2}$/.test(effective) &&
+    transferor.trim().length > 0 &&
+    transferee.trim().length > 0;
+
+  return (
+    <Dialog open={open} onClose={onClose} data-testid="transfer-dialog">
+      <DialogTitle>Record servicing transfer</DialogTitle>
+      <DialogContent sx={{ display: "grid", gap: 2, pt: 1, minWidth: 360 }}>
+        <TextField
+          label="Effective date"
+          type="date"
+          value={effective}
+          onChange={(e) => setEffective(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { "data-testid": "transfer-effective" } }}
+        />
+        <TextField
+          label="Transferor (current servicer)"
+          value={transferor}
+          onChange={(e) => setTransferor(e.target.value)}
+          slotProps={{ htmlInput: { "data-testid": "transfer-transferor" } }}
+        />
+        <TextField
+          label="Transferee (new servicer)"
+          value={transferee}
+          onChange={(e) => setTransferee(e.target.value)}
+          slotProps={{ htmlInput: { "data-testid": "transfer-transferee" } }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="contained"
+          disabled={!valid || pending}
+          onClick={() =>
+            onSubmit({
+              transferEffective: effective,
+              transferorLabel: transferor.trim(),
+              transfereeLabel: transferee.trim(),
+            })
+          }
+          data-testid="transfer-submit"
+        >
+          Record
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
