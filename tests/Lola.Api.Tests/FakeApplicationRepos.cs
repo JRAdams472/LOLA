@@ -1083,3 +1083,101 @@ public sealed class FakeAtrQmRepository
         => Task.FromResult(StateRules.TryGetValue(
             stateCode.ToUpperInvariant(), out var r) ? r : null);
 }
+
+/// Hermetic RESPA store for the API e2e (MPE-310) — mirrors
+/// RespaRepository semantics: analyses append and list newest-first;
+/// notices transition status with append-only event rows.
+public sealed class FakeRespaRepository
+    : Lola.Application.Compliance.IRespaRepository
+{
+    public List<Lola.Application.Compliance.EscrowAnalysisRecord> Analyses
+    { get; } = [];
+    public List<Lola.Application.Compliance.ServicingNoticeRecord> Notices
+    { get; } = [];
+    public List<Lola.Application.Compliance.ServicingNoticeEventRecord>
+        NoticeEvents
+    { get; } = [];
+
+    private static string Stamp(int n) =>
+        $"2026-01-01T00:00:{n % 60:00}.000Z";
+
+    public Task<Lola.Application.Compliance.EscrowAnalysisRecord>
+        AddAnalysisAsync(string appId, string verdict,
+            decimal? annualDisbursements, decimal? cushionTarget,
+            decimal? lowPoint, decimal? determinationAmount,
+            bool refundRequired, string inputsJson, string detailJson,
+            string actor, CancellationToken ct)
+    {
+        var r = new Lola.Application.Compliance.EscrowAnalysisRecord(
+            $"esc-{Analyses.Count + 1}", appId, verdict,
+            (double?)annualDisbursements, (double?)cushionTarget,
+            (double?)lowPoint, (double?)determinationAmount,
+            refundRequired ? 1 : 0, inputsJson, detailJson, actor,
+            Stamp(Analyses.Count));
+        Analyses.Add(r);
+        return Task.FromResult(r);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.EscrowAnalysisRecord>>
+        ListAnalysesAsync(string appId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.EscrowAnalysisRecord>>(
+            Analyses.Where(r => r.ApplicationId == appId)
+                .OrderByDescending(r => r.CreatedUtc).ToList());
+
+    public Task<Lola.Application.Compliance.ServicingNoticeRecord>
+        AddNoticeAsync(string appId, string noticeKind,
+            string transferEffective, string transferorLabel,
+            string transfereeLabel, string sendBy, string actor,
+            CancellationToken ct)
+    {
+        var id = $"ntc-{Notices.Count + 1}";
+        var r = new Lola.Application.Compliance.ServicingNoticeRecord(
+            id, appId, noticeKind, transferEffective, transferorLabel,
+            transfereeLabel, sendBy, "pending", actor,
+            Stamp(Notices.Count));
+        Notices.Add(r);
+        NoticeEvents.Add(
+            new Lola.Application.Compliance.ServicingNoticeEventRecord(
+                $"nev-{NoticeEvents.Count + 1}", id, "pending", actor,
+                Stamp(NoticeEvents.Count)));
+        return Task.FromResult(r);
+    }
+
+    public Task<Lola.Application.Compliance.ServicingNoticeRecord?>
+        GetNoticeAsync(string noticeId, CancellationToken ct)
+        => Task.FromResult(Notices
+            .FirstOrDefault(n => n.NoticeId == noticeId));
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.ServicingNoticeRecord>>
+        ListNoticesAsync(string appId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.ServicingNoticeRecord>>(
+            Notices.Where(n => n.ApplicationId == appId).ToList());
+
+    public Task<string> TransitionNoticeAsync(string noticeId,
+        string status, string actor, CancellationToken ct)
+    {
+        var idx = Notices.FindIndex(n => n.NoticeId == noticeId);
+        var stamp = Stamp(NoticeEvents.Count + 30);
+        if (idx >= 0)
+        {
+            var n = Notices[idx];
+            Notices[idx] = n with { Status = status };
+        }
+        NoticeEvents.Add(
+            new Lola.Application.Compliance.ServicingNoticeEventRecord(
+                $"nev-{NoticeEvents.Count + 1}", noticeId, status, actor,
+                stamp));
+        return Task.FromResult(stamp);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.ServicingNoticeEventRecord>>
+        ListNoticeEventsAsync(string noticeId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.ServicingNoticeEventRecord>>(
+            NoticeEvents.Where(e => e.NoticeId == noticeId).ToList());
+}

@@ -352,6 +352,50 @@ public static class ApplicationEndpoints
                 new EvaluateAtrQmCommand(id, appId,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
+        // RESPA servicing/escrow (M23 P2, MPE-310) — posture report,
+        // escrow analysis, transfer recording, notice transitions.
+        // Staff-only (handlers re-check scope).
+        group.MapGet("/{appId}/respa", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<RespaReportDto>(
+                new GetApplicationRespaQuery(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/respa/escrow/analyze", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<EscrowAnalysisDto>(
+                new RunEscrowAnalysisCommand(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/respa/servicing/transfer", async (string id,
+                string appId, ServicingTransferRequest body,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<
+                IReadOnlyList<ServicingNoticeDto>>(
+                new RecordServicingTransferCommand(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user),
+                    body.TransferEffective, body.TransferorLabel,
+                    body.TransfereeLabel), ct)));
+
+        group.MapPost("/{appId}/respa/servicing/notices/{noticeId}/sent",
+            async (string id, string appId, string noticeId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ServicingNoticeDto>(
+                new MarkNoticeSentCommand(id, appId, noticeId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/respa/servicing/notices/{noticeId}/received",
+            async (string id, string appId, string noticeId,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<ServicingNoticeDto>(
+                new MarkNoticeReceivedCommand(id, appId, noticeId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
@@ -477,4 +521,7 @@ public static class ApplicationEndpoints
     public sealed record ToleranceResetRequest(
         string ReasonCode, IReadOnlyList<string> FeeCodes);
     public sealed record ToleranceCureRequest(string Reason);
+    public sealed record ServicingTransferRequest(
+        string TransferEffective, string TransferorLabel,
+        string TransfereeLabel);
 }

@@ -465,6 +465,8 @@ builder.Services.AddScoped<Lola.Application.Compliance.IToleranceRepository,
     ToleranceRepository>();
 builder.Services.AddScoped<Lola.Application.Compliance.IAtrQmRepository,
     AtrQmRepository>();
+builder.Services.AddScoped<Lola.Application.Compliance.IRespaRepository,
+    RespaRepository>();
 builder.Services.AddSingleton<Lola.Api.Documents.DocOutboxProcessor>();
 builder.Services.AddSingleton<Lola.Application.Documents.IDocumentCredentialSource,
     Lola.Infrastructure.Documents.TenantDocCredentialSource>();
