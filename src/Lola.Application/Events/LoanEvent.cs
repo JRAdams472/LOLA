@@ -24,6 +24,8 @@ public static class LoanEventKind
     public const string ToleranceCure = "tolerance_cure_event";
     public const string ToleranceReset = "tolerance_reset";
     public const string AtrQmResult = "atr_qm_result";
+    public const string EscrowAnalysis = "escrow_analysis";
+    public const string ServicingNotice = "servicing_notice";
 }
 
 /// One append-only mutation event. `BeforeVal`/`AfterVal` carry
