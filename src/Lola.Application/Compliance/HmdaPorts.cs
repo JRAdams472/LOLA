@@ -62,7 +62,13 @@ public sealed record HmdaEditDto(string EditId, string Tier,
 
 public sealed record HmdaLarRowDto(string LarRowId, string Uli,
     long ReportingYear, IReadOnlyDictionary<string, string> Fields,
-    IReadOnlyList<HmdaEditDto> Edits, string Actor, string? CreatedUtc);
+    IReadOnlyList<HmdaEditDto> Edits, string Actor, string? CreatedUtc)
+{
+    /// GraphQL can't carry arbitrary key-value maps — the field record
+    /// rides as a JSON string over the wire and the client parses it.
+    public string FieldsJson =>
+        System.Text.Json.JsonSerializer.Serialize(Fields);
+}
 
 public sealed record HmdaReportDto(
     HmdaLarRowDto? Latest,
