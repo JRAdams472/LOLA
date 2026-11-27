@@ -30,6 +30,39 @@ public static class ApplicationEndpoints
             .RequireAuthorization(LolaPolicies.Applications)
             .RequireRateLimiting("intake");
 
+        // Tenant-level HMDA reporting (M24 P2) — the export artifact +
+        // snapshot freeze span applications, so they hang off the
+        // tenant, not one loan. Staff-only (handlers re-check scope).
+        var hmdaGroup = app.MapGroup("/api/tenants/{id}/hmda")
+            .RequireAuthorization(LolaPolicies.TenantStaff);
+        hmdaGroup.MapGet("/export", async (string id, int year,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) =>
+        {
+            if (Lola.Application.Tenancy.TenantContext.Current?.TenantId != id)
+                return Results.Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "request tenant does not match the resolved tenant");
+            var result = await bus.InvokeAsync<HmdaExportResult>(
+                new ExportLarCommand(id, year,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct);
+            return Results.File(result.Content, "text/plain",
+                result.FileName);
+        });
+        hmdaGroup.MapPost("/freeze", async (string id, int year,
+                ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) =>
+        {
+            if (Lola.Application.Tenancy.TenantContext.Current?.TenantId != id)
+                return Results.Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "request tenant does not match the resolved tenant");
+            var result = await bus.InvokeAsync<LarSnapshotRecord>(
+                new FreezeLarSnapshotCommand(id, year,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct);
+            return Results.Ok(result);
+        });
+
         group.MapPost("", async (string id, CreateDraftRequest? body,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<DraftCreatedResult>(
@@ -394,6 +427,23 @@ public static class ApplicationEndpoints
                 CancellationToken ct) => await
             Guarded(id, async () => await bus.InvokeAsync<ServicingNoticeDto>(
                 new MarkNoticeReceivedCommand(id, appId, noticeId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        // HMDA reporting posture (M24 P2, MPE-313) — assembly, posture
+        // read, reporting-year export + snapshot freeze. Staff-only
+        // (handlers re-check scope).
+        group.MapGet("/{appId}/hmda", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<HmdaReportDto>(
+                new GetApplicationHmdaQuery(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/hmda/assemble", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<HmdaLarRowDto>(
+                new AssembleLarCommand(id, appId,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
         // Pipeline step history (MPE-112) — append-only named-step log.

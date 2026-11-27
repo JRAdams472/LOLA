@@ -236,6 +236,12 @@ public class LolaApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<Lola.Application.Compliance
                 .IRespaRepository>(
                 sp => sp.GetRequiredService<FakeRespaRepository>());
+            services.AddSingleton(new FakeHmdaRepository());
+            services.AddSingleton<Lola.Application.Compliance
+                .IHmdaRepository>(
+                sp => sp.GetRequiredService<FakeHmdaRepository>());
+            services.AddSingleton(
+                new Lola.Application.Compliance.HmdaOptions());
             // Vendor seam (MPE-227) — hermetic registry + credential
             // source + second adapter: implementing IVendorAdapter is
             // the whole swap contract.

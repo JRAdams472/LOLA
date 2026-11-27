@@ -26,6 +26,8 @@ public static class LoanEventKind
     public const string AtrQmResult = "atr_qm_result";
     public const string EscrowAnalysis = "escrow_analysis";
     public const string ServicingNotice = "servicing_notice";
+    public const string HmdaLar = "hmda_lar";
+    public const string HmdaExport = "hmda_export";
 }
 
 /// One append-only mutation event. `BeforeVal`/`AfterVal` carry
