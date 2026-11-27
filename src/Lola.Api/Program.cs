@@ -467,6 +467,14 @@ builder.Services.AddScoped<Lola.Application.Compliance.IAtrQmRepository,
     AtrQmRepository>();
 builder.Services.AddScoped<Lola.Application.Compliance.IRespaRepository,
     RespaRepository>();
+builder.Services.AddScoped<Lola.Application.Compliance.IHmdaRepository,
+    HmdaRepository>();
+builder.Services.AddSingleton(new Lola.Application.Compliance.HmdaOptions
+{
+    Lei = builder.Configuration["HMDA__LEI"]
+        ?? "10BX939C5543TQA1144M",
+    NmlsId = builder.Configuration["HMDA__NMLSID"],
+});
 builder.Services.AddSingleton<Lola.Api.Documents.DocOutboxProcessor>();
 builder.Services.AddSingleton<Lola.Application.Documents.IDocumentCredentialSource,
     Lola.Infrastructure.Documents.TenantDocCredentialSource>();

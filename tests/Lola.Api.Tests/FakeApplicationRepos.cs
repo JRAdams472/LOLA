@@ -1181,3 +1181,80 @@ public sealed class FakeRespaRepository
             Lola.Application.Compliance.ServicingNoticeEventRecord>>(
             NoticeEvents.Where(e => e.NoticeId == noticeId).ToList());
 }
+
+/// Hermetic HMDA store for the API e2e (MPE-313) — mirrors
+/// HmdaRepository semantics: rows/edits/snapshots append-only,
+/// newest-first listing.
+public sealed class FakeHmdaRepository
+    : Lola.Application.Compliance.IHmdaRepository
+{
+    public List<Lola.Application.Compliance.LarRowRecord> Rows
+    { get; } = [];
+    public List<Lola.Application.Compliance.EditRunRecord> Edits
+    { get; } = [];
+    public List<Lola.Application.Compliance.LarSnapshotRecord> Snapshots
+    { get; } = [];
+
+    private static string Stamp(int n)
+        => $"2026-01-01T00:00:{n % 60:00}.000Z";
+
+    public Task<Lola.Application.Compliance.LarRowRecord>
+        AddLarRowAsync(string appId, int reportingYear, string uli,
+            string rowJson, string derivedJson, string actor,
+            CancellationToken ct)
+    {
+        var r = new Lola.Application.Compliance.LarRowRecord(
+            $"lar-{Rows.Count + 1}", appId, reportingYear, uli,
+            rowJson, derivedJson, actor, Stamp(Rows.Count));
+        Rows.Add(r);
+        return Task.FromResult(r);
+    }
+
+    public Task<IReadOnlyList<Lola.Application.Compliance.LarRowRecord>>
+        ListLarRowsAsync(string appId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.LarRowRecord>>(
+            Rows.Where(r => r.ApplicationId == appId)
+                .OrderByDescending(r => r.CreatedUtc).ToList());
+
+    public Task<IReadOnlyList<Lola.Application.Compliance.LarRowRecord>>
+        ListLarRowsByYearAsync(int reportingYear, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.LarRowRecord>>(
+            Rows.Where(r => r.ReportingYear == reportingYear)
+                .OrderByDescending(r => r.CreatedUtc).ToList());
+
+    public Task AddEditRunAsync(string larRowId, string tier,
+        string editId, string result, string detail,
+        CancellationToken ct)
+    {
+        Edits.Add(new Lola.Application.Compliance.EditRunRecord(
+            $"edit-{Edits.Count + 1}", larRowId, tier, editId, result,
+            detail, Stamp(Edits.Count)));
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Lola.Application.Compliance.EditRunRecord>>
+        ListEditRunsAsync(string larRowId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.EditRunRecord>>(
+            Edits.Where(e => e.LarRowId == larRowId).ToList());
+
+    public Task<Lola.Application.Compliance.LarSnapshotRecord>
+        AddSnapshotAsync(int reportingYear,
+            IReadOnlyList<string> larRowIds, string actor,
+            CancellationToken ct)
+    {
+        var s = new Lola.Application.Compliance.LarSnapshotRecord(
+            $"snap-{Snapshots.Count + 1}", reportingYear,
+            larRowIds.Count, actor, Stamp(60 + Snapshots.Count));
+        Snapshots.Add(s);
+        return Task.FromResult(s);
+    }
+
+    public Task<IReadOnlyList<
+        Lola.Application.Compliance.LarSnapshotRecord>>
+        ListSnapshotsAsync(CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<
+            Lola.Application.Compliance.LarSnapshotRecord>>(Snapshots);
+}
