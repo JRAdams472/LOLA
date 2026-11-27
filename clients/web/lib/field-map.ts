@@ -791,6 +791,357 @@ export const FIELDS: FieldSpec[] = [
     "piiClass": null,
     "required": false,
     "section": "loan"
+  },
+  {
+    "path": "hmda.action_taken",
+    "label": "Action Taken",
+    "type": "enum",
+    "enum": [
+      "originated",
+      "approved_not_accepted",
+      "denied",
+      "withdrawn",
+      "incomplete",
+      "purchased",
+      "preapproval_denied",
+      "preapproval_approved_not_accepted"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "hmda.action_taken_date",
+    "label": "Action Taken Date",
+    "type": "string",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "hmda.submission_of_application",
+    "label": "Submission OF Application",
+    "type": "enum",
+    "enum": [
+      "directly",
+      "not_directly",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "hmda.initially_payable_to",
+    "label": "Initially Payable TO",
+    "type": "enum",
+    "enum": [
+      "your_institution",
+      "not_your_institution",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.reverse_mortgage",
+    "label": "Reverse Mortgage",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.open_end_line_of_credit",
+    "label": "Open End Line OF Credit",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.business_or_commercial_purpose",
+    "label": "Business OR Commercial Purpose",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.interest_only_payment",
+    "label": "Interest Only Payment",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.balloon_payment",
+    "label": "Balloon Payment",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.negative_amortization",
+    "label": "Negative Amortization",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.other_nonamortizing_features",
+    "label": "Other Nonamortizing Features",
+    "type": "enum",
+    "enum": [
+      "yes",
+      "no"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.prepayment_penalty_term_months",
+    "label": "Prepayment Penalty Term Months",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.intro_rate_period_months",
+    "label": "Intro Rate Period Months",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.origination_charges",
+    "label": "Origination Charges",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.discount_points",
+    "label": "Discount Points",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "loan.lender_credits",
+    "label": "Lender Credits",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "subject_property.census_tract",
+    "label": "Census Tract",
+    "type": "string",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "subject_property.construction_method",
+    "label": "Construction Method",
+    "type": "enum",
+    "enum": [
+      "site_built",
+      "manufactured_home"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "subject_property.manufactured_home_secured_property_type",
+    "label": "Manufactured Home Secured Property Type",
+    "type": "enum",
+    "enum": [
+      "manufactured_home_and_land",
+      "manufactured_home_not_land",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "subject_property.manufactured_home_land_property_interest",
+    "label": "Manufactured Home Land Property Interest",
+    "type": "enum",
+    "enum": [
+      "direct_ownership",
+      "indirect_ownership",
+      "paid_leasehold",
+      "unpaid_leasehold",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "subject_property.multifamily_affordable_units",
+    "label": "Multifamily Affordable Units",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "hmda.income",
+    "label": "Income",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "demographics.ethnicity_1",
+    "label": "Ethnicity 1",
+    "type": "enum",
+    "enum": [
+      "hispanic_or_latino",
+      "mexican",
+      "puerto_rican",
+      "cuban",
+      "other_hispanic_or_latino",
+      "not_hispanic_or_latino",
+      "not_provided",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "borrower"
+  },
+  {
+    "path": "demographics.ethnicity_2",
+    "label": "Ethnicity 2",
+    "type": "enum",
+    "enum": [
+      "mexican",
+      "puerto_rican",
+      "cuban",
+      "other_hispanic_or_latino"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "borrower"
+  },
+  {
+    "path": "demographics.race_1",
+    "label": "Race 1",
+    "type": "enum",
+    "enum": [
+      "american_indian_or_alaska_native",
+      "asian",
+      "asian_indian",
+      "chinese",
+      "filipino",
+      "japanese",
+      "korean",
+      "vietnamese",
+      "other_asian",
+      "black_or_african_american",
+      "native_hawaiian_or_other_pacific_islander",
+      "native_hawaiian",
+      "guamanian_or_chamorro",
+      "samoan",
+      "other_pacific_islander",
+      "white",
+      "not_provided",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "borrower"
+  },
+  {
+    "path": "demographics.race_2",
+    "label": "Race 2",
+    "type": "enum",
+    "enum": [
+      "american_indian_or_alaska_native",
+      "asian",
+      "asian_indian",
+      "chinese",
+      "filipino",
+      "japanese",
+      "korean",
+      "vietnamese",
+      "other_asian",
+      "black_or_african_american",
+      "native_hawaiian_or_other_pacific_islander",
+      "native_hawaiian",
+      "guamanian_or_chamorro",
+      "samoan",
+      "other_pacific_islander",
+      "white"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "borrower"
+  },
+  {
+    "path": "demographics.sex_detail",
+    "label": "Sex Detail",
+    "type": "enum",
+    "enum": [
+      "male",
+      "female",
+      "not_provided",
+      "not_applicable"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "borrower"
   }
 ];
 

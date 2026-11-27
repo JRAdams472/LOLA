@@ -1,6 +1,6 @@
 {
   "version": "mismo-3.4-subset",
-  "note": "Field catalog \u00e2\u20ac\u201d canonical path \u00e2\u2020\u2019 MISMO XML path \u00e2\u2020\u2019 ULDD field \u00e2\u2020\u2019 piiClass \u00e2\u2020\u2019 index(none|ciphertext|blind) \u00e2\u2020\u2019 validation \u00e2\u2020\u2019 trid. The single truth for the model, validator, and both mappers.",
+  "note": "Field catalog â€” canonical path â†’ MISMO XML path â†’ ULDD field â†’ piiClass â†’ index(none|ciphertext|blind) â†’ validation â†’ trid. The single truth for the model, validator, and both mappers.",
   "fields": [
     {
       "path": "loan_amount",
@@ -766,6 +766,297 @@
       "type": "bool",
       "required": false,
       "core": false
+    },
+    {
+      "path": "hmda.action_taken",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "ulddField": "HMDA/ActionTaken",
+      "enum": [
+        "originated",
+        "approved_not_accepted",
+        "denied",
+        "withdrawn",
+        "incomplete",
+        "purchased",
+        "preapproval_denied",
+        "preapproval_approved_not_accepted"
+      ]
+    },
+    {
+      "path": "hmda.action_taken_date",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "hmda.submission_of_application",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "ulddField": "HMDA/SubmissionType",
+      "enum": [
+        "directly",
+        "not_directly",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "hmda.initially_payable_to",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "ulddField": "HMDA/InitiallyPayableToYourInstitution",
+      "enum": [
+        "your_institution",
+        "not_your_institution",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "loan.reverse_mortgage",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "loan.open_end_line_of_credit",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "loan.business_or_commercial_purpose",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "path": "loan.interest_only_payment",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "path": "loan.balloon_payment",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "path": "loan.negative_amortization",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "path": "loan.other_nonamortizing_features",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "path": "loan.prepayment_penalty_term_months",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.intro_rate_period_months",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.origination_charges",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.discount_points",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "loan.lender_credits",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "subject_property.census_tract",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "subject_property.construction_method",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "site_built",
+        "manufactured_home"
+      ]
+    },
+    {
+      "path": "subject_property.manufactured_home_secured_property_type",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "manufactured_home_and_land",
+        "manufactured_home_not_land",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "subject_property.manufactured_home_land_property_interest",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "direct_ownership",
+        "indirect_ownership",
+        "paid_leasehold",
+        "unpaid_leasehold",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "subject_property.multifamily_affordable_units",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "hmda.income",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "demographics.ethnicity_1",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "hispanic_or_latino",
+        "mexican",
+        "puerto_rican",
+        "cuban",
+        "other_hispanic_or_latino",
+        "not_hispanic_or_latino",
+        "not_provided",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "demographics.ethnicity_2",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "mexican",
+        "puerto_rican",
+        "cuban",
+        "other_hispanic_or_latino"
+      ]
+    },
+    {
+      "path": "demographics.race_1",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "american_indian_or_alaska_native",
+        "asian",
+        "asian_indian",
+        "chinese",
+        "filipino",
+        "japanese",
+        "korean",
+        "vietnamese",
+        "other_asian",
+        "black_or_african_american",
+        "native_hawaiian_or_other_pacific_islander",
+        "native_hawaiian",
+        "guamanian_or_chamorro",
+        "samoan",
+        "other_pacific_islander",
+        "white",
+        "not_provided",
+        "not_applicable"
+      ]
+    },
+    {
+      "path": "demographics.race_2",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "american_indian_or_alaska_native",
+        "asian",
+        "asian_indian",
+        "chinese",
+        "filipino",
+        "japanese",
+        "korean",
+        "vietnamese",
+        "other_asian",
+        "black_or_african_american",
+        "native_hawaiian_or_other_pacific_islander",
+        "native_hawaiian",
+        "guamanian_or_chamorro",
+        "samoan",
+        "other_pacific_islander",
+        "white"
+      ]
+    },
+    {
+      "path": "demographics.sex_detail",
+      "type": "enum",
+      "required": false,
+      "core": false,
+      "enum": [
+        "male",
+        "female",
+        "not_provided",
+        "not_applicable"
+      ]
     }
   ]
 }
