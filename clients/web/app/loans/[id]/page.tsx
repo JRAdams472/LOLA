@@ -35,8 +35,10 @@ import TridCountdown from "@/components/TridCountdown";
 import FieldInput from "@/components/FieldInput";
 import RevealDialog from "@/components/RevealDialog";
 import AtrQmPanel from "@/components/AtrQmPanel";
+import HmdaPanel from "@/components/HmdaPanel";
 import RespaPanel from "@/components/RespaPanel";
 import { useAtr, useEvaluateAtr } from "@/lib/atr";
+import { exportUrl, useAssembleLar, useFreezeSnapshot, useHmda } from "@/lib/hmda";
 import {
   useMarkNoticeReceived,
   useMarkNoticeSent,
@@ -61,7 +63,7 @@ import {
 import { FIELD_MAP, fieldsFor, SECTIONS, type SectionId } from "@/lib/field-map";
 import { getPath, setPath, type Doc } from "@/lib/doc";
 
-type TabId = SectionId | "steps" | "audit" | "atr" | "respa";
+type TabId = SectionId | "steps" | "audit" | "atr" | "respa" | "hmda";
 
 /// Loan workspace — tabbed catalog-driven 1003. The doc arrives masked
 /// per the caller's visibility (DocMasker); editable while `draft`, and
@@ -87,6 +89,9 @@ export default function LoanWorkspacePage() {
   const recordTransfer = useRecordTransfer(tid, appId);
   const markNoticeSent = useMarkNoticeSent(tid, appId);
   const markNoticeReceived = useMarkNoticeReceived(tid, appId);
+  const hmda = useHmda(tid, appId, isStaff && tab === "hmda");
+  const assembleLar = useAssembleLar(tid, appId);
+  const freezeSnapshot = useFreezeSnapshot(tid);
   const [transferOpen, setTransferOpen] = useState(false);
   const patchDraft = usePatchDraft(tid, appId);
   const submit = useSubmit(tid, appId);
@@ -303,6 +308,7 @@ export default function LoanWorkspacePage() {
           {isStaff && <Tab value="audit" label="Audit" />}
           {isStaff && <Tab value="atr" label="ATR/QM" />}
           {isStaff && <Tab value="respa" label="RESPA" />}
+          {isStaff && <Tab value="hmda" label="HMDA" />}
         </Tabs>
 
         {SECTIONS.map(
@@ -483,6 +489,30 @@ export default function LoanWorkspacePage() {
                   }
                 />
               </>
+            )}
+          </Box>
+        )}
+
+        {tab === "hmda" && isStaff && (
+          <Box sx={{ p: 2 }}>
+            {hmda.isLoading && <Skeleton variant="rectangular" height={120} />}
+            {hmda.isError && <ErrorPanel title="HMDA posture failed" error={hmda.error} />}
+            {hmda.isSuccess && (
+              <HmdaPanel
+                report={hmda.data}
+                canAct={isStaff}
+                assemblePending={assembleLar.isPending}
+                freezePending={freezeSnapshot.isPending}
+                onAssemble={() => assembleLar.mutate()}
+                onExport={() => {
+                  const year = hmda.data?.latest?.reportingYear;
+                  if (tid && year) window.open(exportUrl(tid, year), "_blank");
+                }}
+                onFreeze={() => {
+                  const year = hmda.data?.latest?.reportingYear;
+                  if (year) freezeSnapshot.mutate(year);
+                }}
+              />
             )}
           </Box>
         )}

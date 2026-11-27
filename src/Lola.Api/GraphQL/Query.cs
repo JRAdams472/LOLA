@@ -196,6 +196,17 @@ public class Query(IMessageBus bus)
                 tenantId, appId, actor, scope), ct);
     }
 
+    public Task<Lola.Application.Compliance.HmdaReportDto?> Hmda(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff)
+            return Task.FromResult<Lola.Application.Compliance.HmdaReportDto?>(null);
+        return bus.InvokeAsync<Lola.Application.Compliance.HmdaReportDto?>(
+            new Lola.Application.Compliance.GetApplicationHmdaQuery(
+                tenantId, appId, actor, scope), ct);
+    }
+
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
