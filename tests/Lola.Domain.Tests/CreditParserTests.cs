@@ -116,6 +116,17 @@ public class CreditParserTests
         Assert.False(outcome.Ok);
     }
 
+    [Fact]
+    public void Unknown_rating_vocabulary_never_maps_to_current()
+    {
+        // An unrecognized bureau rating code must not masquerade as
+        // "current" — that could hide delinquency in worst-status
+        // merging.
+        Assert.Null(CreditResponseParser.MapRating("some-new-code"));
+        Assert.Equal("current", CreditResponseParser.MapRating("AsAgreed"));
+        Assert.Equal("90", CreditResponseParser.MapRating("Late90Days"));
+    }
+
     // —— AVM —————————————————————————————————————————————————————————
 
     [Fact]

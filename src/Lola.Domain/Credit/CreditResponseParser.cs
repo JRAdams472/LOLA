@@ -118,7 +118,10 @@ public static class CreditResponseParser
             _ => "other",
         };
 
-    internal static string MapRating(string? ratingType) =>
+    /// Unknown rating vocabulary maps to null — never to "current":
+    /// guessing current for an unrecognized code could mask a real
+    /// delinquency in worst-status merging.
+    public static string? MapRating(string? ratingType) =>
         ratingType?.ToLowerInvariant() switch
         {
             null or "asagreed" or "current" => "current",
@@ -128,7 +131,7 @@ public static class CreditResponseParser
             "late120days" => "120",
             "collection" => "collection",
             "chargeoff" => "chargeoff",
-            _ => "current",
+            _ => null,
         };
 
     /// Explicit adverse ratings are the unambiguous delinquency
