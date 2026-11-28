@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2015 rel. 3 (x64) (http://www.altova.com) by Technology Installations (FANNIE MAE) -->
+<!-- Fannie Mae DU ULAD Extension File -->
+<xsd:schema xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:DU="http://www.datamodelextension.org/Schema/DU" xmlns:mismo="http://www.mismo.org/residential/2009/schemas" targetNamespace="http://www.datamodelextension.org/Schema/DU" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:import namespace="http://www.mismo.org/residential/2009/schemas" schemaLocation="../../mismo/MISMO_3.4.0_B324.xsd"/>
+	<xsd:import namespace="http://www.w3.org/1999/xlink" schemaLocation="../../mismo/xlinkMISMOB324.xsd"/>
+	<xsd:group name="grpLOAN_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="LOAN_DETAIL_EXTENSION" type="DU:LOAN_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:complexType name="LOAN_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:group name="grpCREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION" type="DU:CREDIT_REQUEST_DATA_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+		<xsd:complexType name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:group name="grpSERVICE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="SERVICE_EXTENSION" type="DU:SERVICE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+		<xsd:complexType name="SERVICE_EXTENSION">
+		<xsd:sequence>
+			<xsd:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:group name="grpEXPENSE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="EXPENSE_EXTENSION" type="DU:EXPENSE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+		<xsd:complexType name="EXPENSE_EXTENSION">
+		<xsd:sequence>
+			<xsd:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+		
+	<xsd:group name="grpPAYMENT_RULE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PAYMENT_RULE_EXTENSION" type="DU:PAYMENT_RULE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+		<xsd:complexType name="PAYMENT_RULE_EXTENSION">
+		<xsd:sequence>
+			<xsd:any namespace="##any" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:group name="grpPROPERTY_VALUATION_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PROPERTY_VALUATION_DETAIL_EXTENSION" type="DU:PROPERTY_VALUATION_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:complexType name="PROPERTY_VALUATION_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PropertyDataIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>A unique alphanumeric string identifying a Property Data Report as assigned by Freddie Mac.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

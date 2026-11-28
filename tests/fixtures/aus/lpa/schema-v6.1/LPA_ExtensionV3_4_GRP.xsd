@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by FREDDIE MAC (FREDDIE MAC) -->
+<!-- Freddie Mac LPA V5.0 Extension Schema File -->
+<!-- LPA Specification 5.4.00  DISTRO_ID  7     -->
+<xsd:schema xmlns:mismo="http://www.mismo.org/residential/2009/schemas" xmlns:xlink="http://www.w3.org/1999/xlink" 
+       xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:lpa="http://www.datamodelextension.org/Schema/LPA" 
+       xmlns:ULAD="http://www.datamodelextension.org/Schema/ULAD" 
+       targetNamespace="http://www.datamodelextension.org/Schema/LPA" elementFormDefault="qualified" 
+       attributeFormDefault="unqualified">
+	<xsd:include schemaLocation="LPA_ExtensionV3_4.xsd"/>
+	<xsd:group name="grpASSET_SUMMARY_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="ASSET_SUMMARY_EXTENSION" type="lpa:ASSET_SUMMARY_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpASSET_DOCUMENTATION_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="ASSET_DOCUMENTATION_EXTENSION" type="lpa:ASSET_DOCUMENTATION_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpASSET_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="ASSET_EXTENSION" type="lpa:ASSET_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpVERIFICATION_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="VERIFICATION_EXTENSION" type="lpa:VERIFICATION_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpEXPENSE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="EXPENSE_EXTENSION" type="lpa:EXPENSE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpLIABILITY_SUMMARY_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="LIABILITY_SUMMARY_EXTENSION" type="lpa:LIABILITY_SUMMARY_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpDOWN_PAYMENTS_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="DOWN_PAYMENTS_EXTENSION" type="lpa:DOWN_PAYMENTS_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpAFFORDABLE_LENDING_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="AFFORDABLE_LENDING_EXTENSION" type="lpa:AFFORDABLE_LENDING_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpHOUSING_EXPENSE_SUMMARY_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="HOUSING_EXPENSE_SUMMARY_EXTENSION" type="lpa:HOUSING_EXPENSE_SUMMARY_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpLOAN_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="LOAN_DETAIL_EXTENSION" type="lpa:LOAN_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpLOAN_LEVEL_CREDIT_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="LOAN_LEVEL_CREDIT_DETAIL_EXTENSION" type="lpa:LOAN_LEVEL_CREDIT_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpQUALIFICATION_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="QUALIFICATION_EXTENSION" type="lpa:QUALIFICATION_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpPAYMENT_RULE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PAYMENT_RULE_EXTENSION" type="lpa:PAYMENT_RULE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpTERMS_OF_LOAN_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="TERMS_OF_LOAN_EXTENSION" type="lpa:TERMS_OF_LOAN_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpAUTOMATED_UNDERWRITING_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="AUTOMATED_UNDERWRITING_EXTENSION" type="lpa:AUTOMATED_UNDERWRITING_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpCURRENT_INCOME_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="CURRENT_INCOME_DETAIL_EXTENSION" type="lpa:CURRENT_INCOME_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpCURRENT_INCOME_ITEM_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="CURRENT_INCOME_ITEM_EXTENSION" type="lpa:CURRENT_INCOME_ITEM_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpAUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION" 
+			type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpCREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION" type="lpa:CREDIT_REQUEST_DATA_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpCREDIT_SCORE_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="CREDIT_SCORE_DETAIL_EXTENSION" type="lpa:CREDIT_SCORE_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpSERVICE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="SERVICE_EXTENSION" type="lpa:SERVICE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpDEAL_SET_SERVICE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="DEAL_SET_SERVICE_EXTENSION" type="lpa:DEAL_SET_SERVICE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpPROPERTY_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PROPERTY_DETAIL_EXTENSION" type="lpa:PROPERTY_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpPROJECT_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PROJECT_DETAIL_EXTENSION" type="lpa:PROJECT_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpDEED_RESTRICTION_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="DEED_RESTRICTION_EXTENSION" type="lpa:DEED_RESTRICTION_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpASSET_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="ASSET_DETAIL_EXTENSION" type="lpa:ASSET_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpPROPERTY_VALUATION_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="PROPERTY_VALUATION_DETAIL_EXTENSION" type="lpa:PROPERTY_VALUATION_DETAIL_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+	<xsd:group name="grpERROR_MESSAGE_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="ERROR_MESSAGE_EXTENSION" type="lpa:ERROR_MESSAGE_EXTENSION"/>
+		</xsd:sequence>
+	</xsd:group>
+</xsd:schema>

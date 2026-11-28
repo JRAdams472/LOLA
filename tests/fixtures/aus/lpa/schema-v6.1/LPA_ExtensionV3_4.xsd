@@ -1,0 +1,2857 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by  FREDDIE MAC (FREDDIE MAC) -->
+<!-- Freddie Mac LPA V5.0 Extension Schema File -->
+<!-- LPA Specification 5.3.00  DISTRO_ID  6    ADU Data -->
+<xsd:schema xmlns:mismo="http://www.mismo.org/residential/2009/schemas" xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:lpa="http://www.datamodelextension.org/Schema/LPA"
+            xmlns:ULAD="http://www.datamodelextension.org/Schema/ULAD"
+            targetNamespace="http://www.datamodelextension.org/Schema/LPA" elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+    <xsd:import namespace="http://www.mismo.org/residential/2009/schemas" schemaLocation="../../mismo/MISMO_3.4.0_B324.xsd"/>
+    <xsd:import namespace="http://www.w3.org/1999/xlink" schemaLocation="../../mismo/xlinkMISMOB324.xsd"/>
+
+    <xsd:element name="ASSET_SUMMARY_EXTENSION" type="lpa:ASSET_SUMMARY_EXTENSION"/>
+    <xsd:element name="ASSET_DOCUMENTATION_EXTENSION" type="lpa:ASSET_DOCUMENTATION_EXTENSION"/>
+    <xsd:element name="ASSET_EXTENSION" type="lpa:ASSET_EXTENSION"/>
+    <xsd:element name="VERIFICATION_EXTENSION" type="lpa:VERIFICATION_EXTENSION"/>
+    <xsd:element name="EXPENSE_EXTENSION" type="lpa:EXPENSE_EXTENSION"/>
+    <xsd:element name="LIABILITY_SUMMARY_EXTENSION" type="lpa:LIABILITY_SUMMARY_EXTENSION"/>
+    <xsd:element name="DOWN_PAYMENTS_EXTENSION" type="lpa:DOWN_PAYMENTS_EXTENSION"/>
+    <xsd:element name="HOUSING_EXPENSE_SUMMARY_EXTENSION" type="lpa:HOUSING_EXPENSE_SUMMARY_EXTENSION"/>
+    <xsd:element name="LOAN_DETAIL_EXTENSION" type="lpa:LOAN_DETAIL_EXTENSION"/>
+    <xsd:element name="LOAN_LEVEL_CREDIT_DETAIL_EXTENSION" type="lpa:LOAN_LEVEL_CREDIT_DETAIL_EXTENSION"/>
+    <xsd:element name="QUALIFICATION_EXTENSION" type="lpa:QUALIFICATION_EXTENSION"/>
+    <xsd:element name="PAYMENT_RULE_EXTENSION" type="lpa:PAYMENT_RULE_EXTENSION"/>
+    <xsd:element name="TERMS_OF_LOAN_EXTENSION" type="lpa:TERMS_OF_LOAN_EXTENSION"/>
+    <xsd:element name="AUTOMATED_UNDERWRITING_EXTENSION" type="lpa:AUTOMATED_UNDERWRITING_EXTENSION"/>
+    <xsd:element name="CURRENT_INCOME_DETAIL_EXTENSION" type="lpa:CURRENT_INCOME_DETAIL_EXTENSION"/>
+    <xsd:element name="CURRENT_INCOME_ITEM_EXTENSION" type="lpa:CURRENT_INCOME_ITEM_EXTENSION"/>
+    <xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION"
+                 type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION"/>
+    <xsd:element name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION" type="lpa:CREDIT_REQUEST_DATA_DETAIL_EXTENSION"/>
+    <xsd:element name="CREDIT_SCORE_DETAIL_EXTENSION" type="lpa:CREDIT_SCORE_DETAIL_EXTENSION"/>
+    <xsd:element name="SERVICE_EXTENSION" type="lpa:SERVICE_EXTENSION"/>
+    <xsd:element name="DEAL_SET_SERVICE_EXTENSION" type="lpa:DEAL_SET_SERVICE_EXTENSION"/>
+	<xsd:element name="PROPERTY_DETAIL_EXTENSION" type="lpa:PROPERTY_DETAIL_EXTENSION"/>
+    <xsd:element name="DEED_RESTRICTION_EXTENSION" type="lpa:DEED_RESTRICTION_EXTENSION"/>
+    <xsd:element name="AFFORDABLE_LENDING_EXTENSION" type="lpa:AFFORDABLE_LENDING_EXTENSION"/>
+    <xsd:element name="PROJECT_DETAIL_EXTENSION" type="lpa:PROJECT_DETAIL_EXTENSION"/>
+    <xsd:element name="ASSET_DETAIL_EXTENSION" type="lpa:ASSET_DETAIL_EXTENSION"/>
+    <xsd:element name="PROPERTY_VALUATION_DETAIL_EXTENSION" type="lpa:PROPERTY_VALUATION_DETAIL_EXTENSION"/>
+    <xsd:element name="ERROR_MESSAGE_EXTENSION" type="lpa:ERROR_MESSAGE_EXTENSION"/>
+
+    <xsd:complexType name="ASSET_SUMMARY_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="TotalAssetDeficitAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total dollar amount insufficient to meet total funds to be verified based on
+                        the third party asset validation.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalEligibleAssetsAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total of all assets for all borrowers reported on an the URLA.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalFundsToBeVerifiedAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total funds from the borrower’s total eligible assets that need to be
+                        verified by the Seller.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalThirdPartyAssetValidationAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total dollar amount of verified assets as determined by a third party
+                        vailidation.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="ASSET_DOCUMENTATION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AssetDocumentDate" type="mismo:MISMODate" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The date of the asset document indicated by Asset Document Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="ASSET_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="ASSET_TRANSACTIONS" type="lpa:ASSET_TRANSACTIONS" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="ASSET_TRANSACTIONS">
+        <xsd:sequence>
+            <xsd:element name="ASSET_TRANSACTION" type="lpa:ASSET_TRANSACTION" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="ASSET_TRANSACTION">
+        <xsd:sequence>
+            <xsd:element name="AssetTransactionAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The dollar amount of the transaction associated with the asset.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AssetTransactionDate" type="mismo:MISMODate" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The date associated with the transaction on the asset account.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AssetTransactionDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field describing the asset transaction.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+            <xsd:annotation>
+                <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The
+                    value must be unique for each sibling element.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="VERIFICATION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DuplicateIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that the asset is a duplicate to another asset.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="VerificationReportExpirationDate" type="mismo:MISMODate" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The date when the verification report expires.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="VerificationReportIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The unique identifier associated wiith the verification report.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="VerificationVendorName" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>An unstructured name that identifies the verification vendor.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="EXPENSE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="ExpenseExclusionIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, Indicates the expense is to be excluded from inclusion in calculations
+                        associated with processing the loan.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LIABILITY_SUMMARY_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="TotalLiabilitiesPartiallyPaidOffAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total amount of all liabilities to be partially paid off to complete the real
+                        estate transaction.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOWN_PAYMENTS_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DOWN_PAYMENT_SUMMARY" type="lpa:DOWN_PAYMENT_SUMMARY" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOWN_PAYMENT_SUMMARY">
+        <xsd:sequence>
+            <xsd:element name="TotalDownPaymentAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The dollar amount of all funds supplied by all borrowers for a down payment.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="HOUSING_EXPENSE_SUMMARY_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="NonOccupantBorrowerHousingExpensePresentTotalMonthlyPaymentAmount"
+                         type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total monthly amount of all present housing expenses for non-occupant
+                        borrowers.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LOAN_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AffordableLoanTotalSubordinateFinancingAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        The total amount of subordinate financing associated with an affordable loan program.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="EnergyImprovementAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        The dollar amount of a repair or improvement which will increase the energy efficiency of the building.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalSubordinateFinancingProceedsAppliedAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total of the subordinate loan proceeds used for the mortgage transaction.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LOAN_LEVEL_CREDIT_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="BorrowerCreditScoresFirstExpirationDate" type="mismo:MISMODate" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The date of the first occurring credit report expiration date across all
+                        borrowers.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="CreditRepositorySourceType" type="mismo:CreditRepositorySourceEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>This element describes the source of the credit file, Equifax, Experian, Trans
+                        Union or Unspecified if the specific sources are not specified.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DecisionBorrowerName" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>An unstructured name that identifies the borrower on whose credit history the
+                        automated underwriting evaluation was based.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="PAYMENT_RULE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="PaymentDeferredFirstFiveYearsIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that the principal and interest payment on the loan is not
+                        due for the first five or more years following the note date.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="QUALIFICATION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="CalculatedQualifyingInterestRatePercent" type="mismo:MISMOPercent" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The rate used to calculate the borrowers payment (PITI)
+                        to qualify the borrower for the subject mortgage.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="OccupantBorrowersHousingExpenseRatioPercent" type="mismo:MISMOPercent" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A portion of 100 that represents the ratio of the proposed monthly housing
+                        expenses to the qualifying income of the occupant borrowers as per lender or investor
+                        guidelines.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="OccupantBorrowersTotalDebtExpenseRatioPercent" type="mismo:MISMOPercent" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A portion of 100 that represents the ratio of all monthly debt payments,
+                        including proposed housing expenses, to the income of the occupant borrowers as per lender or
+                        investor guidelines.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="NonOccupantBorrowersTotalNonHousingLiablitiesMonthlyPaymentAmount"
+                         type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total non-housing monthly liabilities for all non-occupant borrowers on the
+                        loan.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalAssessedMonthlyIncomeAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total assessed monthly qualifying income for all borrowers on the loan.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalRequiredFundsAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total amount of borrower funds to be used to purchase or finance the
+                        property, per investor guidelines.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalRequiredReservesAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total amount of borrower reserves required by investor guidelines.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalMonthlyResidualIncomeAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total amount of remaining monthly income for all  Borrowers, as determined
+                        by subtracting the Borrowers' monthly housing and non-housing expenses from their net
+                        (take home) monthly incomes.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="TERMS_OF_LOAN_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="ResubordinatingLiabilitiesIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that one or more liabilities on the subject property will be
+                        re-subordinated to the subject loan after closing.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AMinusCautionFeeLevelDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A description of A-Minus/Caution fees that will be incurred by the seller at
+                        delivery.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AssetRepresentationAndWarrantyReliefEligibilityType"
+                         type="lpa:AssetRepresentationAndWarrantyReliefEligibilityTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a prescribed list that specifies the eligibility of the loan for
+                        asset representation and warranty relief.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AutomatedUnderwritingFirstSubmissionDate" type="mismo:MISMODate" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The date a request for automated underwriting for a loan application is
+                        first submitted to the automated underwriting system.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AutomatedUnderwritingSubmissionCount" type="mismo:MISMOCount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The number of times a loan application has been submitted to an automated
+                        underwriting system.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="CollateralRepresentationAndWarrantyReliefEligibilityType"
+                         type="lpa:CollateralRepresentationAndWarrantyReliefEligibilityTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a prescribed list that describes the eligibility of the subject
+                        property for collateral representationi and warranty relief.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="CollateralRepresentationAndWarrantyReliefDescription" type="mismo:MISMOString"
+                         minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to further describe the minimum type of property
+                        valuation used to determine collateral representation and warranty relief.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="FHA_TOTALMortgageScorecardIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that the underwriting score returned by the AUS was
+                        determined using FHA's TOTAL Scorecard algorithm.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="IncomeRepresentationAndWarrantyReliefEligibilityType"
+                         type="lpa:IncomeRepresentationAndWarrantyReliefEligibilityTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a prescribed list that specifies the eligibility of the loan for
+                        income representation and warranty relief.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="LPAServiceEngineTransactionIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The unique Loan Product Advisor service engine transaction identifier. Changes
+                        with each transaction.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="LPATransactionIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A Loan Product Advisor generated number that identifies a unique instance, or
+                        transaction, for the loan.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="EmploymentRepresentationAndWarrantyReliefEligibilityType" type="lpa:EmploymentRepresentationAndWarrantyReliefEligibilityTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a prescribed list that specifies the eligibility of the loan for employment representation and warranty relief.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="CURRENT_INCOME_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AlimonyIncomeReductionAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The monthly amount of alimony that the lender chooses to treat as a reduction in
+                        the borrower's monthly gross income rather than a debt obligation.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TotalAssessedBorrowerMonthlyIncomeAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total assessed amount of the individual gross monthly income from all sources
+                        on an instance of the URLA for a borrower.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="CURRENT_INCOME_ITEM_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="CURRENT_INCOME_ITEM_VERIFICATIONS" type="lpa:CURRENT_INCOME_ITEM_VERIFICATIONS"
+                         minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="CURRENT_INCOME_ITEM_VERIFICATIONS">
+        <xsd:sequence>
+            <xsd:element name="CURRENT_INCOME_ITEM_VERIFICATION" type="lpa:CURRENT_INCOME_ITEM_VERIFICATION"
+                         minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="CURRENT_INCOME_ITEM_VERIFICATION">
+        <xsd:sequence>
+            <xsd:element name="AssessedIncomeMonthlyAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The assessed dollar amount per month of the borrowers current income associated
+                        with Income Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ComponentIncomeRepresentationAndWarrantyDecisionIndicator" type="mismo:MISMOIndicator"
+                         minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that the given income type and associated income amount was
+                        used in the income representation and warranty decision.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DataProviderName" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The unstructured name that identifies the entity providing the data.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DocumentationClassificationDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to describe the how the documentation is
+                        categorized.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="IncomeDataSourceType" type="lpa:IncomeDataSourceTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a prescribed list that specifies the source of information used to
+                        validate the income amount.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="IncomeSourceName" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The unstructured name of the income source (i.e.employer name) as reported by the
+                        Income Data Source Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+            <xsd:annotation>
+                <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The
+                    value must be unique for each sibling element.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_DETAIL"
+                         type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_DETAIL" minOccurs="0"/>
+            <xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEMS"
+                         type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEMS" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_DETAIL">
+        <xsd:sequence>
+            <xsd:element name="AutomatedUnderwritingSystemMessageGroupType"
+                         type="lpa:AutomatedUnderwritingSystemMessageGroupTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a defined list that identifies a category of feedback messages.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEMS">
+        <xsd:sequence>
+            <xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM"
+                         type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM" minOccurs="0"
+                         maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM">
+        <xsd:sequence>
+            <xsd:element name="AutomatedUnderwritingSystemMessageDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to describe the message and review rules returned by
+                        the AUS scoring of the loan submission.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AutomatedUnderwritingSystemMessageSectionIdentifier" type="mismo:MISMOIdentifier"
+                         minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string identifying the section of the message returned by
+                        the AUS scoring of the loan submission.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AutomatedUnderwritingSystemMessageValue" type="mismo:MISMOValue" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The message and the review rules derived during the loan validation process by
+                        the AUS.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DYNAMIC_DATA_GROUPS" type="lpa:DynamicDataGroups" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Information about one or more DYNAMIC_DATA_GROUP. Holds all occurrences of DYNAMIC_DATA_GROUP.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="METADATA" type="lpa:Metadata" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>METADATA holds containers providing information about an action required by the feedback message.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="EXTENSION" type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Parent container to hold LPA message item extension.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+            <xsd:annotation>
+                <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The
+                    value must be unique for each sibling element.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="OTHER" type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION_OTHER" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Container to hold LPA message item extension.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION_OTHER">
+        <xsd:sequence>
+            <xsd:element name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION" type="lpa:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION_OTHER_MESSAGE_ITEM_EXTENSION" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Container to hold LPA message item extensions.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM_EXTENSION_OTHER_MESSAGE_ITEM_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="AutomatedUnderwritingSystemMessageActionDescription" type="xsd:string" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string indicating potential actions that users could take in response to a feedback message.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AutomatedUnderwritingSystemMessageCriticalityDescription" type="xsd:string" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>lpa:AutomatedUnderwritingSystemMessageCriticalityDescription</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="CreditReportVendorIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The credit reporting company code representing the organization from which the
+                        merged credit report is ordered.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="CreditReportVendorTechnicalAffiliateIdentifier" type="mismo:MISMOIdentifier"
+                         minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The credit report vendor technical affiliate company code.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="CREDIT_SCORE_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="SelectedCreditScoreIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates the Borrower, credit score value, credit bureau, and credit
+                        repository used to develop the AutomatedUnderwritingRecommendationDescription.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="SERVICE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DOCUMENT_PREPARATION" type="lpa:DOCUMENT_PREPARATION" minOccurs="0"/>
+            <xsd:element name="LOAN_TRANSFER" type="lpa:LOAN_TRANSFER" minOccurs="0"/>
+            <xsd:element name="SERVICE_DETAIL" type="lpa:SERVICE_DETAIL" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOCUMENT_PREPARATION">
+        <xsd:sequence>
+            <xsd:element name="DOCUMENT_PREPARATION_REQUESTS" type="lpa:DOCUMENT_PREPARATION_REQUESTS" minOccurs="0"/>
+            <xsd:element name="DOCUMENT_PREPARATION_RESPONSES" type="lpa:DOCUMENT_PREPARATION_RESPONSES" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOCUMENT_PREPARATION_REQUESTS">
+        <xsd:sequence>
+            <xsd:element name="DOCUMENT_PREPARATION_REQUEST" type="lpa:DOCUMENT_PREPARATION_REQUEST" minOccurs="0"
+                         maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOCUMENT_PREPARATION_REQUEST">
+        <xsd:sequence>
+            <xsd:element name="RequestedDocumentIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string assigned to a loan by LPA each time the loan is
+                        submitted for assessment.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="RequestedDocumentVendorIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string assigned to a loan by LPA each time the loan is
+                        submitted for assessment.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+            <xsd:annotation>
+                <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The
+                    value must be unique for each sibling element.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOCUMENT_PREPARATION_RESPONSES">
+        <xsd:sequence>
+            <xsd:element name="DOCUMENT_PREPARATION_RESPONSE" type="lpa:DOCUMENT_PREPARATION_RESPONSE" minOccurs="0"
+                         maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DOCUMENT_PREPARATION_RESPONSE">
+        <xsd:sequence>
+            <xsd:element name="RequestedDocumentType" type="lpa:RequestedDocumentTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a Freddie Mac prescribed list that specifies the response format
+                        type for the service or product being requested.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="RequestedPDFIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, a PDF format of the associated Requested Document Type has been
+                        requested to be returned.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="RequestedXMLIndicator" type="mismo:MISMOIndicator" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, an XML format of the associated Requested Document Type has been
+                        requested to be returned.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LOAN_TRANSFER">
+        <xsd:sequence>
+            <xsd:element name="LOAN_TRANSFER_RESPONSE" type="lpa:LOAN_TRANSFER_RESPONSE" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LOAN_TRANSFER_RESPONSE">
+        <xsd:sequence>
+            <xsd:element name="LOAN_TRANSFER_RESPONSE_DETAIL" type="lpa:LOAN_TRANSFER_RESPONSE_DETAIL" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="LOAN_TRANSFER_RESPONSE_DETAIL">
+        <xsd:sequence>
+            <xsd:element name="LoanAssignmentStatusType" type="lpa:LoanAssignmentStatusTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a defined list that represents the status of the assignment of a
+                        loan from one entity to another.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="SERVICE_DETAIL">
+        <xsd:sequence>
+            <xsd:element name="ServiceType" type="lpa:ServiceTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a MISMO prescribed list that specifies the type of service being
+                        defined under the SERVICE element.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ServiceTypeOtherDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to collect additional information when Other is
+                        selected for Service Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DEAL_SET_SERVICE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DEAL_SET_SERVICE_DETAIL" type="lpa:DEAL_SET_SERVICE_DETAIL" minOccurs="0"/>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="DEAL_SET_SERVICE_DETAIL">
+        <xsd:sequence>
+            <xsd:element name="AsynchronousIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A Freddie Mac generated number that is used to promote asynchronous polling to
+                        Loan Product Advisor.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="FunctionRequestType" type="lpa:FunctionRequestTypeEnum" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The types of function available within Loan Product Advisor System-to-System.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="FunctionRequestTypeOtherDescription" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to collect additional information when Other is
+                        selected for LPA Function Request Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="PollingIntervalValue" type="mismo:MISMOValue" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The specific value of the time interval after which the customer application
+                        should poll an application to retrieve outstanding feedback.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+            <xsd:annotation>
+                <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+        <xsd:attributeGroup ref="mismo:AttributeExtension">
+            <xsd:annotation>
+                <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                    attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute
+                    group.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attributeGroup>
+    </xsd:complexType>
+    <xsd:complexType name="AssetRepresentationAndWarrantyReliefEligibilityTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Asset Representation And Warranty Relief Eligibility Type Definition - A value from
+                a prescribed list that specifies the eligibility of the loan for asset representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:AssetRepresentationAndWarrantyReliefEligibilityTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="AssetRepresentationAndWarrantyReliefEligibilityTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Asset Representation And Warranty Relief Eligibility Type Definition - A value from
+                a prescribed list that specifies the eligibility of the loan for asset representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Eligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="NotEligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Partial">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Unavailable">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="AutomatedUnderwritingSystemMessageGroupTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Automated Underwriting System Message Group Type Definition - A value from a
+                defined list that identifies a category of feedback messages.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:AutomatedUnderwritingSystemMessageGroupTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="AutomatedUnderwritingSystemMessageGroupTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Automated Underwriting System Message Group Type Definition - A value from a
+                defined list that identifies a category of feedback messages.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="DocumentationMessages">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="LoanProcessingMessages">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="CollateralRepresentationAndWarrantyReliefEligibilityTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Collateral Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that describes the eligibility of the subject property for collateral
+                representation and warranty relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:CollateralRepresentationAndWarrantyReliefEligibilityTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="CollateralRepresentationAndWarrantyReliefEligibilityTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Collateral Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that describes the eligibility of the subject property for collateral
+                representation and warranty relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Eligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="NotEligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Pending">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Unavailable">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="EmploymentRepresentationAndWarrantyReliefEligibilityTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Employment Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that specifies the eligibility of the loan for employment representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+    <xsd:simpleContent>
+        <xsd:extension base="lpa:EmploymentRepresentationAndWarrantyReliefEligibilityTypeBase">
+            <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                        data point is not included in the message.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                        regarding the Data Not Supplied Reason Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                <xsd:annotation>
+                    <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                        for Data Not Supplied Reason Type.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                <xsd:annotation>
+                    <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                        V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                        use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                        set to "true".
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                <xsd:annotation>
+                    <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attributeGroup>
+            <xsd:attributeGroup ref="mismo:AttributeExtension">
+                <xsd:annotation>
+                    <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                        attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                        attribute group.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:attributeGroup>
+        </xsd:extension>
+    </xsd:simpleContent>
+</xsd:complexType>
+    <xsd:simpleType name="EmploymentRepresentationAndWarrantyReliefEligibilityTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Employment Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that specifies the eligibility of the loan for employment representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Eligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="NotEligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Partial">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Unavailable">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="FunctionRequestTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Function Request Type Definition - The high-level service requested of the
+                application.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:FunctionRequestTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="FunctionRequestTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Function Request Type Definition - The high-level service requested of the
+                application.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="LoanTransferRequest">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="PollingRequest">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ServiceRequest">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="IncomeDataSourceTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Income Data Source Type Definition - A value from a prescribed list that specifies
+                the source of information used to validate the income amount.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:IncomeDataSourceTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="IncomeDataSourceTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Income Data Source Type Definition - A value from a prescribed list that specifies
+                the source of information used to validate the income amount.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Employer">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="DirectDeposit">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="DirectDepositWithPaystub">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Taxes">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="IncomeRepresentationAndWarrantyReliefEligibilityTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Income Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that describes the eligibility of the loan for income representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:IncomeRepresentationAndWarrantyReliefEligibilityTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="IncomeRepresentationAndWarrantyReliefEligibilityTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Income Representation And Warranty Relief Eligibility Type Definition - A value
+                from a prescribed list that describes the eligibility of the loan for income representation and warranty
+                relief.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Eligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="NotEligible">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Partial">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Unavailable">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="LoanAssignmentStatusTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Loan Assignment Status Type Definition - A value from a defined list that
+                represents the status of the assignment of a loan from one entity to another.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:LoanAssignmentStatusTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="LoanAssignmentStatusTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Loan Assignment Status Type Definition - A value from a defined list that
+                represents the status of the assignment of a loan from one entity to another.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="FinalAssignment">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="FullRelease">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="InitialAssignment">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ModifyRelease">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MSPAssignment">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="RequestedDocumentTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Requested Document Type Definition - A value from a Freddie Mac prescribed list
+                that identifies the document for the service or product being requested.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:RequestedDocumentTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="RequestedDocumentTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Requested Document Type Definition: A value from a Freddie Mac prescribed list that
+                identifies the document for the service or product being requested.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="CreditInfile">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="DocCheckList">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Errors">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="FullFeedback">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="HVE">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MergedCredit">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MergedCreditCertificate">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MetadataResponse">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="ServiceTypeEnum">
+        <xsd:annotation>
+            <xsd:documentation>Term: Service Type Definition - A value from a MISMO prescribed list that specifies the
+                type of service being defined under the SERVICE element.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:simpleContent>
+            <xsd:extension base="lpa:ServiceTypeBase">
+                <xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+                    <xsd:annotation>
+                        <xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific
+                            data point is not included in the message.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to provide a supplemental comment or remark
+                            regarding the Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>A free-form text field used to capture the enumeration when Other is selected
+                            for Data Not Supplied Reason Type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+                    <xsd:annotation>
+                        <xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO
+                            V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any
+                            use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute
+                            set to "true".
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attributeGroup ref="xlink:MISMOresourceLink">
+                    <xsd:annotation>
+                        <xsd:documentation>An xlink attribute group for defining the end point of a relationship.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+                <xsd:attributeGroup ref="mismo:AttributeExtension">
+                    <xsd:annotation>
+                        <xsd:documentation>An implementation of the ability to extend an instance document by using any
+                            attribute. To change from Lax to make an redefinition restriction of AttributeExtension
+                            attribute group.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attributeGroup>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:simpleType name="ServiceTypeBase">
+        <xsd:annotation>
+            <xsd:documentation>Term: Service Type Definition - A value from a MISMO prescribed list that specifies the
+                type of service being defined under the SERVICE element.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="AutomatedUnderwritingSystem">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Credit">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="DocumentPreparation">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="LoanTransfer">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Verification">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="PROPERTY_DETAIL_EXTENSION">
+		<xsd:sequence>
+			<xsd:element name="DerivedPropertyType" type="lpa:DerivedPropertyTypeEnum" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>A value from a Freddie Mac-prescribed list that concatenates property characteristic values provided in the LPA Request File to return in the Response File and display on the Feedback Certificate.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="DerivedPropertyTypeOtherDescription" type="mismo:MISMOString" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>A free-form text field used to collect additional information when Other is selected for Derived Property Type.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+            <xsd:element name="AccessoryDwellingUnitMonthlyRentAmount"  type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The monthly dollar amount that is expected to be received as rental income at full market price for a single living unit.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+           <xsd:element name="AccessoryDwellingUnitTotalCount" type="mismo:MISMOValue" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total number of accessory dwelling units in the subject property.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="xlink:MISMOresourceLink">
+			<xsd:annotation>
+				<xsd:documentation>An xlink attribute group for defining the end point of a relationship.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attributeGroup>
+		<xsd:attributeGroup ref="mismo:AttributeExtension">
+			<xsd:annotation>
+				<xsd:documentation>An implementation of the ability to extend an instance document by using any attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute group.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attributeGroup>
+	</xsd:complexType>
+    <xsd:complexType name="DerivedPropertyTypeEnum">
+		<xsd:annotation>
+			<xsd:documentation>Term: Derived Property Type Definition - A value from a MISMO prescribed list that describes the type of derived propery.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleContent>
+			<xsd:extension base="lpa:DerivedPropertyTypeBase">
+				<xsd:attribute name="DataNotSuppliedReasonType" type="mismo:DataNotSuppliedReasonBase">
+					<xsd:annotation>
+						<xsd:documentation>A value from a MISMO prescribed list that specifies the reason a specific data point is not included in the message.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="DataNotSuppliedReasonTypeAdditionalDescription" type="mismo:MISMOString_Base">
+					<xsd:annotation>
+						<xsd:documentation>A free-form text field used to provide a supplemental comment or remark regarding the Data Not Supplied Reason Type.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="DataNotSuppliedReasonTypeOtherDescription" type="mismo:MISMOString_Base">
+					<xsd:annotation>
+						<xsd:documentation>A free-form text field used to capture the enumeration when Other is selected for Data Not Supplied Reason Type.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="SensitiveIndicator" type="mismo:MISMOIndicator_Base">
+					<xsd:annotation>
+						<xsd:documentation>Allows producers and consumers of XML instance documents that are valid MISMO V3 documents to mark any data point to be treated as sensitive. MISMO recommends that any use of a data point labeled as "Sensitive Information" in the LDD ALWAYS have this attribute set to "true".</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attributeGroup ref="xlink:MISMOresourceLink">
+					<xsd:annotation>
+						<xsd:documentation>An xlink attribute group for defining the end point of a relationship.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attributeGroup>
+				<xsd:attributeGroup ref="mismo:AttributeExtension">
+					<xsd:annotation>
+						<xsd:documentation>An implementation of the ability to extend an instance document by using any attribute. To change from Lax to make an redefinition restriction of AttributeExtension attribute group.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attributeGroup>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:simpleType name="DerivedPropertyTypeBase">
+		<xsd:annotation>
+			<xsd:documentation>Term: Derived Property Type Definition - A value from a MISMO prescribed list that describes the type of derived propery.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="CondominiumGardenProject">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="CondominiumHighriseProject">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="CondominiumMidriseProject">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="CondominiumTownhouseRowhouse">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cooperative">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="ManufacturedMultiWide">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="ManufacturedSingleWide">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Other">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="SiteBuiltAttached">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="SiteBuiltAttachedPUD">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="SiteBuiltDetached">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="SiteBuiltDetachedPUD">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="TwoToFourFamily">
+				<xsd:annotation>
+					<xsd:documentation/>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+    <xsd:complexType name="DEED_RESTRICTION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DeedRestrictionTermMonthsCount"  type="mismo:MISMOValue" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>The total number of months for which the deed restriction is in place.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="AFFORDABLE_LENDING_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="CalculatedAreaMedianIncomePercentNumber" type="mismo:MISMONumeric" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>Area median income percentage.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DynamicDataGroups">
+        <xsd:sequence>
+            <xsd:element name="DYNAMIC_DATA_GROUP" type="lpa:DynamicDataGroup" minOccurs="0" maxOccurs="30">
+                <xsd:annotation>
+                    <xsd:documentation>Each DYNAMIC_DATA_GROUP holds a logical set of key-value pairs. A logical set can be for a loan, an entity, an asset or liability, etc.</xsd:documentation>
+                </xsd:annotation>
+			</xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DynamicDataGroup">
+        <xsd:sequence>
+            <xsd:element name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+                <xsd:annotation>
+                    <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The value must be unique for each sibling element.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DYNAMIC_DATA_ITEMS" type="lpa:DynamicDataItems" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Information about one or more DYNAMIC_DATA_ITEM. Holds all occurrences of DYNAMIC_DATA_ITEM.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DynamicDataItems">
+        <xsd:sequence>
+            <xsd:element name="DYNAMIC_DATA_ITEM" type="lpa:DynamicDataItem" minOccurs="0" maxOccurs="30">
+                <xsd:annotation>
+                    <xsd:documentation>Each DYNAMIC_DATA_ITEM holds one occurrence of a key-value pair.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DynamicDataItem">
+        <xsd:sequence>
+            <xsd:element name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+                <xsd:annotation>
+                    <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The value must be unique for each sibling element.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="Key" type="mismo:MISMOString">
+                <xsd:annotation>
+                    <xsd:documentation>The technical name of the dynamic data element used to populate the feedback message. The technical name represents one or more XML data points.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="Value" type="mismo:MISMOString">
+                <xsd:annotation>
+                    <xsd:documentation>The value could be from the request file, the credit report, the third-party report, or the result of an LPA calculation.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="Metadata">
+        <xsd:sequence>
+            <xsd:element name="METADATA_DETAIL" type="lpa:MetadataDetail" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>METADATA_DETAIL holds detailed information about the action required by the feedback message, an associated Seller-Servicer Guide reference, and whether the message indicates any representation and warranty.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DOCUMENTATION_GROUPS" type="lpa:MetadataDocumentationGroups" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Information about one or more DOCUMENTATION_GROUP container. Holds all occurrences of DOCUMENTATION_GROUP.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="MetadataDetail">
+        <xsd:sequence>
+            <xsd:element name="GuideReferenceIdentifier" type="mismo:MISMOString" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string identifying the Seller-Servicer Guide reference supporting the feedback message, as defined by Freddie Mac.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="RepresentationAndWarrantIndicator" type="mismo:MISMOIndicator_Base" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>When true, indicates that the feedback message sets forth representation and warranty eligibility.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="MetadataDocumentationGroups">
+        <xsd:sequence>
+	        <xsd:element name="DOCUMENTATION_GROUP" type="lpa:DocumentationGroup" minOccurs="0" maxOccurs="5">
+	        	<xsd:annotation>
+	        		<xsd:documentation>Each DOCUMENTATION_GROUP container identifies one set of loan documents referenced in the feedback message.</xsd:documentation>
+	        	</xsd:annotation>
+	        </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DocumentationGroup">
+        <xsd:sequence>
+            <xsd:element name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+                <xsd:annotation>
+                    <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The value must be unique for each sibling element.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DOCUMENTATIONS" type="lpa:Documentations" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>Information about one or more DOCUMENTATION containers. Holds all occurrences of DOCUMENTATION.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="Documentations">
+        <xsd:sequence>
+            <xsd:element name="DOCUMENTATION" type="lpa:Documentation" minOccurs="0" maxOccurs="10">
+                <xsd:annotation>
+                    <xsd:documentation>DOCUMENTATION identifies one document referenced in the feedback message, along with its validity period and latency requirement(s).</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="Documentation">
+        <xsd:sequence>
+            <xsd:element name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base">
+                <xsd:annotation>
+                    <xsd:documentation>An integer value used to provide an order to multi-instance sibling elements. The value must be unique for each sibling element.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DocumentType" type="lpa:DocumentType">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a Freddie Mac prescribed list that classifies the document referenced in feedback message.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="DocumentValidityPeriodType" type="lpa:DocumentValidityPeriodType">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a Freddie Mac prescribed list that describes the acceptable time period during which the associated DocumentType may be used to underwrite the loan and included in the loan file.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="FirstDocumentationRangeType" type="lpa:FirstDocumentationRangeType" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a  Freddie Mac prescribed list that categorizes the effective dates of the associated DocumentType.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="SecondDocumentationRangeType" type="lpa:SecondDocumentationRangeType" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A value from a  Freddie Mac prescribed list that categorizes the effective dates of the associated DocumentType.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:simpleType name="DocumentType">
+        <xsd:annotation>
+            <xsd:documentation>A value from a Freddie Mac prescribed list that classifies the document referenced in feedback message.</xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Appraisal">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="AwardLetter">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="BankStatement">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="BenefitLetter">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="BusinessTaxReturn">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="FreddieMacForm91">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="GiftLetter">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="HousingPaymentHistory">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="IRS1040">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="IRS1099">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="IRS4506">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="IRSW2">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Lease">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="LeaveAndEarningStatement">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MICertificate">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="PaymentReceipt">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="PayStub">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ThirdPartyAssetVerificationReport">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ThirdPartyIncomeVerificationReport">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ThirdPartySelfEmployedBusinessVerification">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="TrustAgreement">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="VerificationOfDeposit">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="VerificationOfEmployment">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="DocumentValidityPeriodType">
+        <xsd:annotation>
+            <xsd:documentation>A value from a Freddie Mac prescribed list that describes the acceptable time period during which the associated DocumentType may be used to underwrite the loan and included in the loan file.</xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="DocumentDatePlus10BusinessDays">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="DocumentDatePlus120Days">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="FirstDocumentationRangeType">
+        <xsd:annotation>
+            <xsd:documentation>A value from a  Freddie Mac prescribed list that categorizes the effective dates of the associated DocumentType.</xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Current">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentCalendarYear">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentMonth">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTaxYear">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentThreeMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwelveMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoCalendarYears">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoTaxYears">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="OneMonth">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ThreeMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="TwoMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="YearToDate">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="SecondDocumentationRangeType">
+        <xsd:annotation>
+            <xsd:documentation>A value from a  Freddie Mac prescribed list that categorizes the effective dates of the associated DocumentType.</xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Current">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentCalendarYear">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentMonth">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTaxYear">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentThreeMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwelveMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoCalendarYears">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="MostRecentTwoTaxYears">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="OneMonth">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="Other">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ThreeMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="TwoMonths">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="YearToDate">
+                <xsd:annotation>
+                    <xsd:documentation/>
+                </xsd:annotation>
+            </xsd:enumeration>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:complexType name="PROJECT_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="CondominiumProjectIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique numeric string identifying an individual property development project as defined by the investor.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ASSET_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="GiftGrantClosingCostAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A gift or grant that is given to a buyer to assist with expenses incurred when finalizing the purchase or sale of a property.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="GiftGrantDownPaymentAmount" type="mismo:MISMOAmount" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A gift or grant that is given to the buyer to help cover a portion or all of the required down payment, which is the initial payment made by the buyer towards the purchase price of the home.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="PROPERTY_VALUATION_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="PropertyDataIdentifier" type="mismo:MISMOIdentifier" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string identifying a Property Data Report as assigned by Freddie Mac.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ERROR_MESSAGE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="ErrorMessageActionDescription" type="xsd:string" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>A unique alphanumeric string indicating potential actions that users could take in response to a feedback message.</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ErrorMessageCriticalityDescription" type="xsd:string" minOccurs="0" maxOccurs="1">
+                <xsd:annotation>
+                    <xsd:documentation>lpa:AutomatedUnderwritingSystemMessageCriticalityDescription</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

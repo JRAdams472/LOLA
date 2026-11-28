@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by  FREDDIE MAC (FREDDIE MAC) -->
+<!-- Freddie Mac LPA V5.0 Extension Schema File -->
+<!-- LPA Specification 5.2.00  DISTRO_ID  5  SCIF Data   -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:mismo="http://www.mismo.org/residential/2009/schemas"
+            xmlns:ulad="http://www.datamodelextension.org/Schema/ULAD"
+            xmlns:lpa="http://www.datamodelextension.org/Schema/LPA"
+            xmlns:DU="http://www.datamodelextension.org/Schema/DU"
+            targetNamespace="http://www.mismo.org/residential/2009/schemas" elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+    <xsd:import namespace="http://www.datamodelextension.org/Schema/ULAD" schemaLocation="ULAD_ExtensionV3_4_GRP.xsd"/>
+    <xsd:import namespace="http://www.datamodelextension.org/Schema/LPA" schemaLocation="LPA_ExtensionV3_4_GRP.xsd"/>
+    <xsd:import namespace="http://www.datamodelextension.org/Schema/DU" schemaLocation="DU_ExtensionV3_4_GENERIC_EXT.xsd"/>
+    <xsd:import namespace="http://www.w3.org/1999/xlink" schemaLocation="../../mismo/xlinkMISMOB324.xsd"/>
+    
+    <xsd:redefine schemaLocation="../../mismo/MISMO_3.4.0_B324.xsd">	
+	
+
+	
+		<!-- BEGIN OF OVERRIDE for to match FREDDIE SPEC VALIDATIONS -->
+		<xsd:simpleType name="MISMOAmount_Base">
+			<xsd:restriction base="mismo:MISMOAmount_Base">
+				<xsd:fractionDigits value="2"/>
+				<xsd:maxInclusive value="999999999.99"/>
+				<xsd:minInclusive value="-999999999.99"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+		<xsd:simpleType name="MISMOPercent_Base">
+			<xsd:restriction base="mismo:MISMOPercent_Base">
+				<xsd:maxExclusive value="1000.0000"/>
+				<xsd:minExclusive value="-1000.0000"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+		<xsd:simpleType name="MISMOIndicator_Base">
+			<xsd:restriction base="mismo:MISMOIndicator_Base">
+				<xsd:pattern value="true"/>
+				<xsd:pattern value="false"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+		<xsd:simpleType name="MISMODate_Base">
+			<xsd:restriction base="mismo:MISMODate_Base">
+				<xsd:pattern value="[0-9]{4}([\-][0-9]{2}){1,2}([\-][0-9]{2})"/>
+			</xsd:restriction>
+		</xsd:simpleType>
+		<!-- END OVERRIDE for to match FREDDIE SPEC VALIDATIONS -->
+		<!-- BEGIN OF OVERRIDE for to match FREDDIE VALIDATIONS OF MINIMUM CONTENT -->
+		<!-- BEGIN OF OVERRIDE FREDDIE VALIDATIONS FORCING MINIMUM CONTENT -->
+		<xsd:complexType name="MESSAGE">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:MESSAGE">
+					<xsd:sequence>
+						<xsd:element name="ABOUT_VERSIONS" type="mismo:ABOUT_VERSIONS"/>
+						<xsd:element name="DEAL_SETS" type="mismo:DEAL_SETS"/>
+						<xsd:element name="DOCUMENT_SETS" type="mismo:DOCUMENT_SETS" minOccurs="0"/>
+						<xsd:element name="RELATIONSHIPS" type="mismo:RELATIONSHIPS" minOccurs="0"/>
+						<xsd:element name="SYSTEM_SIGNATURES" type="mismo:SYSTEM_SIGNATURES" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:MESSAGE_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attribute name="MISMOLogicalDataDictionaryIdentifier" type="mismo:MISMOLogicalDataDictionaryIdentifier"/>
+					<xsd:attribute name="MISMOReferenceModelIdentifier" type="mismo:MISMOReferenceModelIdentifier" use="required"/>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ABOUT_VERSIONS">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ABOUT_VERSIONS">
+					<xsd:sequence>
+						<xsd:element name="ABOUT_VERSION" type="mismo:ABOUT_VERSION"/>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ABOUT_VERSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ABOUT_VERSION">
+					<xsd:sequence>
+						<xsd:element name="AboutVersionIdentifier" type="mismo:MISMOIdentifier" minOccurs="0"/>
+						<xsd:element name="CreatedDatetime" type="mismo:MISMODatetime" minOccurs="0"/>
+						<xsd:element name="DataVersionIdentifier" type="mismo:MISMOIdentifier" minOccurs="0"/>
+						<xsd:element name="DataVersionName" type="mismo:MISMOString" minOccurs="0"/>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DEAL_SETS">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DEAL_SETS">
+					<xsd:sequence>
+						<!-- TO SUPPORT BATCH -->
+						<xsd:element name="DEAL_SET" type="mismo:DEAL_SET" minOccurs="1" maxOccurs="1000"/>
+						<xsd:element name="DEAL_SET_SERVICES" type="mismo:DEAL_SET_SERVICES" minOccurs="0"/>
+						<xsd:element name="PARTIES" type="mismo:PARTIES" minOccurs="0"/>
+						<xsd:element name="RELATIONSHIPS" type="mismo:RELATIONSHIPS" minOccurs="0"/>
+						<xsd:element name="VERIFICATION_DATA" type="mismo:VERIFICATION_DATA" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:DEAL_SETS_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DEAL_SET">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DEAL_SET">
+					<xsd:sequence>
+						<xsd:element name="ACH" type="mismo:ACH" minOccurs="0"/>
+						<xsd:element name="CASH_REMITTANCE_SUMMARY_NOTIFICATION" type="mismo:CASH_REMITTANCE_SUMMARY_NOTIFICATION" minOccurs="0"/>
+						<xsd:element name="DEAL_SET_EXPENSES" type="mismo:DEAL_SET_EXPENSES" minOccurs="0"/>
+						<xsd:element name="DEAL_SET_INCOMES" type="mismo:DEAL_SET_INCOMES" minOccurs="0"/>
+						<xsd:element name="DEALS" type="mismo:DEALS"/>
+						<xsd:element name="INVESTOR_FEATURES" type="mismo:INVESTOR_FEATURES" minOccurs="0"/>
+						<xsd:element name="PARTIES" type="mismo:PARTIES" minOccurs="0"/>
+						<xsd:element name="POOL" type="mismo:POOL" minOccurs="0"/>
+						<xsd:element name="RELATIONSHIPS" type="mismo:RELATIONSHIPS" minOccurs="0"/>
+						<xsd:element name="SERVICER_REPORTING" type="mismo:SERVICER_REPORTING" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:DEAL_SET_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base"/>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DEALS">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DEALS">
+					<xsd:sequence>
+						<xsd:element name="DEAL" type="mismo:DEAL"/>
+						<xsd:element name="PARTIES" type="mismo:PARTIES" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:DEALS_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DEAL">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DEAL">
+					<xsd:sequence>
+						<xsd:choice minOccurs="0">
+							<xsd:element name="REFERENCE" type="mismo:REFERENCE" minOccurs="0"/>
+							<xsd:sequence>
+								<xsd:element name="ABOUT_VERSIONS" type="mismo:ABOUT_VERSIONS" minOccurs="0"/>
+								<xsd:element name="ASSETS" type="mismo:ASSETS" minOccurs="0"/>
+								<xsd:element name="COLLATERALS" type="mismo:COLLATERALS" minOccurs="0"/>
+								<xsd:element name="COMMUNICATION_EVENTS" type="mismo:COMMUNICATION_EVENTS" minOccurs="0"/>
+								<xsd:element name="DEAL_DETAIL" type="mismo:DEAL_DETAIL" minOccurs="0"/>
+								<xsd:element name="EXPENSES" type="mismo:EXPENSES" minOccurs="0"/>
+								<xsd:element name="LIABILITIES" type="mismo:LIABILITIES" minOccurs="0"/>
+								<xsd:element name="LITIGATIONS" type="mismo:LITIGATIONS" minOccurs="0"/>
+								<xsd:element name="LOANS" type="mismo:LOANS" minOccurs="0"/>
+								<xsd:element name="PARTIES" type="mismo:PARTIES" minOccurs="0"/>
+								<xsd:element name="RELATIONSHIPS" type="mismo:RELATIONSHIPS" minOccurs="0"/>
+								<xsd:element name="SERVICES" type="mismo:SERVICES" minOccurs="0"/>
+								<xsd:element name="SUPPORTING_RECORD_SETS" type="mismo:SUPPORTING_RECORD_SETS" minOccurs="0"/>
+								<xsd:element name="EXTENSION" type="mismo:DEAL_EXTENSION" minOccurs="0"/>
+							</xsd:sequence>
+						</xsd:choice>
+					</xsd:sequence>
+					<xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base"/>
+					<xsd:attribute name="MISMOLogicalDataDictionaryIdentifier" type="mismo:MISMOLogicalDataDictionaryIdentifier"/>
+					<xsd:attribute name="MISMOReferenceModelIdentifier" type="mismo:MISMOReferenceModelIdentifier"/>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="PROPERTY">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:PROPERTY">
+					<xsd:sequence>
+						<xsd:element name="ADDRESS" type="mismo:ADDRESS" minOccurs="0"/>
+						<xsd:element name="BUILDING_PERMITS" type="mismo:BUILDING_PERMITS" minOccurs="0"/>
+						<xsd:element name="CERTIFICATES" type="mismo:CERTIFICATES" minOccurs="0"/>
+						<xsd:element name="COMPARABLE" type="mismo:COMPARABLE" minOccurs="0"/>
+						<xsd:element name="DATA_SOURCES" type="mismo:DATA_SOURCES" minOccurs="0"/>
+						<xsd:element name="DISASTERS" type="mismo:DISASTERS" minOccurs="0"/>
+						<xsd:element name="ENCUMBRANCES" type="mismo:ENCUMBRANCES" minOccurs="0"/>
+						<xsd:element name="ENVIRONMENTAL_CONDITIONS" type="mismo:ENVIRONMENTAL_CONDITIONS" minOccurs="0"/>
+						<xsd:element name="FLOOD_DETERMINATION" type="mismo:FLOOD_DETERMINATION" minOccurs="0"/>
+						<xsd:element name="HAZARD_INSURANCES" type="mismo:HAZARD_INSURANCES" minOccurs="0"/>
+						<xsd:element name="HOMEOWNERS_ASSOCIATIONS" type="mismo:HOMEOWNERS_ASSOCIATIONS" minOccurs="0"/>
+						<xsd:element name="IMPROVEMENT" type="mismo:IMPROVEMENT" minOccurs="0"/>
+						<xsd:element name="INSPECTIONS" type="mismo:INSPECTIONS" minOccurs="0"/>
+						<xsd:element name="LEGAL_DESCRIPTIONS" type="mismo:LEGAL_DESCRIPTIONS" minOccurs="0"/>
+						<xsd:element name="LICENSES" type="mismo:LICENSES" minOccurs="0"/>
+						<xsd:element name="LISTING_INFORMATIONS" type="mismo:LISTING_INFORMATIONS" minOccurs="0"/>
+						<xsd:element name="LOCATION_IDENTIFIER" type="mismo:LOCATION_IDENTIFIER" minOccurs="0"/>
+						<xsd:element name="MANUFACTURED_HOME" type="mismo:MANUFACTURED_HOME" minOccurs="0"/>
+						<xsd:element name="MARKET" type="mismo:MARKET" minOccurs="0"/>
+						<xsd:element name="NEIGHBORHOOD" type="mismo:NEIGHBORHOOD" minOccurs="0"/>
+						<xsd:element name="PROJECT" type="mismo:PROJECT" minOccurs="0"/>
+						<xsd:element name="PROPERTY_DETAIL" type="mismo:PROPERTY_DETAIL" minOccurs="0"/>
+						<xsd:element name="PROPERTY_TAXES" type="mismo:PROPERTY_TAXES" minOccurs="0"/>
+						<xsd:element name="PROPERTY_TITLE" type="mismo:PROPERTY_TITLE" minOccurs="0"/>
+						<xsd:element name="PROPERTY_UNITS" type="mismo:PROPERTY_UNITS" minOccurs="0"/>
+						<xsd:element name="PROPERTY_VALUATIONS" type="mismo:PROPERTY_VALUATIONS" minOccurs="0"/>
+						<xsd:element name="REPAIR" type="mismo:REPAIR" minOccurs="0"/>
+						<xsd:element name="SALES_CONTRACTS" type="mismo:SALES_CONTRACTS" minOccurs="0"/>
+						<xsd:element name="SALES_HISTORIES" type="mismo:SALES_HISTORIES" minOccurs="0"/>
+						<xsd:element name="SERVITUDES" type="mismo:SERVITUDES" minOccurs="0"/>
+						<xsd:element name="SITE" type="mismo:SITE" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:PROPERTY_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attribute name="SequenceNumber" type="mismo:MISMOSequenceNumber_Base"/>
+					<xsd:attribute name="ValuationUseType" type="mismo:ValuationUseBase"/>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="LOANS">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:LOANS">
+					<xsd:sequence>
+						<xsd:element name="COMBINED_LTVS" type="mismo:COMBINED_LTVS" minOccurs="0"/>
+						<xsd:element name="LOAN" type="mismo:LOAN" minOccurs="1" maxOccurs="unbounded"/>
+						<xsd:element name="EXTENSION" type="mismo:LOANS_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ROLE_DETAIL">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ROLE_DETAIL">
+					<xsd:sequence>
+						<xsd:element name="ConsentToReceiveDocumentsElectronicallyIndicator" type="mismo:MISMOIndicator" nillable="true" minOccurs="0"/>
+						<xsd:element name="ConsentToSignUsingElectronicSignatureIndicator" type="mismo:MISMOIndicator" nillable="true" minOccurs="0"/>
+						<xsd:element name="PartyRoleType" type="mismo:PartyRoleEnum"/>
+						<xsd:element name="PartyRoleTypeAdditionalDescription" type="mismo:MISMOString" nillable="true" minOccurs="0"/>
+						<xsd:element name="PartyRoleTypeOtherDescription" type="mismo:MISMOString" nillable="true" minOccurs="0"/>
+						<xsd:element name="EXTENSION" type="mismo:ROLE_DETAIL_EXTENSION" minOccurs="0"/>
+					</xsd:sequence>
+					<xsd:attributeGroup ref="xlink:MISMOresourceLink"/>
+					<xsd:attributeGroup ref="mismo:AttributeExtension"/>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<!-- END OF OVERRIDE for to match FREDDIE VALIDATIONS OF MINIMUM CONTENT -->
+		<xsd:complexType name="ASSET_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ASSET_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpASSET_DETAIL_EXTENSION" minOccurs="0"/>
+											<xsd:group ref="ulad:grpASSET_DETAIL_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="PROJECT_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:PROJECT_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpPROJECT_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+        <xsd:complexType name="PROPERTY_DETAIL_EXTENSION">
+            <xsd:complexContent>
+                <xsd:restriction base="mismo:PROPERTY_DETAIL_EXTENSION">
+                    <xsd:sequence>
+                        <xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+                        <xsd:element name="OTHER" minOccurs="0">
+                            <xsd:complexType>
+                                <xsd:complexContent>
+                                    <xsd:restriction base="mismo:OTHER_BASE">
+                                        <xsd:sequence>
+                                            <xsd:group ref="lpa:grpPROPERTY_DETAIL_EXTENSION" minOccurs="0"/>
+                                        </xsd:sequence>
+                                    </xsd:restriction>
+                                </xsd:complexContent>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:restriction>
+            </xsd:complexContent>
+        </xsd:complexType>
+		<xsd:complexType name="DECLARATION_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DECLARATION_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpDECLARATION_DETAIL_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="GOVERNMENT_MONITORING_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:GOVERNMENT_MONITORING_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpGOVERNMENT_MONITORING_DETAIL_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="GOVERNMENT_MONITORING_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:GOVERNMENT_MONITORING_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpGOVERNMENT_MONITORING_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="HMDA_RACE_DESIGNATION_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:HMDA_RACE_DESIGNATION_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpHMDA_RACE_DESIGNATION_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="URLA_TOTAL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:URLA_TOTAL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpURLA_TOTAL_EXTENSION" minOccurs="0"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="LANGUAGE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:LANGUAGE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="ulad:grpLANGUAGE_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ASSET_SUMMARY_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ASSET_SUMMARY_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpASSET_SUMMARY_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ASSET_DOCUMENTATION_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ASSET_DOCUMENTATION_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpASSET_DOCUMENTATION_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="ASSET_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:ASSET_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpASSET_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="VERIFICATION_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:VERIFICATION_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpVERIFICATION_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="EXPENSE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:EXPENSE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpEXPENSE_EXTENSION" minOccurs="0" maxOccurs="1"/>
+											<xsd:group ref="DU:grpEXPENSE_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="LIABILITY_SUMMARY_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:LIABILITY_SUMMARY_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpLIABILITY_SUMMARY_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DOWN_PAYMENTS_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DOWN_PAYMENTS_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpDOWN_PAYMENTS_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="HOUSING_EXPENSE_SUMMARY_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:HOUSING_EXPENSE_SUMMARY_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpHOUSING_EXPENSE_SUMMARY_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="LOAN_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:LOAN_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpLOAN_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+											<xsd:group ref="DU:grpLOAN_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="LOAN_LEVEL_CREDIT_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:LOAN_LEVEL_CREDIT_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpLOAN_LEVEL_CREDIT_DETAIL_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="QUALIFICATION_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:QUALIFICATION_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpQUALIFICATION_EXTENSION" minOccurs="0" maxOccurs="1"/>
+											<xsd:group ref="ulad:grpQUALIFICATION_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="PAYMENT_RULE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:PAYMENT_RULE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpPAYMENT_RULE_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="TERMS_OF_LOAN_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:TERMS_OF_LOAN_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpTERMS_OF_LOAN_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="AUTOMATED_UNDERWRITING_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:AUTOMATED_UNDERWRITING_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpAUTOMATED_UNDERWRITING_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="CURRENT_INCOME_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:CURRENT_INCOME_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpCURRENT_INCOME_DETAIL_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="CURRENT_INCOME_ITEM_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:CURRENT_INCOME_ITEM_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpCURRENT_INCOME_ITEM_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpAUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="CREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:CREDIT_REQUEST_DATA_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpCREDIT_REQUEST_DATA_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+											<xsd:group ref="DU:grpCREDIT_REQUEST_DATA_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="CREDIT_SCORE_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:CREDIT_SCORE_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpCREDIT_SCORE_DETAIL_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="SERVICE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:SERVICE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpSERVICE_EXTENSION" minOccurs="0" maxOccurs="1"/>
+											<xsd:group ref="DU:grpSERVICE_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="DEAL_SET_SERVICE_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:DEAL_SET_SERVICE_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpDEAL_SET_SERVICE_EXTENSION"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+		<xsd:complexType name="PROPERTY_VALUATION_DETAIL_EXTENSION">
+			<xsd:complexContent>
+				<xsd:restriction base="mismo:PROPERTY_VALUATION_DETAIL_EXTENSION">
+					<xsd:sequence>
+						<xsd:element name="MISMO" type="mismo:MISMO_BASE" minOccurs="0"/>
+						<xsd:element name="OTHER" minOccurs="0">
+							<xsd:complexType>
+								<xsd:complexContent>
+									<xsd:restriction base="mismo:OTHER_BASE">
+										<xsd:sequence>
+											<xsd:group ref="lpa:grpPROPERTY_VALUATION_DETAIL_EXTENSION" minOccurs="0"/>
+											<xsd:group ref="DU:grpPROPERTY_VALUATION_DETAIL_EXTENSION" minOccurs="0" maxOccurs="1"/>
+										</xsd:sequence>
+									</xsd:restriction>
+								</xsd:complexContent>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:restriction>
+			</xsd:complexContent>
+		</xsd:complexType>
+	</xsd:redefine>
+</xsd:schema>
