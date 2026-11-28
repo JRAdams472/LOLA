@@ -1,3 +1,4 @@
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Lola.Domain.Aus;
@@ -11,11 +12,28 @@ namespace Lola.Domain.Aus;
 /// </summary>
 public static class DuResponseParser
 {
+    /// MISMO/CFF responses never use DTDs — prohibit them outright so a
+    /// hostile or malformed payload cannot smuggle entity-expansion or
+    /// external-entity content through the parse (OWASP A05/XXE).
+    private static readonly XmlReaderSettings SafeSettings = new()
+    {
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null,
+        MaxCharactersFromEntities = 0,
+    };
+
+    internal static XDocument ParseSafe(string xml)
+    {
+        using var reader = XmlReader.Create(
+            new System.IO.StringReader(xml), SafeSettings);
+        return XDocument.Load(reader);
+    }
+
     public static AusResult Parse(string xml)
     {
         try
         {
-            var doc = XDocument.Parse(xml);
+            var doc = ParseSafe(xml);
             var casefile = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "Casefile")
                 ?? throw new FormatException("no Casefile");
             var rec = casefile.Descendants().FirstOrDefault(e => e.Name.LocalName == "UnderwritingRecommendation");
@@ -69,7 +87,7 @@ public static class LpaResponseParser
     {
         try
         {
-            var doc = XDocument.Parse(xml);
+            var doc = DuResponseParser.ParseSafe(xml);
             var riskClass = DuResponseParser.FindValue(doc, "LoanProspectorCreditRiskClassificationDescription")
                 ?? DuResponseParser.FindValue(doc, "RiskClassificationDescription");
             var findings = doc.Descendants()
