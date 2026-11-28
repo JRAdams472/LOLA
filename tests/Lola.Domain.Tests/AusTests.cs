@@ -222,4 +222,22 @@ public class AusTests
     [InlineData(null, AusRecommendation.UnableToEvaluate)]
     public void Lpa_recommendation_mapping(string? input, AusRecommendation expected)
         => Assert.Equal(expected, LpaResponseParser.MapRecommendation(input));
+
+    [Fact]
+    public void DTD_bearing_vendor_xml_is_rejected_not_expanded()
+    {
+        // XXE hardening: a DTD payload — entity expansion or external
+        // entity — never parses; both parsers degrade to the typed
+        // UnableToEvaluate failure, never throw, never expand.
+        const string dtdPayload = """
+            <?xml version="1.0"?>
+            <!DOCTYPE r [ <!ENTITY xxe SYSTEM "file:///c:/windows/win.ini"> ]>
+            <Casefile><UnderwritingRecommendation RecommendationType="Approve"/></Casefile>
+            """;
+        var du = DuResponseParser.Parse(dtdPayload);
+        Assert.Equal(AusRecommendation.UnableToEvaluate, du.Recommendation);
+        Assert.Contains(du.Findings, f => f.Severity == AusFindingSeverity.Fatal);
+        var lpa = LpaResponseParser.Parse(dtdPayload);
+        Assert.Equal(AusRecommendation.UnableToEvaluate, lpa.Recommendation);
+    }
 }
