@@ -38,7 +38,10 @@ application document). Conforms ADR-0007; invariants 1, 2.
    tenant-file `credit_reports` table (SQLCipher + per-tenant DEK at the
    file layer), raw bureau responses confined likewise. The officer UI is
    masked-by-default per invariant 8.
-4. **Bureau wire formats are not public artifacts.** Unlike MISMO, the
+4. **Xactus is the base integration interface** (user-confirmed
+   2026-11-28). The MISMO v2.3.1 credit-response shape our parsers
+   target matches Xactus's public API documentation — the adapter
+   in Phase 2 writes against that spec. **Bureau wire formats are not public artifacts.** Unlike MISMO, the
    tri-merge bureau formats (Equifax/TU/Experian) are licensee-only.
    Fixtures will be synthetic-but-shaped on published integration-guide
    excerpts with the same provenance documentation as M25 — contract
