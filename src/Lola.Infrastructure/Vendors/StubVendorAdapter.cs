@@ -175,14 +175,24 @@ public sealed class StubVendorAdapter : IVendorAdapter
             },
             VendorKind.Aus => new JsonObject
             {
+                // Canonical completion shape (M25 P2) — the stub IS the
+                // normalized shape real adapters convert into, so the
+                // live stack exercises the same downstream path. One
+                // required finding seeds a demo condition; the rest are
+                // informational.
+                ["ausVendor"] = "du",
                 ["ausEngine"] = "stub-du-compatible",
                 ["externalId"] = externalId,
+                ["caseId"] = $"CASE-{externalId[(externalId.Length - System.Math.Min(8, externalId.Length))..]}",
                 ["recommendation"] = "approve-eligible",
                 ["riskClassification"] = "accept",
                 ["findings"] = new JsonArray(
-                    Finding("credit", "satisfactory"),
-                    Finding("ltv", "within-limits"),
-                    Finding("reserves", "verified")),
+                    CanonicalFinding("DU-1001", "documentation", "required",
+                        "Verbal verification of employment outstanding"),
+                    CanonicalFinding("DU-0420", "credit", "warning",
+                        "Credit score within acceptable range"),
+                    CanonicalFinding("DU-0102", "eligibility", "info",
+                        "LTV within program limits")),
                 ["documentationLevel"] = "standard"
             },
             _ => new JsonObject { ["externalId"] = externalId }
@@ -208,6 +218,16 @@ public sealed class StubVendorAdapter : IVendorAdapter
             ["status"] = status,
             ["balance"] = balance,
             ["delinquent30"] = false
+        };
+
+    private static JsonObject CanonicalFinding(string code,
+        string category, string severity, string message)
+        => new()
+        {
+            ["code"] = code,
+            ["category"] = category,
+            ["severity"] = severity,
+            ["message"] = message
         };
 
     private static JsonObject Finding(string area, string result)
