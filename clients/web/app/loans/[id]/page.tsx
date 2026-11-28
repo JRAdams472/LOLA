@@ -35,9 +35,11 @@ import TridCountdown from "@/components/TridCountdown";
 import FieldInput from "@/components/FieldInput";
 import RevealDialog from "@/components/RevealDialog";
 import AtrQmPanel from "@/components/AtrQmPanel";
+import AusPanel from "@/components/AusPanel";
 import HmdaPanel from "@/components/HmdaPanel";
 import RespaPanel from "@/components/RespaPanel";
 import { useAtr, useEvaluateAtr } from "@/lib/atr";
+import { useAus, useSubmitAus } from "@/lib/aus";
 import { exportUrl, useAssembleLar, useFreezeSnapshot, useHmda } from "@/lib/hmda";
 import {
   useMarkNoticeReceived,
@@ -63,7 +65,7 @@ import {
 import { FIELD_MAP, fieldsFor, SECTIONS, type SectionId } from "@/lib/field-map";
 import { getPath, setPath, type Doc } from "@/lib/doc";
 
-type TabId = SectionId | "steps" | "audit" | "atr" | "respa" | "hmda";
+type TabId = SectionId | "steps" | "audit" | "atr" | "respa" | "hmda" | "aus";
 
 /// Loan workspace — tabbed catalog-driven 1003. The doc arrives masked
 /// per the caller's visibility (DocMasker); editable while `draft`, and
@@ -90,6 +92,8 @@ export default function LoanWorkspacePage() {
   const markNoticeSent = useMarkNoticeSent(tid, appId);
   const markNoticeReceived = useMarkNoticeReceived(tid, appId);
   const hmda = useHmda(tid, appId, isStaff && tab === "hmda");
+  const aus = useAus(tid, appId, isStaff && tab === "aus");
+  const submitAus = useSubmitAus(tid, appId);
   const assembleLar = useAssembleLar(tid, appId);
   const freezeSnapshot = useFreezeSnapshot(tid);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -309,6 +313,7 @@ export default function LoanWorkspacePage() {
           {isStaff && <Tab value="atr" label="ATR/QM" />}
           {isStaff && <Tab value="respa" label="RESPA" />}
           {isStaff && <Tab value="hmda" label="HMDA" />}
+          {isStaff && <Tab value="aus" label="AUS" />}
         </Tabs>
 
         {SECTIONS.map(
@@ -512,6 +517,21 @@ export default function LoanWorkspacePage() {
                   const year = hmda.data?.latest?.reportingYear;
                   if (year) freezeSnapshot.mutate(year);
                 }}
+              />
+            )}
+          </Box>
+        )}
+
+        {tab === "aus" && isStaff && (
+          <Box sx={{ p: 2 }}>
+            {aus.isLoading && <Skeleton variant="rectangular" height={120} />}
+            {aus.isError && <ErrorPanel title="AUS posture failed" error={aus.error} />}
+            {aus.isSuccess && (
+              <AusPanel
+                report={aus.data}
+                canAct={isStaff}
+                submitPending={submitAus.isPending}
+                onSubmit={(vendor) => submitAus.mutate(vendor)}
               />
             )}
           </Box>

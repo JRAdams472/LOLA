@@ -207,6 +207,17 @@ public class Query(IMessageBus bus)
                 tenantId, appId, actor, scope), ct);
     }
 
+    public Task<Lola.Application.Aus.AusReportDto?> Aus(
+        string tenantId, string appId, IResolverContext context, CancellationToken ct)
+    {
+        var (actor, scope) = Actor(context);
+        if (scope != ActorScope.Staff)
+            return Task.FromResult<Lola.Application.Aus.AusReportDto?>(null);
+        return bus.InvokeAsync<Lola.Application.Aus.AusReportDto?>(
+            new Lola.Application.Aus.GetApplicationAusQuery(
+                tenantId, appId, actor, scope), ct);
+    }
+
     public Task<IReadOnlyList<VaultDocDto>> Uploads(
         string tenantId, string appId, IResolverContext context, CancellationToken ct)
     {
