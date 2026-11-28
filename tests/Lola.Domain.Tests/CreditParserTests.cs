@@ -180,12 +180,38 @@ public class CreditParserTests
                 .Parse(Fixture($"{b}-sample.xml"), null).File!)
             .ToList();
         var merged = TriMergeMerger.Merge(files);
-        // Representative score is mid of 724/731/experian's value.
         Assert.NotNull(merged.RepresentativeScore);
-        // Merged tradelines never exceed the union count and every
-        // tradeline carries at least one bureau lineage.
         Assert.True(merged.Tradelines.Count > 0);
         Assert.All(merged.Tradelines,
             t => Assert.NotEmpty(t.Bureaus));
+
+        // Fixture-pinned conflict resolution (harvest conflict matrix):
+        // Capital One ****7788 reported by all three bureaus with
+        // balances 4125(EQ 2026-10) / 3890(TU 2026-11) / 4302(XP 2026-09)
+        // — most-recent-reporting wins → TU's 3890.
+        var capOne = merged.Tradelines.First(
+            t => t.AccountMask == "****7788");
+        Assert.Equal(3890m, capOne.Balance);
+        Assert.Equal(3, capOne.Bureaus.Count);
+
+        // Mortgage ****0456 same shape — TU 2026-11 wins → 285975.
+        var mtg = merged.Tradelines.First(
+            t => t.AccountMask == "****0456");
+        Assert.Equal(285975m, mtg.Balance);
+
+        // Bureau-unique tradelines survive with single-bureau lineage.
+        Assert.Single(merged.Tradelines,
+            t => t.AccountMask == "****3300");
+        Assert.Single(merged.Tradelines,
+            t => t.AccountMask == "****4402");
+        Assert.Single(merged.Tradelines,
+            t => t.AccountMask == "****6505");
+
+        // Score model tags never blend: two FICO 10T + one
+        // VantageScore 4.0 — representative is mid-of-three with the
+        // CHOSEN file's model.
+        Assert.Equal(3, merged.Scores.Count);
+        Assert.Contains(merged.Scores,
+            s => s.Model == "VantageScore 4.0");
     }
 }

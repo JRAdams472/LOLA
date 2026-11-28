@@ -1,0 +1,1795 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =============================================================== -->
+<!--  Title                         : MISMO Credit Response DTD  -->
+<!--  File Name                : CREDIT_RESPONSE_v2_3_1.dtd     -->
+<!--  Version                   : Version 2.3.1                               -->
+<!--  Author                     : MBA MISMO Credit Work Group                -->
+<!--  Creation Date          : September 29, 2004                -->
+<!--  Modification Date    : November  02, 2004             -->
+<!--  Comments               : Copyright 2004 Mortgage Bankers Association of America, Inc. -->
+<!--  All rights reserved.  -->
+<!--
+THIS MISMO STANDARD INCLUDES THE END USER LICENSE AGREEMENT ATTACHED HERETO AT 
+http://www.mismo.org/mismo/pdf/ipr_policy.pdf AND IS GOVERNED BY AND SUBJECT TO
+THE END USER LICENSE AGREEMENT. NO USER OF THIS STANDARD MAY REMOVE THIS REFERENCE
+TO AND STATEMENT REGARDING THE END USER LICENSE. ANY HARD COPY PUBLICATION OF THIS
+STANDARD MUST INCLUDE AND ATTACH A HARD COPY PRINT OUT OFTHE END USER LICENSE.  
+ANY FURTHER ELECTRONIC DISTRIBUTION OF THIS STANDARD MUST INCLUDE A SPECIFIC 
+REFERENCED LINK TO THE END USER LICENSE AGREEMENT OR OTHER MEANS OF ATTACHMENT OF 
+THE END USER LICENSE AGREEMENT.
+
+DISCLAIMER: THIS MISMO STANDARD IS PROVIDED "AS IS." MISMO, THE MORTGAGE BANKERS 
+ASSOCIATION OF AMERICA ("MBA"), THE COPYRIGHT HOLDER, THE AUTHORS OF THIS MISMO 
+STANDARD AND ANY STANDARD-SETTING BODY PARTICIPANTS TO THIS MISMO STANDARD MAKE NO 
+REPRESENTATIONS OR WARRANTIES (i) EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, 
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE OR 
+NON-INFRINGEMENT; (ii) THAT THE CONTENTS OF SUCH MISMO STANDARD ARE FREE FROM ERROR 
+OR SUITABLE FOR ANY PURPOSE; NOR THAT IMPLEMENTATION OF SUCH CONTENTS WILL NOT 
+INFRINGE ANY THIRD-PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS. IN NO 
+EVENT WILL MISMO, MBA, THE COPYRIGHT HOLDER OR THE STANDARD-SETTING BODY PARTICIPANTS 
+TO THIS MISMO STANDARD BE LIABLE TO ANY PARTY FOR ANY DIRECT, INDIRECT, SPECIAL OR 
+CONSEQUENTIAL DAMAGES FOR ANY USE OF THIS MISMO STANDARD, INCLUDING, WITHOUT 
+LIMITATION, ANY LOST PROFITS, BUSINESS INTERRUPTION, LOSS OF PROGRAMS OR OTHER DATA 
+ON YOUR INFORMATION HANDLING SYSTEM OR OTHERWISE, EVEN IF MISMO, MBA, THE COPYRIGHT 
+HOLDER AND/OR ANY AUTHORS AND/OR ANY STANDARD-SETTING BODY PARTICIPANTS TO THIS MISMO 
+STANDARD ARE EXPRESSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+-->
+<!-- =============================================================== -->
+<!--          *** 'ENVELOPE' ELEMENTS ***          -->
+<!--Envelope 2.3.1:   Add ENTITY statements to include/ignore Signature namespace -->
+<!ENTITY % use.namespaces "INCLUDE">
+<!ENTITY % no.namespaces "IGNORE">
+
+<!--Envelope 2.3.1:   Add ENTITY statement to include the Signature DTD     -->
+<!-- include the W3C XML Digital Signature DTD                              -->
+<!ENTITY % dsig-include SYSTEM "SMART_DOCUMENT_xmldsig_core_schema_V_1_02.dtd">
+%dsig-include;
+
+<!--Envelope 2.3.1:   Add optional Signature element                        -->
+<!ELEMENT RESPONSE_GROUP (RESPONDING_PARTY?, RESPOND_TO_PARTY?, RESPONSE*, Signature?)>
+<!--Envelope 2.3.1:   Set MISMOVersionID Attribute to '2.3.1"               -->
+<!--Envelope 2.3.1:   Add _ID Attribute                                     -->
+<!ATTLIST RESPONSE_GROUP      MISMOVersionID CDATA  #FIXED '2.3.1'
+                              _ID             ID     #IMPLIED >
+
+<!ELEMENT RESPONDING_PARTY (CONTACT_DETAIL*)>
+<!--Envelope 2.3.1:   Add _Identifier Attribute                             -->
+<!ATTLIST RESPONDING_PARTY    _Name           CDATA  #IMPLIED
+                              _StreetAddress  CDATA  #IMPLIED
+                              _StreetAddress2 CDATA  #IMPLIED
+                              _City           CDATA  #IMPLIED
+                              _State          CDATA  #IMPLIED
+                              _PostalCode     CDATA  #IMPLIED
+                              _Identifier     CDATA  #IMPLIED >
+
+<!ELEMENT RESPOND_TO_PARTY (CONTACT_DETAIL*)>
+<!--Envelope 2.3.1:   Add _Identifier Attribute                             -->
+<!ATTLIST RESPOND_TO_PARTY    _Name           CDATA  #IMPLIED
+                              _StreetAddress  CDATA  #IMPLIED
+                              _StreetAddress2 CDATA  #IMPLIED
+                              _City           CDATA  #IMPLIED
+                              _State          CDATA  #IMPLIED
+                              _PostalCode     CDATA  #IMPLIED
+                              _Identifier     CDATA  #IMPLIED >
+
+<!ELEMENT RESPONSE (KEY* , RESPONSE_DATA* , STATUS*)>
+<!--Envelope 2.3.1:   Add _ID Attribute                                     -->
+<!ATTLIST RESPONSE  _ID                       ID     #IMPLIED
+                    ResponseDateTime          CDATA  #IMPLIED
+                    InternalAccountIdentifier CDATA  #IMPLIED
+                    LoginAccountIdentifier    CDATA  #IMPLIED
+                    LoginAccountPassword      CDATA  #IMPLIED >
+
+<!ELEMENT KEY EMPTY>
+<!ATTLIST KEY                          _Name  CDATA  #IMPLIED
+                                       _Value CDATA  #IMPLIED >
+
+<!ELEMENT RESPONSE_DATA (CREDIT_RESPONSE?)>
+
+<!ELEMENT STATUS EMPTY>
+<!ATTLIST STATUS                 _Condition   CDATA  #IMPLIED
+                                 _Code        CDATA  #IMPLIED
+                                 _Name        CDATA  #IMPLIED
+                                 _Description CDATA  #IMPLIED >
+
+
+<!--          *** 'CREDIT_RESPONSE ROOT' ELEMENT ***          -->
+
+<!--Credit 2.3:   added _DATA_INFORMATION and REGULATORY_PRODUCT Elements-->
+<!ELEMENT CREDIT_RESPONSE
+   (_DATA_INFORMATION?, 
+    CREDIT_BUREAU?,
+    CREDIT_REPORT_PRICE*,
+    CREDIT_REPOSITORY_INCLUDED?,
+    REQUESTING_PARTY?,
+    CREDIT_REQUEST_DATA?,
+    CREDIT_ERROR_MESSAGE*,
+    BORROWER*,
+    CREDIT_LIABILITY*,
+    CREDIT_PUBLIC_RECORD*,
+    CREDIT_INQUIRY*,
+    CREDIT_FILE*,
+    CREDIT_SCORE*,
+    CREDIT_TRADE_REFERENCE*,
+    CREDIT_COMMENT*,
+    CREDIT_CONSUMER_REFERRAL*,
+    CREDIT_SUMMARY*,
+    REGULATORY_PRODUCT*,
+    EMBEDDED_FILE*) >
+<!--Credit 2.3:   added CreditReportTransactionIdentifier Attribute-->
+<!--Credit 2.3.1: set MISMOVersionID Attribute to '2.3.1'-->
+<!ATTLIST CREDIT_RESPONSE
+    MISMOVersionID                  CDATA    #FIXED '2.3.1'
+    CreditResponseID                ID       #IMPLIED
+    CreditReportIdentifier          CDATA    #IMPLIED
+    CreditReportTransactionIdentifier CDATA  #IMPLIED
+    CreditReportFirstIssuedDate     CDATA    #IMPLIED
+    CreditReportLastUpdatedDate     CDATA    #IMPLIED
+    CreditReportMergeType
+     (Blend |
+      ListAndStack |
+      PickAndChoose)                         #IMPLIED
+    CreditReportType
+     (Error |
+      Merge |
+      MergePlus |
+      NonTraditional |
+      Other |
+      RiskScoresOnly |
+      RMCR |
+      RMCRForeign |
+      Status)                                #IMPLIED
+    CreditReportTypeOtherDescription CDATA   #IMPLIED
+    CreditRatingCodeType
+     (Equifax |
+      Experian |
+      Other)                                 #IMPLIED
+    CreditRatingCodeTypeOtherDescription CDATA #IMPLIED >
+
+<!--Credit 2.3:   added _DATA_INFORMATION and DATA_VERSION Elements-->
+<!ELEMENT _DATA_INFORMATION ( DATA_VERSION+ )>
+
+<!ELEMENT DATA_VERSION EMPTY>
+<!ATTLIST DATA_VERSION 
+    _Name                           CDATA    #REQUIRED
+    _Number                         CDATA    #REQUIRED >
+
+<!--      *** 'PRIMARY CONTAINER' ELEMENTS ***      -->
+
+<!ELEMENT BORROWER 
+   (_RESIDENCE*,
+    EMPLOYER*) >
+<!ATTLIST BORROWER 
+    BorrowerID                      ID       #IMPLIED
+    _BirthDate                      CDATA    #IMPLIED
+    _FirstName                      CDATA    #IMPLIED
+    _LastName                       CDATA    #IMPLIED
+    _MiddleName                     CDATA    #IMPLIED
+    _NameSuffix                     CDATA    #IMPLIED
+    _PrintPositionType
+     (Borrower |
+      CoBorrower)                            #IMPLIED
+    _SSN                            CDATA    #IMPLIED
+    _UnparsedName                   CDATA    #IMPLIED
+    MaritalStatusType
+     (Married | 
+      NotProvided | 
+      Separated | 
+      Unknown | 
+      Unmarried)                             #IMPLIED >
+
+<!ELEMENT CONTACT_DETAIL 
+   (CONTACT_POINT*) >
+<!ATTLIST CONTACT_DETAIL
+    _Name                           CDATA    #IMPLIED >
+<!ELEMENT CONTACT_POINT EMPTY >
+<!ATTLIST CONTACT_POINT
+    _RoleType             
+     (Home |
+      Mobile |
+      Work)                                  #IMPLIED
+    _Type
+     (Email |
+      Fax |
+      Other |
+      Phone)                                 #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED
+    _Value                          CDATA    #IMPLIED
+    _PreferenceIndicator  (Y | N )           #IMPLIED >
+
+<!ELEMENT CREDIT_BUREAU 
+   (CONTACT_DETAIL*) >
+<!--Credit 2.3:   added _DisclaimerText Attribute-->
+<!ATTLIST CREDIT_BUREAU
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED
+    _DisclaimerText                 CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_COMMENT 
+   (_Text*) >
+<!--Credit 2.3:   added _ReportedDate, _Type and _TypeOtherDescription Attributes-->
+<!ATTLIST CREDIT_COMMENT
+    _Code                           CDATA    #IMPLIED
+    _ReportedDate                   CDATA    #IMPLIED
+    _SourceType
+     (Borrower |
+      CreditBureau |
+      Equifax |
+      Experian |
+      Lender |
+      RepositoryBureau |
+      TransUnion)                            #IMPLIED
+    _Type
+     (BureauRemarks |
+      ConsumerStatement |
+      Instruction |
+      Other |
+      PublicRecordText)                      #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_CONSUMER_REFERRAL 
+   (CONTACT_DETAIL*) >
+<!ATTLIST CREDIT_CONSUMER_REFERRAL
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_ERROR_MESSAGE 
+   (_Text*) >
+<!ATTLIST CREDIT_ERROR_MESSAGE
+    _Code                           CDATA    #IMPLIED
+    _SourceType
+     (CreditBureau |
+      Equifax |
+      Experian |
+      Lender |
+      RepositoryBureau |
+      TransUnion)                            #IMPLIED >
+
+<!ELEMENT CREDIT_FILE	
+   (_ALERT_MESSAGE*,
+    _BORROWER?,
+    _OWNING_BUREAU?,
+    _VARIATION*,
+    CREDIT_COMMENT*,
+    CREDIT_ERROR_MESSAGE*) >
+<!--Credit 2.3.1: added _ResultStatusType and _ResultStatusTypeOtherDescription Attributes
+                  added CreditRepositorySourceTypeOtherDescription Attribute
+-->
+<!ATTLIST CREDIT_FILE
+    CreditFileID                    ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED
+    CreditScoreID                   IDREFS   #IMPLIED
+    CreditRepositorySourceType 
+     (Equifax | 
+      Experian | 
+      MergedData | 
+      Other | 
+      TransUnion)                            #IMPLIED
+    CreditRepositorySourceTypeOtherDescription CDATA  #IMPLIED
+    _InfileDate                     CDATA    #IMPLIED
+    _ResultStatusType 
+     (FileReturned | 
+      NoFileReturnedCreditFreeze | 
+      NoFileReturnedBorrowerIsAMinor | 
+      NoFileReturnedNoHit | 
+      NoFileReturnedThinFile |
+      NoFileReturnedFraudulentRequestData |
+      NoFileReturnedBadAccessCode |
+      NoFileReturnedInadequateRequestData |
+      NoFileReturnedError | 
+      Other)                                 #IMPLIED
+    _ResultStatusTypeOtherDescription CDATA  #IMPLIED >
+
+<!--Credit 2.1.1: added CREDIT_COMMENT Element-->
+<!ELEMENT CREDIT_INQUIRY	
+   (CREDIT_COMMENT*,
+    CREDIT_REPOSITORY*,
+    VERIFICATION?) >
+<!--Credit 2.1.1: added _StreetAddress, _StreetAddress2, _City, _State, _PostalCode Attributes-->
+<!--Credit 2.3:   added CreditLiabilityID Attribute
+                  new Enumerations for CreditLoanType Attribute
+                  - BiMonthlyMortgageTermInYears
+                  - ConstructionLoan
+                  - DeferredStudentLoan
+                  - SecondMortgage
+                  - SemiMonthlyMortgagePayment
+-->
+<!ATTLIST CREDIT_INQUIRY
+    CreditInquiryID                 ID       #IMPLIED
+    CreditLiabilityID               IDREFS   #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditTradeReferenceID          IDREF    #IMPLIED
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _InquiryResultType 
+      (AccountClosed | 
+       ApplicationPending | 
+       Declined | 
+       DidNotInquire | 
+       NoOpenAccount | 
+       NotALender | 
+       OpenAccountNumberNotIssued | 
+       OpenDiscovered | 
+       OpenPrimaryAccount | 
+       ReportingAgencyInquiry | 
+       Unknown)                              #IMPLIED
+    CreditBusinessType 
+     (Advertising | 
+      Automotive | 
+      Banking | 
+      Clothing | 
+      CollectionServices | 
+      Contractors | 
+      DepartmentAndMailOrder | 
+      Employment | 
+      FarmAndGardenSupplies | 
+      Finance | 
+      Government | 
+      Grocery | 
+      HomeFurnishing | 
+      Insurance | 
+      JewelryAndCamera | 
+      LumberAndHardware | 
+      MedicalAndHealth | 
+      MiscellaneousAndPublicRecord | 
+      OilAndNationalCreditCards | 
+      PersonalServicesNotMedical | 
+      RealEstateAndPublicAccommodation | 
+      SportingGoods | 
+      UtilitiesAndFuel | 
+      Wholesale)                             #IMPLIED
+    CreditLoanType 
+     (Agriculture | 
+      Airplane | 
+      ApplianceOrFurniture | 
+      AttorneyFees | 
+      AutoLease | 
+      AutoLoanEquityTransfer | 
+      Automobile | 
+      AutoRefinance | 
+      Boat | 
+      Business | 
+      BusinessCreditCard | 
+      ChargeAccount | 
+      CheckCreditOrLineOfCredit | 
+      ChildSupport | 
+      Collection | 
+      CollectionAttorney | 
+      Comaker | 
+      CombinedCreditPlan | 
+      CommercialCreditObligation | 
+      CommercialLineOfCredit | 
+      CommercialMortgage | 
+      ConditionalSalesContract | 
+      Consolidation | 
+      ConventionalRealEstateMortgage | 
+      CreditCard | 
+      CreditLineSecured | 
+      DebitCard | 
+      DebtCounselingService | 
+      DepositRelated | 
+      Educational | 
+      Employment | 
+      FactoringCompanyAccount | 
+      FamilySupport | 
+      FarmersHomeAdministrationFHMA | 
+      FederalConsolidatedLoan | 
+      FHAComakerNotBorrower | 
+      FHAHomeImprovement | 
+      FHARealEstateMortgage | 
+      FinanceStatement | 
+      GovernmentBenefit | 
+      GovernmentEmployeeAdvance | 
+      GovernmentFeeForService | 
+      GovernmentFine | 
+      GovernmentGrant | 
+      GovernmentMiscellaneousDebt | 
+      GovernmentOverpayment | 
+      GovernmentSecuredDirectLoan | 
+      GovernmentSecuredGuaranteeLoan | 
+      GovernmentUnsecuredDirectLoan | 
+      GovernmentUnsecuredGuaranteeLoan | 
+      HomeEquityLineOfCredit |
+      HomeImprovement | 
+      HouseholdGoods | 
+      HouseholdGoodsAndOtherCollateralAuto | 
+      HouseholdGoodsSecured | 
+      InstallmentLoan | 
+      InstallmentSalesContract | 
+      InsuranceClaims | 
+      Lease | 
+      LenderPlacedInsurance | 
+      ManualMortgage | 
+      MedicalDebt | 
+      MobileHome | 
+      Mortgage | 
+      NoteLoan | 
+      NoteLoanWithComaker | 
+      Other | 
+      PartiallySecured | 
+      PersonalLoan | 
+      RealEstateJuniorLiens | 
+      RealEstateLoanEquityTransfer | 
+      RealEstateMortgageWithoutOtherCollateral | 
+      RealEstateSpecificTypeUnknown | 
+      Recreational | 
+      RecreationalVehicle | 
+      Refinance | 
+      RefundAnticipationLoan | 
+      RentalAgreement | 
+      ResidentialLoan | 
+      ReturnedCheck | 
+      RevolvingBusinessLines | 
+      Secured | 
+      SecuredByCosigner | 
+      SecuredCreditCard | 
+      SecuredHomeImprovement | 
+      SinglePaymentLoan | 
+      SpouseSupport | 
+      SummaryOfAccountsWithSameStatus | 
+      TimeSharedLoan | 
+      Title1Loan | 
+      UnknownLoanType | 
+      Unsecured | 
+      VeteransAdministrationLoan | 
+      VeteransAdministrationRealEstateMortgage |
+      BiMonthlyMortgageTermInYears |
+      ConstructionLoan |
+      DeferredStudentLoan |
+      SecondMortgage |
+      SemiMonthlyMortgagePayment)               #IMPLIED
+    CreditLoanTypeOtherDescription     CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_LIABILITY	
+   (_CREDITOR?, 
+    _CURRENT_RATING?, 
+    _HIGHEST_ADVERSE_RATING?,
+    _LATE_COUNT?,
+    _MOST_RECENT_ADVERSE_RATING?,
+    _PAYMENT_PATTERN?,
+    _PRIOR_ADVERSE_RATING*,
+    CREDIT_COMMENT*,
+    CREDIT_REPOSITORY*,
+    VERIFICATION?,
+    UNMERGED_LIABILITY*) >
+<!--Credit 2.1.1: added _MonthsRemainingCount and ChargeOffDate Attributes-->
+<!--Credit 2.3:   added _AccountBalanceDate and _BalloonPaymentDueDate Attribute
+                  new Enumerations for CreditLoanType Attribute
+                  - BiMonthlyMortgageTermInYears
+                  - ConstructionLoan
+                  - DeferredStudentLoan
+                  - SecondMortgage
+                  - SemiMonthlyMortgagePayment
+-->
+<!--Credit 2.3.1: added CreditCounselingIndicator Attribute-->
+<!ATTLIST CREDIT_LIABILITY
+    CreditLiabilityID               ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditTradeReferenceID          IDREF    #IMPLIED
+    _AccountClosedDate              CDATA    #IMPLIED
+    _AccountIdentifier              CDATA    #IMPLIED
+    _AccountOpenedDate              CDATA    #IMPLIED
+    _AccountOwnershipType
+     (AuthorizedUser |
+      Comaker |
+      Individual |
+      JointContractualLiability |
+      JointParticipating |
+      Maker |
+      OnBehalfOf |
+      Terminated |
+      Undesignated)                          #IMPLIED
+    _AccountPaidDate                CDATA    #IMPLIED
+    _AccountReportedDate            CDATA    #IMPLIED
+    _AccountBalanceDate             CDATA    #IMPLIED
+    _AccountStatusDate              CDATA    #IMPLIED
+    _AccountStatusType
+     (Closed |
+      Frozen |
+      Open |
+      Paid |
+      Refinanced |
+      Transferred)                           #IMPLIED  
+    _AccountType
+     (CreditLine |
+      Installment |
+      Mortgage |
+      Open |
+      Revolving |
+      Unknown)                               #IMPLIED
+    _BalloonPaymentAmount           CDATA    #IMPLIED
+    _BalloonPaymentDueDate          CDATA    #IMPLIED
+    _ChargeOffAmount                CDATA    #IMPLIED
+    _ChargeOffDate                  CDATA    #IMPLIED
+    _CollateralDescription          CDATA    #IMPLIED
+    _ConsumerDisputeIndicator      (Y | N)   #IMPLIED
+    _CreditLimitAmount              CDATA    #IMPLIED
+    _DerogatoryDataIndicator       (Y | N)   #IMPLIED
+    _HighBalanceAmount              CDATA    #IMPLIED
+    _HighCreditAmount               CDATA    #IMPLIED
+    _LastActivityDate               CDATA    #IMPLIED
+    _ManualUpdateIndicator         (Y | N)   #IMPLIED
+    _MonthlyPaymentAmount           CDATA    #IMPLIED
+    _MonthsRemainingCount           CDATA    #IMPLIED
+    _MonthsReviewedCount            CDATA    #IMPLIED
+    _OriginalCreditorName           CDATA    #IMPLIED
+    _PastDueAmount                  CDATA    #IMPLIED
+    _TermsDescription               CDATA    #IMPLIED
+    _TermsMonthsCount               CDATA    #IMPLIED
+    _TermsSourceType
+     (Calculated |
+      Provided)                              #IMPLIED
+    _UnpaidBalanceAmount            CDATA    #IMPLIED
+    CreditBusinessType 
+     (Advertising | 
+      Automotive | 
+      Banking | 
+      Clothing | 
+      CollectionServices | 
+      Contractors | 
+      DepartmentAndMailOrder | 
+      Employment | 
+      FarmAndGardenSupplies | 
+      Finance | 
+      Government | 
+      Grocery | 
+      HomeFurnishing | 
+      Insurance | 
+      JewelryAndCamera | 
+      LumberAndHardware | 
+      MedicalAndHealth | 
+      MiscellaneousAndPublicRecord | 
+      OilAndNationalCreditCards | 
+      PersonalServicesNotMedical | 
+      RealEstateAndPublicAccommodation | 
+      SportingGoods | 
+      UtilitiesAndFuel | 
+      Wholesale)                             #IMPLIED
+    CreditCounselingIndicator (Y | N)        #IMPLIED
+    CreditLoanType 
+     (Agriculture | 
+      Airplane | 
+      ApplianceOrFurniture | 
+      AttorneyFees | 
+      AutoLease | 
+      AutoLoanEquityTransfer | 
+      Automobile | 
+      AutoRefinance | 
+      Boat | 
+      Business | 
+      BusinessCreditCard | 
+      ChargeAccount | 
+      CheckCreditOrLineOfCredit | 
+      ChildSupport | 
+      Collection | 
+      CollectionAttorney | 
+      Comaker | 
+      CombinedCreditPlan | 
+      CommercialCreditObligation | 
+      CommercialLineOfCredit | 
+      CommercialMortgage | 
+      ConditionalSalesContract | 
+      Consolidation | 
+      ConventionalRealEstateMortgage | 
+      CreditCard | 
+      CreditLineSecured | 
+      DebitCard | 
+      DebtCounselingService | 
+      DepositRelated | 
+      Educational | 
+      Employment | 
+      FactoringCompanyAccount | 
+      FamilySupport | 
+      FarmersHomeAdministrationFHMA | 
+      FederalConsolidatedLoan | 
+      FHAComakerNotBorrower | 
+      FHAHomeImprovement | 
+      FHARealEstateMortgage | 
+      FinanceStatement | 
+      GovernmentBenefit | 
+      GovernmentEmployeeAdvance | 
+      GovernmentFeeForService | 
+      GovernmentFine | 
+      GovernmentGrant | 
+      GovernmentMiscellaneousDebt | 
+      GovernmentOverpayment | 
+      GovernmentSecuredDirectLoan | 
+      GovernmentSecuredGuaranteeLoan | 
+      GovernmentUnsecuredDirectLoan | 
+      GovernmentUnsecuredGuaranteeLoan | 
+      HomeEquityLineOfCredit |
+      HomeImprovement | 
+      HouseholdGoods | 
+      HouseholdGoodsAndOtherCollateralAuto | 
+      HouseholdGoodsSecured | 
+      InstallmentLoan | 
+      InstallmentSalesContract | 
+      InsuranceClaims | 
+      Lease | 
+      LenderPlacedInsurance | 
+      ManualMortgage | 
+      MedicalDebt | 
+      MobileHome | 
+      Mortgage | 
+      NoteLoan | 
+      NoteLoanWithComaker | 
+      Other | 
+      PartiallySecured | 
+      PersonalLoan | 
+      RealEstateJuniorLiens | 
+      RealEstateLoanEquityTransfer | 
+      RealEstateMortgageWithoutOtherCollateral | 
+      RealEstateSpecificTypeUnknown | 
+      Recreational | 
+      RecreationalVehicle | 
+      Refinance | 
+      RefundAnticipationLoan | 
+      RentalAgreement | 
+      ResidentialLoan | 
+      ReturnedCheck | 
+      RevolvingBusinessLines | 
+      Secured | 
+      SecuredByCosigner | 
+      SecuredCreditCard | 
+      SecuredHomeImprovement | 
+      SinglePaymentLoan | 
+      SpouseSupport | 
+      SummaryOfAccountsWithSameStatus | 
+      TimeSharedLoan | 
+      Title1Loan | 
+      UnknownLoanType | 
+      Unsecured | 
+      VeteransAdministrationLoan | 
+      VeteransAdministrationRealEstateMortgage |
+      BiMonthlyMortgageTermInYears |
+      ConstructionLoan |
+      DeferredStudentLoan |
+      SecondMortgage |
+      SemiMonthlyMortgagePayment)               #IMPLIED
+    CreditLoanTypeOtherDescription     CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_PUBLIC_RECORD	
+   (CREDIT_COMMENT*,
+    CREDIT_REPOSITORY*,
+    VERIFICATION?,
+    UNMERGED_PUBLIC_RECORD*) >
+<!--Credit 2.1.1: added _BankruptcyAdjustmentPercent, BankruptcyRepaymentPercent, 
+                        _BankruptcyExemptAmount, and BankruptcyType Attributes
+-->
+<!--Credit 2.3:   added _AccountOwnershipType Attribute-->
+<!ATTLIST CREDIT_PUBLIC_RECORD  
+    CreditPublicRecordID            ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED 
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditTradeReferenceID          IDREF    #IMPLIED
+    _AccountOwnershipType
+     (Individual |
+      Joint |
+      Terminated)                            #IMPLIED
+    _AttorneyName                   CDATA    #IMPLIED
+    _BankruptcyAdjustmentPercent    CDATA    #IMPLIED
+    _BankruptcyAssetsAmount         CDATA    #IMPLIED
+    _BankruptcyExemptAmount         CDATA    #IMPLIED
+    _BankruptcyLiabilitiesAmount    CDATA    #IMPLIED
+    _BankruptcyRepaymentPercent     CDATA    #IMPLIED
+    _BankruptcyType
+     (Business | 
+      Personal )                             #IMPLIED
+    _ConsumerDisputeIndicator      (Y | N)   #IMPLIED
+    _CourtName                      CDATA    #IMPLIED
+    _DefendantName                  CDATA    #IMPLIED
+    _DerogatoryDataIndicator       (Y | N)   #IMPLIED
+    _DispositionDate                CDATA    #IMPLIED
+    _DispositionType
+     (Adjudicated | 
+      Appealed | 
+      Cancelled | 
+      Completed | 
+      Converted | 
+      Discharged | 
+      Dismissed | 
+      Distributed | 
+      Filed | 
+      Granted | 
+      InvoluntarilyDischarged | 
+      Nonadjudicated | 
+      Other | 
+      Paid | 
+      PaidNotSatisfied | 
+      Pending | 
+      RealEstateSold | 
+      Released | 
+      Rescinded | 
+      Satisfied | 
+      Settled | 
+      Unknown | 
+      Unreleased | 
+      Unsatisfied | 
+      Vacated | 
+      VoluntarilyDischarged | 
+      Withdrawn )                            #IMPLIED
+    _DispositionTypeOtherDescription CDATA   #IMPLIED
+    _DocketIdentifier               CDATA    #IMPLIED
+    _FiledDate                      CDATA    #IMPLIED
+    _LegalObligationAmount          CDATA    #IMPLIED
+    _ManualUpdateIndicator         (Y | N)   #IMPLIED
+    _PaidDate                       CDATA    #IMPLIED
+    _PaymentFrequencyType
+     (Biweekly | 
+      LumpSum | 
+      Monthly | 
+      Other | 
+      Unknown | 
+      Weekly | 
+      Yearly )                               #IMPLIED
+    _PlaintiffName                  CDATA    #IMPLIED
+    _ReportedDate                   CDATA    #IMPLIED
+    _SettledDate                    CDATA    #IMPLIED
+    _Type
+     (Annulment | 
+      Attachment | 
+      BankruptcyChapter11 | 
+      BankruptcyChapter12 | 
+      BankruptcyChapter13 | 
+      BankruptcyChapter7 | 
+      BankruptcyChapter7Involuntary | 
+      BankruptcyChapter7Voluntary | 
+      BankruptcyTypeUnknown | 
+      Collection | 
+      CustodyAgreement | 
+      DivorceDecree | 
+      FicticiousName | 
+      FinancialCounseling | 
+      FinancingStatement | 
+      ForcibleDetainer | 
+      Foreclosure | 
+      Garnishment | 
+      Judgment | 
+      LawSuit | 
+      Lien | 
+      NonResponsibility | 
+      NoticeOfDefault | 
+      Other | 
+      PublicSale | 
+      RealEstateRecording | 
+      Repossession | 
+      SupportDebt | 
+      TaxLienCity | 
+      TaxLienCounty | 
+      TaxLienFederal | 
+      TaxLienOther | 
+      TaxLienState | 
+      Trusteeship | 
+      Unknown | 
+      UnlawfulDetainer )                     #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_REPORT_PRICE EMPTY >
+<!ATTLIST CREDIT_REPORT_PRICE
+    _Amount                         CDATA    #IMPLIED
+    _Type 
+     (Net | 
+      Other | 
+      Tax | 
+      Total)                                 #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_REPOSITORY EMPTY>
+<!--Credit 2.3.1: added _SourceTypeOtherDescription Attribute-->
+<!ATTLIST CREDIT_REPOSITORY
+    _SourceType 
+     (Equifax | 
+      Experian | 
+      MergedData |
+      Other | 
+      TransUnion)                            #IMPLIED
+    _SourceTypeOtherDescription     CDATA    #IMPLIED
+    _SubscriberCode                 CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_REPOSITORY_INCLUDED EMPTY >
+<!ATTLIST CREDIT_REPOSITORY_INCLUDED
+    _EquifaxIndicator              (Y | N)   #IMPLIED
+    _ExperianIndicator             (Y | N)   #IMPLIED
+    _TransUnionIndicator           (Y | N)   #IMPLIED
+    _OtherRepositoryName            CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_REQUEST_DATA
+   (CREDIT_REPOSITORY_INCLUDED?,
+    CREDIT_SCORE_MODEL_NAME*) >
+<!--Credit 2.1.1: added CreditReportProductDescription and CreditReportRequestActionTypeOtherDescription 
+                        Attributes
+                  new Enumerations for CreditReportRequestActionType Attribute 
+                  - Other
+                  - Retrieve
+-->
+<!--Credit 2.3:   added CreditReportTransactionIdentifier Attribute-->
+<!ATTLIST CREDIT_REQUEST_DATA
+    CreditRequestID                 ID       #IMPLIED 
+    BorrowerID                      IDREFS   #IMPLIED 
+    CreditReportIdentifier          CDATA    #IMPLIED
+    CreditReportTransactionIdentifier CDATA  #IMPLIED
+    CreditReportProductDescription  CDATA    #IMPLIED
+    CreditReportRequestActionType
+     (Other |
+      Reissue |
+      Retrieve |
+      StatusQuery |
+      Submit |
+      Update |
+      Upgrade)                               #IMPLIED
+    CreditReportRequestActionTypeOtherDescription CDATA #IMPLIED
+    CreditReportType
+     (Merge |
+      MergePlus |
+      NonTraditional |
+      Other |
+      RiskScoresOnly |
+      RMCR |
+      RMCRForeign)                           #IMPLIED
+    CreditReportTypeOtherDescription CDATA   #IMPLIED
+    CreditRepositoriesSelectedCount CDATA    #IMPLIED
+    CreditRequestDateTime           CDATA    #IMPLIED
+    CreditRequestType
+     (Individual |
+      Joint)                                 #IMPLIED >
+
+<!ELEMENT CREDIT_SCORE	
+   (_FACTOR*) >
+<!--Credit 2.1.1: new Enumerations for _ModelNameType Attribute 
+                  - ExperianFairIsaacAdvanced
+                  - TransUnionPrecision
+-->
+<!--Credit 2.3:   new Enumerations for _ExclusionReasonType Attribute
+                  - NotScoredRequirementsNotMet
+                  - NotScoredFileCannotBeScored
+                  new Enumerations for _ModelNameType Attribute 
+                  - EquifaxBeacon5.0
+                  - EquifaxBeacon5.0Auto
+                  - EquifaxBeacon5.0BankCard
+                  - EquifaxBeacon5.0Installment
+                  - EquifaxBeacon5.0PersonalFinance
+                  - EquifaxPrecision2.0
+-->
+<!--Credit 2.3.1 new Enumerations for _ModelNameType Attribute
+		  - ExperianFairIsaacAdvanced2.0
+		  - ExperianScorexPLUS
+		  - FICOExpansionScore
+		  - FICORiskScoreClassic98
+		  - FICORiskScoreClassicAuto98
+		  - FICORiskScoreClassicBankcard98
+		  - FICORiskScoreClassicInstallmentLoan98
+		  - FICORiskScoreClassicPersonalFinance98
+		  - FICORiskScoreClassic04
+		  - FICORiskScoreNextGen00
+		  - FICORiskScoreNextGen03
+		  - TransUnionPrecision03
+		 Added _FACTAInquiriesIndicator Attribute
+                 Added CreditRepositorySourceTypeOtherDescription Attribute
+-->
+<!ATTLIST CREDIT_SCORE
+    CreditScoreID                   ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditReportIdentifier          CDATA    #IMPLIED
+    CreditRepositorySourceType 
+     (Equifax | 
+      Experian | 
+      MergedData | 
+      Other | 
+      TransUnion)                            #IMPLIED
+    CreditRepositorySourceTypeOtherDescription CDATA #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _ExclusionReasonType
+     (InvalidScoreRequest |
+      NotScoredCreditDataNotAvailable |
+      NotScoredFileIsUnderReview |
+      NotScoredFileTooLong |
+      NotScoredInsufficientCredit |
+      NotScoredNoQualifyingAccount |
+      NotScoredNoRecentAccountInformation |
+      NotScoredSubjectDeceased |
+      ScoringNotAvailable |
+      UnauthorizedScoreRequest |
+      NotScoredRequirementsNotMet |
+      NotScoredFileCannotBeScored)           #IMPLIED
+    _FACTAInquiriesIndicator (Y | N )        #IMPLIED
+    _ModelNameType
+     (EquifaxBeacon |
+      EquifaxBeaconAuto |
+      EquifaxBeaconBankcard |
+      EquifaxBeaconInstallment |
+      EquifaxBeaconPersonalFinance |
+      EquifaxBeacon5.0 |
+      EquifaxBeacon5.0Auto |
+      EquifaxBeacon5.0Bankcard |
+      EquifaxBeacon5.0Installment |
+      EquifaxBeacon5.0PersonalFinance |
+      EquifaxDAS |
+      EquifaxEnhancedBeacon |
+      EquifaxEnhancedDAS |
+      EquifaxMarketMax |
+      EquifaxMortgageScore |
+      EquifaxPinnacle |
+      EquifaxPinnacle2.0 |
+      ExperianFairIsaac |
+      ExperianFairIsaacAdvanced |
+      ExperianFairIsaacAdvanced2.0 |
+      ExperianFairIsaacAuto |
+      ExperianFairIsaacBankcard |
+      ExperianFairIsaacInstallment |
+      ExperianFairIsaacPersonalFinance |
+      ExperianMDSBankruptcyII |
+      ExperianNewNationalEquivalency |
+      ExperianNewNationalRisk |
+      ExperianOldNationalRisk |
+      ExperianScorexPLUS |
+      FICOExpansionScore |
+      FICORiskScoreClassic98 |
+      FICORiskScoreClassicAuto98 |
+      FICORiskScoreClassicBankcard98 |
+      FICORiskScoreClassicInstallmentLoan98 |
+      FICORiskScoreClassicPersonalFinance98 |
+      FICORiskScoreClassic04 |
+      FICORiskScoreNextGen00 |
+      FICORiskScoreNextGen03 |
+      Other |
+      TransUnionDelphi |
+      TransUnionEmpirica |
+      TransUnionEmpiricaAuto |
+      TransUnionEmpiricaBankcard |
+      TransUnionEmpiricaInstallment |
+      TransUnionEmpiricaPersonalFinance |
+      TransUnionNewDelphi |
+      TransUnionPrecision |
+      TransUnionPrecision03)                 #IMPLIED
+    _ModelNameTypeOtherDescription  CDATA    #IMPLIED
+    _Value                          CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_SCORE_MODEL_NAME EMPTY >
+<!--Credit 2.1.1: new Enumerations for _Type Attribute 
+                  - ExperianFairIsaacAdvanced
+                  - TransUnionPrecision
+-->
+<!--Credit 2.3:   new Enumerations for _Type Attribute 
+                  - EquifaxBeacon5.0
+                  - EquifaxBeacon5.0Auto
+                  - EquifaxBeacon5.0BankCard
+                  - EquifaxBeacon5.0Installment
+                  - EquifaxBeacon5.0PersonalFinance
+                  - EquifaxPrecision2.0
+-->
+<!--Credit 2.3.1 new Enumerations for _ModelNameType Attribute
+		  - ExperianFairIsaacAdvanced2.0
+		  - ExperianScorexPLUS
+		  - FICOExpansionScore
+		  - FICORiskScoreClassic98
+		  - FICORiskScoreClassicAuto98
+		  - FICORiskScoreClassicBankcard98
+		  - FICORiskScoreClassicInstallmentLoan98
+		  - FICORiskScoreClassicPersonalFinance98
+		  - FICORiskScoreClassic04
+		  - FICORiskScoreNextGen00
+		  - FICORiskScoreNextGen03
+		  - TransUnionPrecision03
+-->
+<!ATTLIST CREDIT_SCORE_MODEL_NAME
+    _Type
+     (EquifaxBeacon |
+      EquifaxBeaconAuto |
+      EquifaxBeaconBankcard |
+      EquifaxBeaconInstallment |
+      EquifaxBeaconPersonalFinance |
+      EquifaxBeacon5.0 |
+      EquifaxBeacon5.0Auto |
+      EquifaxBeacon5.0Bankcard |
+      EquifaxBeacon5.0Installment |
+      EquifaxBeacon5.0PersonalFinance |
+      EquifaxDAS |
+      EquifaxEnhancedBeacon |
+      EquifaxEnhancedDAS |
+      EquifaxMarketMax |
+      EquifaxMortgageScore |
+      EquifaxPinnacle |
+      EquifaxPinnacle2.0 |
+      ExperianFairIsaac |
+      ExperianFairIsaacAdvanced |
+      ExperianFairIsaacAdvanced2.0 |
+      ExperianFairIsaacAuto |
+      ExperianFairIsaacBankcard |
+      ExperianFairIsaacInstallment |
+      ExperianFairIsaacPersonalFinance |
+      ExperianMDSBankruptcyII |
+      ExperianNewNationalEquivalency |
+      ExperianNewNationalRisk |
+      ExperianOldNationalRisk |
+      ExperianScorexPLUS |
+      FICOExpansionScore |
+      FICORiskScoreClassic98 |
+      FICORiskScoreClassicAuto98 |
+      FICORiskScoreClassicBankcard98 |
+      FICORiskScoreClassicInstallmentLoan98 |
+      FICORiskScoreClassicPersonalFinance98 |
+      FICORiskScoreClassic04 |
+      FICORiskScoreNextGen00 |
+      FICORiskScoreNextGen03 |
+      Other |
+      TransUnionDelphi |
+      TransUnionEmpirica |
+      TransUnionEmpiricaAuto |
+      TransUnionEmpiricaBankcard |
+      TransUnionEmpiricaInstallment |
+      TransUnionEmpiricaPersonalFinance |
+      TransUnionNewDelphi |
+      TransUnionPrecision |
+      TransUnionPrecision03)                 #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_SUMMARY 
+   (_DATA_SET*, 
+    _Text*) >
+<!--Credit 2.3.1: added BorrowerID IDREFS Attributes-->
+<!ATTLIST CREDIT_SUMMARY
+    BorrowerID                      IDREFS   #IMPLIED
+    _Name                           CDATA    #IMPLIED >
+
+<!ELEMENT CREDIT_TRADE_REFERENCE 
+   (CONTACT_DETAIL?,
+    CREDIT_REPOSITORY*)>
+<!ATTLIST CREDIT_TRADE_REFERENCE
+    CreditTradeReferenceID          ID       #IMPLIED
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED >
+
+<!ELEMENT DOCUMENT ANY >
+
+<!ELEMENT EMBEDDED_FILE (DOCUMENT) >
+<!--Credit 2.1.1: added _Description and MIMEType Attributes-->
+<!--Credit 2.3:   added _ID Attribute-->
+<!ATTLIST EMBEDDED_FILE
+    _ID                             ID       #IMPLIED
+    _Type                           CDATA    #IMPLIED
+    _Version                        CDATA    #IMPLIED
+    _Name                           CDATA    #IMPLIED
+    _Extension                      CDATA    #IMPLIED
+    _EncodingType                   CDATA    #IMPLIED
+    _Description                    CDATA    #IMPLIED
+    MIMEType                        CDATA    #IMPLIED >
+
+<!--Credit 2.1.1: added CREDIT_COMMENT Element-->
+<!--Credit 2.3:   added CONTACT_DETAIL Element-->
+<!ELEMENT EMPLOYER
+   (VERIFICATION?,
+    CREDIT_COMMENT*,
+    CONTACT_DETAIL*)  >
+<!--Credit 2.3:   added EmploymentReportedDate and CurrentEmploymentStartDate Attributes-->
+<!ATTLIST EMPLOYER 
+    _Name                                     CDATA    #IMPLIED
+    _StreetAddress                            CDATA    #IMPLIED
+    _City                                     CDATA    #IMPLIED
+    _State                                    CDATA    #IMPLIED
+    _PostalCode                               CDATA    #IMPLIED
+    _TelephoneNumber                          CDATA    #IMPLIED
+    CurrentEmploymentMonthsOnJob              CDATA    #IMPLIED
+    CurrentEmploymentStartDate                CDATA    #IMPLIED
+    CurrentEmploymentTimeInLineOfWorkYears    CDATA    #IMPLIED
+    CurrentEmploymentYearsOnJob               CDATA    #IMPLIED
+    EmploymentBorrowerSelfEmployedIndicator  (Y | N )  #IMPLIED
+    EmploymentCurrentIndicator               (Y | N )  #IMPLIED
+    EmploymentPositionDescription             CDATA    #IMPLIED
+    EmploymentPrimaryIndicator               (Y | N )  #IMPLIED
+    EmploymentReportedDate                    CDATA    #IMPLIED
+    IncomeEmploymentMonthlyAmount             CDATA    #IMPLIED
+    PreviousEmploymentEndDate                 CDATA    #IMPLIED
+    PreviousEmploymentStartDate               CDATA    #IMPLIED >
+
+<!--Credit 2.1.1: added CREDIT_COMMENT Element-->
+<!ELEMENT LANDLORD 
+   (CONTACT_DETAIL?,
+    VERIFICATION?,
+    CREDIT_COMMENT*)  >
+<!ATTLIST LANDLORD
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED >
+
+<!ELEMENT PARSED_STREET_ADDRESS EMPTY>
+<!ATTLIST PARSED_STREET_ADDRESS
+	_ApartmentOrUnit                        CDATA    #IMPLIED
+	_DirectionPrefix                        CDATA    #IMPLIED
+	_DirectionSuffix                        CDATA    #IMPLIED
+	_HouseNumber                            CDATA    #IMPLIED
+	_Military_APO_FPO                       CDATA    #IMPLIED
+	_PostOfficeBox                          CDATA    #IMPLIED
+	_RuralRoute                             CDATA    #IMPLIED
+	_StreetName                             CDATA    #IMPLIED
+	_StreetSuffix                           CDATA    #IMPLIED >
+
+<!--Credit 2.3:   added REGULATORY_PRODUCT and _MATCH Elements-->
+<!ELEMENT REGULATORY_PRODUCT (_MATCH*)>
+<!ATTLIST REGULATORY_PRODUCT
+    CreditFileID IDREFS #IMPLIED
+    BorrowerID   IDREFS #IMPLIED
+    CreditRepositorySourceType 
+     (Equifax | 
+      Experian | 
+      MergedData | 
+      Other | 
+      TransUnion)                            #IMPLIED
+    CreditRepositorySourceTypeOtherDescription CDATA #IMPLIED
+    _SourceType 
+     (OFAC |
+      Other)                                 #IMPLIED
+    _SourceTypeOtherDescription     CDATA    #IMPLIED
+    _ProviderDescription            CDATA    #IMPLIED
+    _ResultText CDATA #IMPLIED
+    _ResultStatusType
+     (Clear |
+      Error |
+      Hit |
+      Other) #IMPLIED
+    _ResultStatusTypeOtherDescription CDATA  #IMPLIED
+    _DisclaimerText                 CDATA    #IMPLIED >
+
+<!--Credit 2.3:   added _MATCH Element-->
+<!ELEMENT _MATCH EMPTY>
+<!ATTLIST _MATCH
+    _Type 
+     (FirstName |
+      LastName |
+      Address |
+      City |
+      State |
+      PostalCode |
+      Other) #IMPLIED
+    _TypeOtherDescription CDATA #IMPLIED >
+
+<!ELEMENT REQUESTING_PARTY 
+   (CONTACT_DETAIL*) >
+<!ATTLIST REQUESTING_PARTY
+    InternalAccountIdentifier       CDATA    #IMPLIED
+    LenderCaseIdentifier            CDATA    #IMPLIED
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED
+    _RequestedByName                CDATA    #IMPLIED >
+
+<!ELEMENT UNMERGED_LIABILITY	
+   (_CREDITOR?, 
+    _CURRENT_RATING?, 
+    _HIGHEST_ADVERSE_RATING?,
+    _LATE_COUNT?,
+    _MOST_RECENT_ADVERSE_RATING?,
+    _PAYMENT_PATTERN?,
+    _PRIOR_ADVERSE_RATING*,
+    CREDIT_COMMENT*,
+    CREDIT_REPOSITORY*,
+    VERIFICATION?)>
+<!--Credit 2.1.1: added _MonthsRemainingCount and ChargeOffDate Attributes-->
+<!--Credit 2.3:   added _AccountBalanceDate and _BalloonPaymentDueDate Attribute
+                  new Enumerations for CreditLoanType Attribute
+                  - BiMonthlyMortgageTermInYears
+                  - ConstructionLoan
+                  - DeferredStudentLoan
+                  - SecondMortgage
+                  - SemiMonthlyMortgagePayment
+-->
+<!--Credit 2.3.1: added CreditCounselingIndicator Attribute-->
+<!ATTLIST UNMERGED_LIABILITY
+    CreditLiabilityID               ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditTradeReferenceID          IDREF    #IMPLIED
+    _AccountClosedDate              CDATA    #IMPLIED
+    _AccountIdentifier              CDATA    #IMPLIED
+    _AccountOpenedDate              CDATA    #IMPLIED
+    _AccountOwnershipType
+     (AuthorizedUser |
+      Comaker |
+      Individual |
+      JointContractualLiability |
+      JointParticipating |
+      Maker |
+      OnBehalfOf |
+      Terminated |
+      Undesignated)                          #IMPLIED
+    _AccountPaidDate                CDATA    #IMPLIED
+    _AccountReportedDate            CDATA    #IMPLIED
+    _AccountBalanceDate             CDATA    #IMPLIED
+    _AccountStatusDate              CDATA    #IMPLIED
+    _AccountStatusType
+     (Closed |
+      Frozen |
+      Open |
+      Paid |
+      Refinanced |
+      Transferred)                           #IMPLIED  
+    _AccountType
+     (CreditLine |
+      Installment |
+      Mortgage |
+      Open |
+      Revolving |
+      Unknown)                               #IMPLIED
+    _BalloonPaymentAmount           CDATA    #IMPLIED
+    _BalloonPaymentDueDate          CDATA    #IMPLIED
+    _ChargeOffAmount                CDATA    #IMPLIED
+    _ChargeOffDate                  CDATA    #IMPLIED
+    _CollateralDescription          CDATA    #IMPLIED
+    _ConsumerDisputeIndicator      (Y | N)   #IMPLIED
+    _CreditLimitAmount              CDATA    #IMPLIED
+    _DerogatoryDataIndicator       (Y | N)   #IMPLIED
+    _HighBalanceAmount              CDATA    #IMPLIED
+    _HighCreditAmount               CDATA    #IMPLIED
+    _LastActivityDate               CDATA    #IMPLIED
+    _ManualUpdateIndicator         (Y | N)   #IMPLIED
+    _MonthlyPaymentAmount           CDATA    #IMPLIED
+    _MonthsRemainingCount           CDATA    #IMPLIED
+    _MonthsReviewedCount            CDATA    #IMPLIED
+    _OriginalCreditorName           CDATA    #IMPLIED
+    _PastDueAmount                  CDATA    #IMPLIED
+    _TermsDescription               CDATA    #IMPLIED
+    _TermsMonthsCount               CDATA    #IMPLIED
+    _TermsSourceType
+     (Calculated |
+      Provided)                              #IMPLIED
+    _UnpaidBalanceAmount            CDATA    #IMPLIED
+    CreditBusinessType 
+     (Advertising | 
+      Automotive | 
+      Banking | 
+      Clothing | 
+      CollectionServices | 
+      Contractors | 
+      DepartmentAndMailOrder | 
+      Employment | 
+      FarmAndGardenSupplies | 
+      Finance | 
+      Government | 
+      Grocery | 
+      HomeFurnishing | 
+      Insurance | 
+      JewelryAndCamera | 
+      LumberAndHardware | 
+      MedicalAndHealth | 
+      MiscellaneousAndPublicRecord | 
+      OilAndNationalCreditCards | 
+      PersonalServicesNotMedical | 
+      RealEstateAndPublicAccommodation | 
+      SportingGoods | 
+      UtilitiesAndFuel | 
+      Wholesale)                             #IMPLIED
+    CreditCounselingIndicator (Y | N)        #IMPLIED
+    CreditLoanType 
+     (Agriculture | 
+      Airplane | 
+      ApplianceOrFurniture | 
+      AttorneyFees | 
+      AutoLease | 
+      AutoLoanEquityTransfer | 
+      Automobile | 
+      AutoRefinance | 
+      Boat | 
+      Business | 
+      BusinessCreditCard | 
+      ChargeAccount | 
+      CheckCreditOrLineOfCredit | 
+      ChildSupport | 
+      Collection | 
+      CollectionAttorney | 
+      Comaker | 
+      CombinedCreditPlan | 
+      CommercialCreditObligation | 
+      CommercialLineOfCredit | 
+      CommercialMortgage | 
+      ConditionalSalesContract | 
+      Consolidation | 
+      ConventionalRealEstateMortgage | 
+      CreditCard | 
+      CreditLineSecured | 
+      DebitCard | 
+      DebtCounselingService | 
+      DepositRelated | 
+      Educational | 
+      Employment | 
+      FactoringCompanyAccount | 
+      FamilySupport | 
+      FarmersHomeAdministrationFHMA | 
+      FederalConsolidatedLoan | 
+      FHAComakerNotBorrower | 
+      FHAHomeImprovement | 
+      FHARealEstateMortgage | 
+      FinanceStatement | 
+      GovernmentBenefit | 
+      GovernmentEmployeeAdvance | 
+      GovernmentFeeForService | 
+      GovernmentFine | 
+      GovernmentGrant | 
+      GovernmentMiscellaneousDebt | 
+      GovernmentOverpayment | 
+      GovernmentSecuredDirectLoan | 
+      GovernmentSecuredGuaranteeLoan | 
+      GovernmentUnsecuredDirectLoan | 
+      GovernmentUnsecuredGuaranteeLoan | 
+      HomeEquityLineOfCredit |
+      HomeImprovement | 
+      HouseholdGoods | 
+      HouseholdGoodsAndOtherCollateralAuto | 
+      HouseholdGoodsSecured | 
+      InstallmentLoan | 
+      InstallmentSalesContract | 
+      InsuranceClaims | 
+      Lease | 
+      LenderPlacedInsurance | 
+      ManualMortgage | 
+      MedicalDebt | 
+      MobileHome | 
+      Mortgage | 
+      NoteLoan | 
+      NoteLoanWithComaker | 
+      Other | 
+      PartiallySecured | 
+      PersonalLoan | 
+      RealEstateJuniorLiens | 
+      RealEstateLoanEquityTransfer | 
+      RealEstateMortgageWithoutOtherCollateral | 
+      RealEstateSpecificTypeUnknown | 
+      Recreational | 
+      RecreationalVehicle | 
+      Refinance | 
+      RefundAnticipationLoan | 
+      RentalAgreement | 
+      ResidentialLoan | 
+      ReturnedCheck | 
+      RevolvingBusinessLines | 
+      Secured | 
+      SecuredByCosigner | 
+      SecuredCreditCard | 
+      SecuredHomeImprovement | 
+      SinglePaymentLoan | 
+      SpouseSupport | 
+      SummaryOfAccountsWithSameStatus | 
+      TimeSharedLoan | 
+      Title1Loan | 
+      UnknownLoanType | 
+      Unsecured | 
+      VeteransAdministrationLoan | 
+      VeteransAdministrationRealEstateMortgage |
+      BiMonthlyMortgageTermInYears |
+      ConstructionLoan |
+      DeferredStudentLoan |
+      SecondMortgage |
+      SemiMonthlyMortgagePayment)               #IMPLIED
+    CreditLoanTypeOtherDescription     CDATA    #IMPLIED >
+
+<!ELEMENT UNMERGED_PUBLIC_RECORD
+   (CREDIT_COMMENT*,
+    CREDIT_REPOSITORY*,
+    VERIFICATION?) >
+<!--Credit 2.1.1: added _BankruptcyAdjustmentPercent, BankruptcyRepaymentPercent, 
+                        _BankruptcyExemptAmount, and BankruptcyType Attributes
+-->
+<!--Credit 2.3:   added _AccountOwnershipType Attribute-->
+<!ATTLIST UNMERGED_PUBLIC_RECORD  
+    UnmergedPublicRecordID          ID       #IMPLIED
+    BorrowerID                      IDREFS   #IMPLIED 
+    CreditFileID                    IDREFS   #IMPLIED
+    CreditTradeReferenceID          IDREF    #IMPLIED
+    _AccountOwnershipType
+     (Individual |
+      Joint |
+      Terminated)                            #IMPLIED
+    _AttorneyName                   CDATA    #IMPLIED
+    _BankruptcyAdjustmentPercent    CDATA    #IMPLIED
+    _BankruptcyAssetsAmount         CDATA    #IMPLIED
+    _BankruptcyExemptAmount         CDATA    #IMPLIED
+    _BankruptcyLiabilitiesAmount    CDATA    #IMPLIED
+    _BankruptcyRepaymentPercent     CDATA    #IMPLIED
+    _BankruptcyType
+     (Business | 
+      Personal )                             #IMPLIED
+    _ConsumerDisputeIndicator      (Y | N)   #IMPLIED
+    _CourtName                      CDATA    #IMPLIED
+    _DefendantName                  CDATA    #IMPLIED
+    _DerogatoryDataIndicator       (Y | N)   #IMPLIED
+    _DispositionDate                CDATA    #IMPLIED
+    _DispositionType
+     (Adjudicated | 
+      Appealed | 
+      Cancelled | 
+      Completed | 
+      Converted | 
+      Discharged | 
+      Dismissed | 
+      Distributed | 
+      Filed | 
+      Granted | 
+      InvoluntarilyDischarged | 
+      Nonadjudicated | 
+      Other | 
+      Paid | 
+      PaidNotSatisfied | 
+      Pending | 
+      RealEstateSold | 
+      Released | 
+      Rescinded | 
+      Satisfied | 
+      Settled | 
+      Unknown | 
+      Unreleased | 
+      Unsatisfied | 
+      Vacated | 
+      VoluntarilyDischarged | 
+      Withdrawn )                            #IMPLIED
+    _DispositionTypeOtherDescription CDATA   #IMPLIED
+    _DocketIdentifier               CDATA    #IMPLIED
+    _FiledDate                      CDATA    #IMPLIED
+    _LegalObligationAmount          CDATA    #IMPLIED
+    _ManualUpdateIndicator         (Y | N)   #IMPLIED
+    _PaidDate                       CDATA    #IMPLIED
+    _PaymentFrequencyType
+     (Biweekly | 
+      LumpSum | 
+      Monthly | 
+      Other | 
+      Unknown | 
+      Weekly | 
+      Yearly )                               #IMPLIED
+    _PlaintiffName                  CDATA    #IMPLIED
+    _ReportedDate                   CDATA    #IMPLIED
+    _SettledDate                    CDATA    #IMPLIED
+    _Type
+     (Annulment | 
+      Attachment | 
+      BankruptcyChapter11 | 
+      BankruptcyChapter12 | 
+      BankruptcyChapter13 | 
+      BankruptcyChapter7 | 
+      BankruptcyChapter7Involuntary | 
+      BankruptcyChapter7Voluntary | 
+      BankruptcyTypeUnknown | 
+      Collection | 
+      CustodyAgreement | 
+      DivorceDecree | 
+      FicticiousName | 
+      FinancialCounseling | 
+      FinancingStatement | 
+      ForcibleDetainer | 
+      Foreclosure | 
+      Garnishment | 
+      Judgment | 
+      LawSuit | 
+      Lien | 
+      NonResponsibility | 
+      NoticeOfDefault | 
+      Other | 
+      PublicSale | 
+      RealEstateRecording | 
+      Repossession | 
+      SupportDebt | 
+      TaxLienCity | 
+      TaxLienCounty | 
+      TaxLienFederal | 
+      TaxLienOther | 
+      TaxLienState | 
+      Trusteeship | 
+      Unknown | 
+      UnlawfulDetainer )                     #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!ELEMENT VERIFICATION EMPTY>
+<!ATTLIST VERIFICATION
+    _ByName                         CDATA    #IMPLIED
+    _Comment                        CDATA    #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _StatusType 
+     (NotVerified |
+      ToBeVerified |
+      Verified)                              #IMPLIED >
+
+
+
+<!--          *** 'CONTAINED' ELEMENTS ***          -->
+
+<!ELEMENT _ALERT_MESSAGE 
+   (_Text*) >
+<!--Credit 2.3:   added New Enumeration for _Type Attribute
+                         - Other
+                  added New _TypeOtherDescription Attribute
+-->
+<!--Credit 2.3.1: added New _CategoryType, _CategoryTypeOtherDescription, _AdverseIndicator Attributes
+                  added New Enumerations for _Type Attribute
+                         - TransUnionHighRiskFraudAlert
+                         - TransUnionIDMismatchAlert
+-->
+<!ATTLIST _ALERT_MESSAGE
+    _AdverseIndicator              (Y | N)   #IMPLIED
+    _CategoryType
+     (CreditFileSuppressed |
+      DeathClaim |
+      DemographicsVerification |
+      FACTAActiveDuty |
+      FACTAAddressDiscrepancy |
+      FACTAFraudVictimExtended |
+      FACTAFraudVictimInitial |
+      FACTARiskScoreValue |
+      FraudVictim |
+      Other |
+      SSNVerification)                       #IMPLIED
+    _CategoryTypeOtherDescription   CDATA    #IMPLIED
+    _Code                           CDATA    #IMPLIED
+    _Type
+     (EquifaxSAFESCAN |
+      EquifaxSSNVerified |
+      ExperianFACSPlus |
+      TransUnionHAWKAlert |
+      TransUnionHighRiskFraudAlert |
+      TransUnionIDMismatchAlert |
+      TransUnionTransAlert |
+      Other)                                 #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED >
+
+<!--Credit 2.3:   added _ALIAS Element and Attributes-->
+<!ELEMENT _ALIAS EMPTY>
+<!ATTLIST _ALIAS
+    _FirstName                      CDATA    #IMPLIED
+    _LastName                       CDATA    #IMPLIED
+    _MiddleName                     CDATA    #IMPLIED
+    _NameSuffix                     CDATA    #IMPLIED
+    _UnparsedName                   CDATA    #IMPLIED >
+
+<!--Credit 2.3:   added _ALIAS, _RESIDENCE and EMPLOYER Elements-->
+<!ELEMENT _BORROWER 
+   (_ALIAS*,
+    _RESIDENCE*,
+    EMPLOYER*,
+    _UnparsedAddress*,
+    _UnparsedEmployment*) >
+<!ATTLIST _BORROWER
+    _AgeYears                       CDATA    #IMPLIED
+    _BirthDate                      CDATA    #IMPLIED
+    _FirstName                      CDATA    #IMPLIED
+    _LastName                       CDATA    #IMPLIED
+    _MiddleName                     CDATA    #IMPLIED
+    _NameSuffix                     CDATA    #IMPLIED
+    _SSN                            CDATA    #IMPLIED
+    _UnparsedName                   CDATA    #IMPLIED >
+
+<!ELEMENT _CREDITOR 
+   (CONTACT_DETAIL?)>
+<!ATTLIST _CREDITOR
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED >
+
+<!ELEMENT _CURRENT_RATING EMPTY>
+<!--Credit 2.1.1: new Enumerations for _Type Attribute
+                  - BankruptcyOrWageEarnerPlan
+                  - CollectionOrChargeOff
+                  - ForeclosureOrRepossession
+-->
+<!ATTLIST _CURRENT_RATING
+    _Code                           CDATA    #IMPLIED
+    _Type
+     (AsAgreed |
+      BankruptcyOrWageEarnerPlan |
+      ChargeOff |
+      Collection |
+      CollectionOrChargeOff |
+      Foreclosure |
+      ForeclosureOrRepossession |
+      Late30Days |
+      Late60Days |
+      Late90Days |
+      LateOver120Days |
+      NoDataAvailable |
+      Repossession |
+      TooNew |
+      WageEarnerPlan)                        #IMPLIED >
+
+<!ELEMENT _DATA_SET EMPTY>
+<!ATTLIST _DATA_SET
+    _Name                           CDATA    #IMPLIED
+    _Value                          CDATA    #IMPLIED >
+
+<!ELEMENT _FACTOR EMPTY>
+<!ATTLIST _FACTOR
+    _Code                           CDATA    #IMPLIED
+    _Text                           CDATA    #IMPLIED >
+
+<!ELEMENT _HIGHEST_ADVERSE_RATING EMPTY>
+<!--Credit 2.1.1: new Enumerations for _Type Attribute
+                  - BankruptcyOrWageEarnerPlan
+                  - CollectionOrChargeOff
+                  - ForeclosureOrRepossession
+-->
+<!ATTLIST _HIGHEST_ADVERSE_RATING
+    _Amount                         CDATA    #IMPLIED
+    _Code                           CDATA    #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _Type
+     (AsAgreed |
+      BankruptcyOrWageEarnerPlan |
+      ChargeOff |
+      Collection |
+      CollectionOrChargeOff |
+      Foreclosure |
+      ForeclosureOrRepossession |
+      Late30Days |
+      Late60Days |
+      Late90Days |
+      LateOver120Days |
+      NoDataAvailable |
+      Repossession |
+      TooNew |
+      WageEarnerPlan)                        #IMPLIED >
+
+<!--Credit 2.3:   added PERIODIC_LATE_COUNT Element-->
+<!ELEMENT _LATE_COUNT (PERIODIC_LATE_COUNT*)>
+<!ATTLIST _LATE_COUNT
+    _30Days                         CDATA    #IMPLIED
+    _60Days                         CDATA    #IMPLIED
+    _90Days                         CDATA    #IMPLIED
+    _120Days                        CDATA    #IMPLIED >
+
+<!--Credit 2.3:   added PERIODIC_LATE_COUNT Element and Attributes-->
+<!ELEMENT PERIODIC_LATE_COUNT EMPTY>
+<!ATTLIST PERIODIC_LATE_COUNT
+    _Type
+     (FirstYear |
+      SecondYear |
+      ThirdYear |
+      Other)                                 #IMPLIED
+    _TypeOtherDescription           CDATA    #IMPLIED
+    _30Days                         CDATA    #IMPLIED
+    _60Days                         CDATA    #IMPLIED
+    _90Days                         CDATA    #IMPLIED
+    _120Days                        CDATA    #IMPLIED >
+
+<!ELEMENT _MOST_RECENT_ADVERSE_RATING EMPTY>
+<!--Credit 2.1.1: new Enumerations for _Type Attribute
+                  - BankruptcyOrWageEarnerPlan
+                  - CollectionOrChargeOff
+                  - ForeclosureOrRepossession
+-->
+<!ATTLIST _MOST_RECENT_ADVERSE_RATING
+    _Amount                         CDATA    #IMPLIED
+    _Code                           CDATA    #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _Type
+     (AsAgreed |
+      BankruptcyOrWageEarnerPlan |
+      ChargeOff |
+      Collection |
+      CollectionOrChargeOff |
+      Foreclosure |
+      ForeclosureOrRepossession |
+      Late30Days |
+      Late60Days |
+      Late90Days |
+      LateOver120Days |
+      NoDataAvailable |
+      Repossession |
+      TooNew |
+      WageEarnerPlan)                        #IMPLIED >
+
+<!ELEMENT _OWNING_BUREAU 
+   (CONTACT_DETAIL?) >
+<!ATTLIST _OWNING_BUREAU 
+    _Identifier                     CDATA    #IMPLIED
+    _Name                           CDATA    #IMPLIED
+    _StreetAddress                  CDATA    #IMPLIED
+    _StreetAddress2                 CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED >
+
+<!ELEMENT _PAYMENT_PATTERN EMPTY>
+<!ATTLIST _PAYMENT_PATTERN
+    _Data                           CDATA    #IMPLIED
+    _StartDate                      CDATA    #IMPLIED >
+
+<!ELEMENT _PRIOR_ADVERSE_RATING EMPTY>
+<!--Credit 2.1.1: new Enumerations for _Type Attribute
+                  - BankruptcyOrWageEarnerPlan
+                  - CollectionOrChargeOff
+                  - ForeclosureOrRepossession
+-->
+<!ATTLIST _PRIOR_ADVERSE_RATING
+    _Code                           CDATA    #IMPLIED
+    _Date                           CDATA    #IMPLIED
+    _Type
+     (AsAgreed |
+      BankruptcyOrWageEarnerPlan |
+      ChargeOff |
+      Collection |
+      CollectionOrChargeOff |
+      Foreclosure |
+      ForeclosureOrRepossession |
+      Late30Days |
+      Late60Days |
+      Late90Days |
+      LateOver120Days |
+      NoDataAvailable |
+      Repossession |
+      TooNew |
+      WageEarnerPlan)                        #IMPLIED >
+
+<!--Credit 2.3:   added CONTACT_DETAIL Element-->
+<!ELEMENT _RESIDENCE 
+   (PARSED_STREET_ADDRESS?,
+    CONTACT_DETAIL?,
+    LANDLORD?) >
+<!ATTLIST _RESIDENCE 
+    _StreetAddress                  CDATA    #IMPLIED
+    _City                           CDATA    #IMPLIED
+    _State                          CDATA    #IMPLIED
+    _PostalCode                     CDATA    #IMPLIED
+    _Country                        CDATA    #IMPLIED
+    BorrowerResidencyBasisType
+     (LivingRentFree |
+      Own | 
+      Rent )                                 #IMPLIED
+    BorrowerResidencyDurationMonths CDATA    #IMPLIED
+    BorrowerResidencyDurationYears  CDATA    #IMPLIED
+    BorrowerResidencyType
+     (Current |
+      Prior )                                #IMPLIED
+    MonthlyRentAmount              CDATA     #IMPLIED
+    MonthlyRentCurrentRatingType 
+     (AsAgreed |
+      ChargeOff |
+      Collection |
+      Late30Days |
+      Late60Days |
+      Late90Days |
+      LateOver120Days |
+      NoDataAvailable |
+      TooNew)                                #IMPLIED >
+
+<!ELEMENT _VARIATION EMPTY>
+<!ATTLIST _VARIATION
+    _Type	
+     (DifferentAddress |
+      DifferentBirthDate |
+      DifferentGeneration |
+      DifferentLastName |
+      DifferentName |
+      DifferentSSN)                          #IMPLIED >
+
+
+
+<!--      *** INDIVIDUAL 'LEAF' ELEMENTS ***        -->
+
+<!ELEMENT _Text                             (#PCDATA) >
+<!ELEMENT _UnparsedAddress                  (#PCDATA) >
+<!ELEMENT _UnparsedEmployment               (#PCDATA) >
+
+

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  SYNTHETIC TEST FIXTURE - NOT A REAL CREDIT REPORT.
+  All consumer identifiers, creditors, accounts, scores, and addresses are fictional.
+  Structure follows the public MISMO v2.3.1 credit-response DTD shape; it is not a
+  bureau-certified native Equifax/TransUnion/Experian wire format.
+-->
+<RESPONSE_GROUP MISMOVersionID="2.3.1">
+  <RESPONDING_PARTY _Name="LOLA SYNTHETIC EQUIFAX FIXTURE" _StreetAddress="0000 FIXTURE PLAZA" _City="TESTVILLE" _State="NV" _PostalCode="00000" />
+  <RESPONSE ResponseDateTime="2026-11-15T12:00:00Z">
+    <KEY _Name="FixtureBureau" _Value="Equifax" />
+    <KEY _Name="FixtureLookbackBoundaryDate" _Value="2024-11-15" />
+    <RESPONSE_DATA>
+      <CREDIT_RESPONSE MISMOVersionID="2.3.1" CreditResponseID="EQX-RESP-0001" CreditReportIdentifier="SYN-EQX-20261115-0001" CreditReportTransactionIdentifier="SYN-EQX-20261115-0001.01" CreditReportFirstIssuedDate="2026-11-15" CreditReportLastUpdatedDate="2026-11-15" CreditReportType="Merge" CreditRatingCodeType="Equifax">
+        <_DATA_INFORMATION>
+          <DATA_VERSION _Name="LOLA synthetic fixture generator" _Number="fixture-1.0" />
+          <DATA_VERSION _Name="Equifax" _Number="synthetic-repository-snapshot" />
+        </_DATA_INFORMATION>
+        <CREDIT_BUREAU _Name="SYNTHETIC EQUIFAX REPOSITORY" _StreetAddress="0000 BUREAU FIXTURE ROAD" _City="TESTVILLE" _State="NV" _PostalCode="00000" _DisclaimerText="Synthetic parser fixture. Not consumer report data." />
+        <CREDIT_REPOSITORY_INCLUDED _EquifaxIndicator="Y" _ExperianIndicator="N" _TransUnionIndicator="N" />
+        <CREDIT_REQUEST_DATA CreditReportRequestActionType="Submit" CreditReportType="Merge" CreditRequestType="Individual">
+          <CREDIT_REPOSITORY_INCLUDED _EquifaxIndicator="Y" _ExperianIndicator="N" _TransUnionIndicator="N" />
+        </CREDIT_REQUEST_DATA>
+        <BORROWER BorrowerID="B1" _BirthDate="1900-01-01" _FirstName="TEST" _MiddleName="TRIMERGE" _LastName="FIXTURE" _PrintPositionType="Borrower" _SSN="999-00-0001" _UnparsedName="TEST TRIMERGE FIXTURE" MaritalStatusType="NotProvided">
+          <_RESIDENCE _StreetAddress="0000 SYNTHETIC WAY" _City="TESTVILLE" _State="NV" _PostalCode="00000" BorrowerResidencyType="Current" BorrowerResidencyDurationYears="3">
+            <PARSED_STREET_ADDRESS _HouseNumber="0000" _StreetName="SYNTHETIC" _StreetSuffix="WAY" />
+          </_RESIDENCE>
+        </BORROWER>
+          <CREDIT_LIABILITY CreditLiabilityID="EQX-TRUNCATED" BorrowerID="B1" _AccountIdentifier="****0000" _AccountOpenedDate="2020-01" _AccountStatusType="Open" _AccountType="Revolving" _UnpaidBalanceAmount="999">
+    <_CREDITOR _Name="TRUNCATED SYNTHETIC CREDITOR"/>
+    <!-- TRUNCATED INTENTIONALLY: no closing CREDIT_LIABILITY, CREDIT_RESPONSE, RESPONSE_DATA, RESPONSE, or RESPONSE_GROUP tags. -->
