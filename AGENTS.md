@@ -192,7 +192,10 @@ executable form — follow it when the situation matches its description.
 ## Verification Commands
 
 ```bash
-node tools/verify.mjs            # full pre-push gate (adrcheck + format + build + test + web)
+node tools/verify.mjs            # full pre-push gate — source data/test-env.sh FIRST
+                                 # (live fixtures never skip: OpenBao/MPEx/ISPPr/Zara endpoints);
+                                 # zara engine/mgmt are compose PROFILE-gated:
+                                 # cd /c/wip/Zara && docker compose --profile engine --profile mgmt up -d
 node tools/adrcheck.mjs          # ADR structure gate only
 node tools/mergecheck.mjs        # is this branch's diff in the merge-on-green class?
 docker compose up --build        # openbao + seq + jaeger + minio + clamav (+ api/web when scaffolded)

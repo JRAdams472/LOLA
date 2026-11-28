@@ -1158,7 +1158,7 @@ export const FIELDS: FieldSpec[] = [
   {
     "path": "credit.lates_30",
     "label": "Lates 30",
-    "type": "number",
+    "type": "int",
     "enum": null,
     "piiClass": null,
     "required": false,
@@ -1167,7 +1167,7 @@ export const FIELDS: FieldSpec[] = [
   {
     "path": "credit.lates_60",
     "label": "Lates 60",
-    "type": "number",
+    "type": "int",
     "enum": null,
     "piiClass": null,
     "required": false,
@@ -1176,7 +1176,7 @@ export const FIELDS: FieldSpec[] = [
   {
     "path": "credit.lates_90",
     "label": "Lates 90",
-    "type": "number",
+    "type": "int",
     "enum": null,
     "piiClass": null,
     "required": false,
@@ -1185,7 +1185,7 @@ export const FIELDS: FieldSpec[] = [
   {
     "path": "avm.value",
     "label": "Value",
-    "type": "number",
+    "type": "decimal",
     "enum": null,
     "piiClass": null,
     "required": false,
@@ -1194,7 +1194,7 @@ export const FIELDS: FieldSpec[] = [
   {
     "path": "avm.confidence",
     "label": "Confidence",
-    "type": "number",
+    "type": "decimal",
     "enum": null,
     "piiClass": null,
     "required": false,

@@ -1074,7 +1074,7 @@
       "path": "credit.lates_30",
       "mismoPath": "LOAN_APPLICATION/CREDIT/Lates30Count",
       "ulddField": "CREDIT/Lates30",
-      "type": "number",
+      "type": "int",
       "required": false,
       "core": false
     },
@@ -1082,7 +1082,7 @@
       "path": "credit.lates_60",
       "mismoPath": "LOAN_APPLICATION/CREDIT/Lates60Count",
       "ulddField": "CREDIT/Lates60",
-      "type": "number",
+      "type": "int",
       "required": false,
       "core": false
     },
@@ -1090,7 +1090,7 @@
       "path": "credit.lates_90",
       "mismoPath": "LOAN_APPLICATION/CREDIT/Lates90Count",
       "ulddField": "CREDIT/Lates90",
-      "type": "number",
+      "type": "int",
       "required": false,
       "core": false
     },
@@ -1098,7 +1098,7 @@
       "path": "avm.value",
       "mismoPath": "LOAN_APPLICATION/VALUATION/ValueAmount",
       "ulddField": "VALUATION/Value",
-      "type": "number",
+      "type": "decimal",
       "required": false,
       "core": false
     },
@@ -1106,7 +1106,7 @@
       "path": "avm.confidence",
       "mismoPath": "LOAN_APPLICATION/VALUATION/ConfidenceScore",
       "ulddField": "VALUATION/Confidence",
-      "type": "number",
+      "type": "decimal",
       "required": false,
       "core": false
     },
