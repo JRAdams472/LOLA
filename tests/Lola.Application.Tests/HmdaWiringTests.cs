@@ -14,6 +14,41 @@ namespace Lola.Application.Tests;
 /// snapshot freeze, and the negative-case matrix.
 public sealed class HmdaWiringTests
 {
+
+    private sealed class FakeAusStore : Lola.Application.Aus.IAusResultsStore
+    {
+        public List<Lola.Application.Aus.AusResultRow> Results { get; } = [];
+
+        public Task<Lola.Application.Aus.AusResultRow> AddResultAsync(
+            string appId, string vendor, string? orderId, string? caseId,
+            string recommendation, string? riskClass, string? responseXml,
+            string responseHash, int findingsCount, string actor,
+            CancellationToken ct)
+        {
+            var row = new Lola.Application.Aus.AusResultRow(
+                $"aus-{Results.Count + 1}", appId, vendor, orderId, caseId,
+                recommendation, riskClass, findingsCount,
+                "2026-01-01T00:00:00.000Z", actor);
+            Results.Add(row);
+            return Task.FromResult(row);
+        }
+
+        public Task AddFindingAsync(string resultId, string vendorCode,
+            string category, string severity, string message,
+            string? conditionId, CancellationToken ct)
+            => Task.CompletedTask;
+
+        public Task<IReadOnlyList<Lola.Application.Aus.AusResultRow>>
+            ListResultsAsync(string appId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<Lola.Application.Aus.AusResultRow>>(
+                Results.Where(r => r.ApplicationId == appId).ToList());
+
+        public Task<IReadOnlyList<Lola.Application.Aus.AusFindingRow>>
+            ListFindingsAsync(string resultId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<Lola.Application.Aus.AusFindingRow>>(
+                new List<Lola.Application.Aus.AusFindingRow>());
+    }
+
     // -- fakes ------------------------------------------------------
 
     private sealed class FakeHmda : IHmdaRepository
@@ -236,7 +271,7 @@ public sealed class HmdaWiringTests
         var dto = await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         dto.ReportingYear.ShouldBe(2026);
         hmda.Rows.ShouldHaveSingleItem();
@@ -262,7 +297,7 @@ public sealed class HmdaWiringTests
         var dto = await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         dto.Uli.ShouldStartWith("10BX939C5543TQA1144M");
         Lola.Domain.Hmda.Uli.Validate(dto.Uli).ShouldBeTrue();
@@ -280,11 +315,11 @@ public sealed class HmdaWiringTests
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         hmda.Rows.Count.ShouldBe(2);
         hmda.Rows[0].LarRowId.ShouldNotBe(hmda.Rows[1].LarRowId);
@@ -302,7 +337,7 @@ public sealed class HmdaWiringTests
         var dto = await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         dto.Fields["rate_spread"].ShouldBe("NA");
         dto.Fields["hoepa_status"].ShouldBe("NA");
@@ -323,7 +358,7 @@ public sealed class HmdaWiringTests
         var dto = await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         dto.Fields["rate_spread"].ShouldBe("1.50");
         dto.Fields["hoepa_status"].ShouldBe("2");
@@ -345,7 +380,7 @@ public sealed class HmdaWiringTests
         var dto = await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         dto.Fields["hoepa_status"].ShouldBe("1");  // high-cost
     }
@@ -363,7 +398,7 @@ public sealed class HmdaWiringTests
             AssembleLarHandler.Handle(
                 new AssembleLarCommand("t1", "app-1", "borrower-1",
                     ActorScope.Borrower),
-                apps, atr, hmda, events, Opts, default));
+                apps, atr, hmda, events, Opts, new FakeAusStore(), default));
         hmda.Rows.ShouldBeEmpty();
     }
 
@@ -381,11 +416,11 @@ public sealed class HmdaWiringTests
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         var report = await GetApplicationHmdaHandler.Handle(
             new GetApplicationHmdaQuery("t1", "app-1", "officer-1",
@@ -425,11 +460,11 @@ public sealed class HmdaWiringTests
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-2", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
     }
 
     [Fact]
@@ -478,11 +513,11 @@ public sealed class HmdaWiringTests
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
         await AssembleLarHandler.Handle(
             new AssembleLarCommand("t1", "app-1", "officer-1",
                 ActorScope.Staff),
-            apps, atr, hmda, events, Opts, default);
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
 
         var result = await ExportLarHandler.Handle(
             new ExportLarCommand("t1", 2026, "officer-1",
@@ -575,5 +610,48 @@ public sealed class HmdaWiringTests
             FreezeLarSnapshotHandler.Handle(
                 new FreezeLarSnapshotCommand("t1", 2026, "officer-1",
                     ActorScope.Staff), hmda, default));
+    }
+
+    [Fact]
+    public async Task Assemble_populates_aus_columns_when_result_exists()
+    {
+        var apps = new FakeApps();
+        apps.Doc = HmdaDoc();
+        var atr = new FakeAtr();
+        var hmda = new FakeHmda();
+        var events = new FakeEventLog();
+        var aus = new FakeAusStore();
+        await aus.AddResultAsync("app-1", "du", null, "case-1",
+            "approve-eligible", "approve", null, "hash", 0, "sys",
+            CancellationToken.None);
+        using var _ = Scope();
+
+        var dto = await AssembleLarHandler.Handle(
+            new AssembleLarCommand("t1", "app-1", "officer-1",
+                ActorScope.Staff),
+            apps, atr, hmda, events, Opts, aus, default);
+
+        var row = hmda.Rows.ShouldHaveSingleItem();
+        row.RowJson.ShouldContain("\"aus_1\":\"1\"");
+        row.RowJson.ShouldContain("\"aus_result_1\":\"1\"");
+    }
+
+    [Fact]
+    public async Task Assemble_without_aus_results_keeps_na()
+    {
+        var apps = new FakeApps();
+        apps.Doc = HmdaDoc();
+        var atr = new FakeAtr();
+        var hmda = new FakeHmda();
+        var events = new FakeEventLog();
+        using var _ = Scope();
+
+        var dto = await AssembleLarHandler.Handle(
+            new AssembleLarCommand("t1", "app-1", "officer-1",
+                ActorScope.Staff),
+            apps, atr, hmda, events, Opts, new FakeAusStore(), default);
+
+        var row = hmda.Rows.ShouldHaveSingleItem();
+        row.RowJson.ShouldContain("\"aus_1\":\"NA\"");
     }
 }

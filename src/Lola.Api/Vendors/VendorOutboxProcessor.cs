@@ -63,6 +63,10 @@ public sealed class VendorOutboxProcessor(
             .GetRequiredService<IFieldCipher>();
         var audit = scope.ServiceProvider
             .GetRequiredService<Lola.Application.Audit.ITenantAuditLog>();
+        var ausStore = scope.ServiceProvider
+            .GetRequiredService<Lola.Application.Aus.IAusResultsStore>();
+        var conditions = scope.ServiceProvider
+            .GetRequiredService<Lola.Application.Events.IConditionRepository>();
         var processed = 0;
         // TenantContext scopes the file; CipherContext scopes the
         // transit key — the drain decrypts request_json and encrypts
@@ -75,7 +79,8 @@ public sealed class VendorOutboxProcessor(
                 Now(), BatchSize, ct);
             ct.ThrowIfCancellationRequested();
             await Task.WhenAll(rows.Select(row => ProcessRowAsync(
-                repo, adapter, creds, cipher, audit, row, ct)));
+                repo, adapter, creds, cipher, audit, ausStore,
+                conditions, row, ct)));
             processed += rows.Count;
         }
         return processed;
@@ -85,6 +90,8 @@ public sealed class VendorOutboxProcessor(
         IVendorAdapter adapter, IVendorCredentialSource creds,
         IFieldCipher cipher,
         Lola.Application.Audit.ITenantAuditLog audit,
+        Lola.Application.Aus.IAusResultsStore ausStore,
+        Lola.Application.Events.IConditionRepository conditions,
         VendorOutboxRow row, CancellationToken ct)
     {
         var attempts = row.Attempts + 1;
@@ -97,7 +104,7 @@ public sealed class VendorOutboxProcessor(
             if (order.Status == "submitted")
             {
                 await PollRowAsync(repo, adapter, creds, cipher, audit,
-                    row, order, attempts, ct);
+                    ausStore, conditions, row, order, attempts, ct);
                 return;
             }
             var kind = VendorGuards.Parse(order.Kind);
@@ -137,6 +144,10 @@ public sealed class VendorOutboxProcessor(
                 await audit.WriteAsync(order.OrderedBy, "vendor_result",
                     "vendor_order", row.OrderId, ["VendorReport"],
                     "vendor order completed", ct);
+                await Lola.Application.Aus.AusCompletionHook
+                    .TryProcessAsync(kind, order.ApplicationId,
+                        row.OrderId, result, order.OrderedBy,
+                        ausStore, conditions, ct);
             }
         }
         catch (VendorAdapterException ex)
@@ -177,6 +188,8 @@ public sealed class VendorOutboxProcessor(
         IVendorAdapter adapter, IVendorCredentialSource creds,
         IFieldCipher cipher,
         Lola.Application.Audit.ITenantAuditLog audit,
+        Lola.Application.Aus.IAusResultsStore ausStore,
+        Lola.Application.Events.IConditionRepository conditions,
         VendorOutboxRow row,
         VendorOrderRow order, long attempts, CancellationToken ct)
     {
@@ -196,6 +209,10 @@ public sealed class VendorOutboxProcessor(
             await audit.WriteAsync(order.OrderedBy, "vendor_result",
                 "vendor_order", row.OrderId, ["VendorReport"],
                 "vendor order completed", ct);
+            await Lola.Application.Aus.AusCompletionHook
+                .TryProcessAsync(kind, order.ApplicationId,
+                    row.OrderId, result, order.OrderedBy,
+                    ausStore, conditions, ct);
             return;
         }
         if (attempts >= PollMaxAttempts)

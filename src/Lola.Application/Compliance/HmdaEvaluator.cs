@@ -23,7 +23,8 @@ public static class HmdaEvaluator
     }
 
     public static LarInput Map(ApplicationDocument doc, string lei,
-        string appId, AtrResultRecord? latestAtr, string? nmlsId)
+        string appId, AtrResultRecord? latestAtr, string? nmlsId,
+        string? ausVendor = null, string? ausRecommendation = null)
         => new(
             Lei: lei,
             UliSuffix: UliSuffix(appId),
@@ -77,7 +78,9 @@ public static class HmdaEvaluator
             HoepaHighCost: HoepaHighCost(latestAtr),
             OriginationCharges: Num(doc, "loan.origination_charges"),
             DiscountPoints: Num(doc, "loan.discount_points"),
-            LenderCredits: Num(doc, "loan.lender_credits"));
+            LenderCredits: Num(doc, "loan.lender_credits"),
+            AusVendor: ausVendor,
+            AusRecommendation: ausRecommendation);
 
     /// HOEPA high-cost flag from the latest ATR verdicts JSON — null
     /// when there is no evaluation or the test never ran conclusive.

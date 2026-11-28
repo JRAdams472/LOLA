@@ -10,10 +10,11 @@ public static class ConditionKind
     public const string Manual = "manual";
     public const string ToleranceCure = "tolerance_cure";
     public const string ServicingNotice = "servicing_notice";
+    public const string AusFinding = "aus_finding";
 
     public static readonly IReadOnlySet<string> All =
         new HashSet<string> { DocRequired, DataValidation, DistanceCheck,
-            Manual, ToleranceCure, ServicingNotice };
+            Manual, ToleranceCure, ServicingNotice, AusFinding };
 }
 
 /// `linked_entity` conventions on classifier-written conditions
@@ -28,6 +29,7 @@ public static class ConditionLink
     public const string Application = "application";
     public const string DisclosureVersion = "disclosure_version";
     public const string ServicingNotice = "servicing_notice";
+    public const string AusFinding = "aus_finding";
 }
 
 /// Condition states: open → closed (reason) | waived (reason + audit,

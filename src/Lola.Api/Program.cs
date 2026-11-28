@@ -469,6 +469,8 @@ builder.Services.AddScoped<Lola.Application.Compliance.IRespaRepository,
     RespaRepository>();
 builder.Services.AddScoped<Lola.Application.Compliance.IHmdaRepository,
     HmdaRepository>();
+builder.Services.AddScoped<Lola.Application.Aus.IAusResultsStore,
+    AusRepository>();
 builder.Services.AddSingleton(new Lola.Application.Compliance.HmdaOptions
 {
     Lei = builder.Configuration["HMDA__LEI"]
@@ -560,6 +562,19 @@ builder.Services.AddSingleton<Lola.Application.Vendors.IVendorAdapter>(
         // Explicitly off (MPE-277) — required value in Production until
         // a real vendor lands; fail-closed 503 on every call.
         "disabled" => new Lola.Infrastructure.Vendors.DisabledVendorAdapter(),
+        // M25: real GSE adapters — synchronous underwriting behind the
+        // same seam. Base URL from env; credentials resolve per-tenant
+        // from OpenBao KV at call time (never config).
+        "du" => new Lola.Infrastructure.Vendors.DuAdapter(
+            new System.Net.Http.HttpClient(),
+            builder.Configuration["AUS_DU_BASEURL"]
+                ?? throw new InvalidOperationException(
+                    "AUS_DU_BASEURL required when VENDOR_ADAPTER=du")),
+        "lpa" => new Lola.Infrastructure.Vendors.LpaAdapter(
+            new System.Net.Http.HttpClient(),
+            builder.Configuration["AUS_LPA_BASEURL"]
+                ?? throw new InvalidOperationException(
+                    "AUS_LPA_BASEURL required when VENDOR_ADAPTER=lpa")),
         var other => throw new InvalidOperationException(
             $"unknown VENDOR_ADAPTER '{other}'")
     });
