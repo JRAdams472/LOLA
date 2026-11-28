@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  SYNTHETIC TEST FIXTURE - NOT A REAL CREDIT REPORT.
+  All consumer identifiers, creditors, accounts, scores, and addresses are fictional.
+  Structure follows the public MISMO v2.3.1 credit-response DTD shape; it is not a
+  bureau-certified native Equifax/TransUnion/Experian wire format.
+-->
+<RESPONSE_GROUP MISMOVersionID="2.3.1">
+  <RESPONDING_PARTY _Name="LOLA SYNTHETIC EQUIFAX FIXTURE" _StreetAddress="0000 FIXTURE PLAZA" _City="TESTVILLE" _State="NV" _PostalCode="00000" />
+  <RESPONSE ResponseDateTime="2026-11-15T12:00:00Z">
+    <KEY _Name="FixtureBureau" _Value="Equifax" />
+    <KEY _Name="FixtureLookbackBoundaryDate" _Value="2024-11-15" />
+    <RESPONSE_DATA>
+      <CREDIT_RESPONSE MISMOVersionID="2.3.1" CreditResponseID="EQX-RESP-0001" CreditReportIdentifier="SYN-EQX-20261115-0001" CreditReportTransactionIdentifier="SYN-EQX-20261115-0001.01" CreditReportFirstIssuedDate="2026-11-15" CreditReportLastUpdatedDate="2026-11-15" CreditReportType="Merge" CreditRatingCodeType="Equifax">
+        <_DATA_INFORMATION>
+          <DATA_VERSION _Name="LOLA synthetic fixture generator" _Number="fixture-1.0" />
+          <DATA_VERSION _Name="Equifax" _Number="synthetic-repository-snapshot" />
+        </_DATA_INFORMATION>
+        <CREDIT_BUREAU _Name="SYNTHETIC EQUIFAX REPOSITORY" _StreetAddress="0000 BUREAU FIXTURE ROAD" _City="TESTVILLE" _State="NV" _PostalCode="00000" _DisclaimerText="Synthetic parser fixture. Not consumer report data." />
+        <CREDIT_REPOSITORY_INCLUDED _EquifaxIndicator="Y" _ExperianIndicator="N" _TransUnionIndicator="N" />
+        <CREDIT_REQUEST_DATA CreditReportRequestActionType="Submit" CreditReportType="Merge" CreditRequestType="Individual">
+          <CREDIT_REPOSITORY_INCLUDED _EquifaxIndicator="Y" _ExperianIndicator="N" _TransUnionIndicator="N" />
+        </CREDIT_REQUEST_DATA>
+        <BORROWER BorrowerID="B1" _BirthDate="1900-01-01" _FirstName="TEST" _MiddleName="TRIMERGE" _LastName="FIXTURE" _PrintPositionType="Borrower" _SSN="999-00-0001" _UnparsedName="TEST TRIMERGE FIXTURE" MaritalStatusType="NotProvided">
+          <_RESIDENCE _StreetAddress="0000 SYNTHETIC WAY" _City="TESTVILLE" _State="NV" _PostalCode="00000" BorrowerResidencyType="Current" BorrowerResidencyDurationYears="3">
+            <PARSED_STREET_ADDRESS _HouseNumber="0000" _StreetName="SYNTHETIC" _StreetSuffix="WAY" />
+          </_RESIDENCE>
+        </BORROWER>
+        <CREDIT_LIABILITY CreditLiabilityID="EQX-TL-001" BorrowerID="B1" CreditFileID="EQX-CF-001" _AccountIdentifier="****0456" _AccountOpenedDate="2019-03" _AccountOwnershipType="Individual" _AccountReportedDate="2026-10" _AccountBalanceDate="2026-10" _AccountStatusDate="2026-10" _AccountStatusType="Open" _AccountType="Mortgage" _HighCreditAmount="342000" _LastActivityDate="2026-10" _ManualUpdateIndicator="N" _MonthlyPaymentAmount="1875" _MonthsReviewedCount="84" _PastDueAmount="0" _TermsSourceType="Provided" _UnpaidBalanceAmount="286400" CreditBusinessType="RealEstateAndPublicAccommodation" CreditLoanType="ConventionalRealEstateMortgage">
+          <_CREDITOR _Name="FIRST SYNTHETIC MORTGAGE" />
+          <_CURRENT_RATING _Code="1" _Type="AsAgreed" />
+          <_HIGHEST_ADVERSE_RATING _Code="3" _Date="2025-02" _Type="Late90Days" />
+          <_LATE_COUNT _30Days="2" _60Days="1" _90Days="1" _120Days="0">
+            <PERIODIC_LATE_COUNT _Type="FirstYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="SecondYear" _30Days="1" _60Days="1" _90Days="1" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="ThirdYear" _30Days="1" _60Days="0" _90Days="0" _120Days="0" />
+          </_LATE_COUNT>
+          <_MOST_RECENT_ADVERSE_RATING _Code="3" _Date="2025-02" _Type="Late90Days" />
+          <_PAYMENT_PATTERN _Data="CCCCCCCCCCCCCCCCCCCCC321CCCCCCC1CCCC" _StartDate="2026-10" />
+          <_PRIOR_ADVERSE_RATING _Code="3" _Date="2025-02" _Type="Late90Days" />
+          <_PRIOR_ADVERSE_RATING _Code="2" _Date="2025-01" _Type="Late60Days" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2024-12" _Type="Late30Days" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2024-04" _Type="Late30Days" />
+          <CREDIT_COMMENT _SourceType="Equifax">
+            <_Text>Synthetic tradeline for parser and merge-contract tests.</_Text>
+          </CREDIT_COMMENT>
+          <CREDIT_REPOSITORY _SourceType="Equifax" _SubscriberCode="SYN-EQX-000" />
+        </CREDIT_LIABILITY>
+        <CREDIT_LIABILITY CreditLiabilityID="EQX-TL-002" BorrowerID="B1" CreditFileID="EQX-CF-001" _AccountIdentifier="****7788" _AccountOpenedDate="2020-07" _AccountOwnershipType="Individual" _AccountReportedDate="2026-10" _AccountBalanceDate="2026-10" _AccountStatusDate="2026-10" _AccountStatusType="Open" _AccountType="Revolving" _HighCreditAmount="8900" _LastActivityDate="2026-10" _ManualUpdateIndicator="N" _MonthlyPaymentAmount="121" _MonthsReviewedCount="76" _PastDueAmount="0" _TermsSourceType="Provided" _UnpaidBalanceAmount="4125" CreditBusinessType="Banking" CreditLoanType="CreditCard" _CreditLimitAmount="10000">
+          <_CREDITOR _Name="CAPITAL ONE" />
+          <_CURRENT_RATING _Code="1" _Type="AsAgreed" />
+          <_HIGHEST_ADVERSE_RATING _Code="2" _Date="2024-03" _Type="Late60Days" />
+          <_LATE_COUNT _30Days="2" _60Days="1" _90Days="0" _120Days="0">
+            <PERIODIC_LATE_COUNT _Type="FirstYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="SecondYear" _30Days="1" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="ThirdYear" _30Days="1" _60Days="1" _90Days="0" _120Days="0" />
+          </_LATE_COUNT>
+          <_MOST_RECENT_ADVERSE_RATING _Code="1" _Date="2025-06" _Type="Late30Days" />
+          <_PAYMENT_PATTERN _Data="CCCCCCCCCCCCCCCCC1CCCCCCCCCCCCCC21CC" _StartDate="2026-10" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2025-06" _Type="Late30Days" />
+          <_PRIOR_ADVERSE_RATING _Code="2" _Date="2024-03" _Type="Late60Days" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2024-02" _Type="Late30Days" />
+          <CREDIT_COMMENT _SourceType="Equifax">
+            <_Text>Synthetic tradeline for parser and merge-contract tests.</_Text>
+          </CREDIT_COMMENT>
+          <CREDIT_REPOSITORY _SourceType="Equifax" _SubscriberCode="SYN-EQX-000" />
+        </CREDIT_LIABILITY>
+        <CREDIT_LIABILITY CreditLiabilityID="EQX-TL-003" BorrowerID="B1" CreditFileID="EQX-CF-001" _AccountIdentifier="****2100" _AccountOpenedDate="2022-05" _AccountOwnershipType="Individual" _AccountReportedDate="2026-09" _AccountBalanceDate="2026-09" _AccountStatusDate="2026-09" _AccountStatusType="Open" _AccountType="Installment" _HighCreditAmount="28500" _LastActivityDate="2026-09" _ManualUpdateIndicator="N" _MonthlyPaymentAmount="512" _MonthsReviewedCount="54" _PastDueAmount="0" _TermsSourceType="Provided" _UnpaidBalanceAmount="11920" CreditBusinessType="Automotive" CreditLoanType="Automobile">
+          <_CREDITOR _Name="FIFTH THIRD AUTO" />
+          <_CURRENT_RATING _Code="1" _Type="AsAgreed" />
+          <_HIGHEST_ADVERSE_RATING _Code="1" _Date="2023-11" _Type="Late30Days" />
+          <_LATE_COUNT _30Days="1" _60Days="0" _90Days="0" _120Days="0">
+            <PERIODIC_LATE_COUNT _Type="FirstYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="SecondYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="ThirdYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+          </_LATE_COUNT>
+          <_MOST_RECENT_ADVERSE_RATING _Code="1" _Date="2023-11" _Type="Late30Days" />
+          <_PAYMENT_PATTERN _Data="CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC1" _StartDate="2026-09" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2023-11" _Type="Late30Days" />
+          <CREDIT_COMMENT _SourceType="Equifax">
+            <_Text>Synthetic tradeline for parser and merge-contract tests.</_Text>
+          </CREDIT_COMMENT>
+          <CREDIT_REPOSITORY _SourceType="Equifax" _SubscriberCode="SYN-EQX-000" />
+        </CREDIT_LIABILITY>
+        <CREDIT_LIABILITY CreditLiabilityID="EQX-TL-004" BorrowerID="B1" CreditFileID="EQX-CF-001" _AccountIdentifier="****9901" _AccountOpenedDate="2023-02" _AccountOwnershipType="Individual" _AccountReportedDate="2026-10" _AccountBalanceDate="2026-10" _AccountStatusDate="2026-10" _AccountStatusType="Open" _AccountType="Installment" _HighCreditAmount="12000" _LastActivityDate="2026-10" _ManualUpdateIndicator="N" _MonthlyPaymentAmount="284" _MonthsReviewedCount="45" _PastDueAmount="0" _TermsSourceType="Provided" _UnpaidBalanceAmount="6310" CreditBusinessType="Finance" CreditLoanType="Unsecured">
+          <_CREDITOR _Name="SYNTHETIC FINANCE CO" />
+          <_CURRENT_RATING _Code="1" _Type="AsAgreed" />
+          <_HIGHEST_ADVERSE_RATING _Code="1" _Date="2026-03" _Type="Late30Days" />
+          <_LATE_COUNT _30Days="2" _60Days="0" _90Days="0" _120Days="0">
+            <PERIODIC_LATE_COUNT _Type="FirstYear" _30Days="1" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="SecondYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="ThirdYear" _30Days="1" _60Days="0" _90Days="0" _120Days="0" />
+          </_LATE_COUNT>
+          <_MOST_RECENT_ADVERSE_RATING _Code="1" _Date="2026-03" _Type="Late30Days" />
+          <_PAYMENT_PATTERN _Data="CCCCCCCC1CCCCCCCCCCCCCCCC1CCCCCCCCCC" _StartDate="2026-10" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2026-03" _Type="Late30Days" />
+          <_PRIOR_ADVERSE_RATING _Code="1" _Date="2024-10" _Type="Late30Days" />
+          <CREDIT_COMMENT _SourceType="Equifax">
+            <_Text>Synthetic tradeline for parser and merge-contract tests.</_Text>
+          </CREDIT_COMMENT>
+          <CREDIT_REPOSITORY _SourceType="Equifax" _SubscriberCode="SYN-EQX-000" />
+        </CREDIT_LIABILITY>
+        <CREDIT_LIABILITY CreditLiabilityID="EQX-TL-005" BorrowerID="B1" CreditFileID="EQX-CF-001" _AccountIdentifier="****3300" _AccountOpenedDate="2018-11" _AccountOwnershipType="Individual" _AccountReportedDate="2025-12" _AccountBalanceDate="2025-12" _AccountStatusDate="2025-12" _AccountStatusType="Closed" _AccountType="Revolving" _HighCreditAmount="2400" _LastActivityDate="2025-12" _ManualUpdateIndicator="N" _MonthlyPaymentAmount="0" _MonthsReviewedCount="72" _PastDueAmount="0" _TermsSourceType="Provided" _UnpaidBalanceAmount="0" CreditBusinessType="DepartmentAndMailOrder" CreditLoanType="ChargeAccount" _CreditLimitAmount="2500">
+          <_CREDITOR _Name="SYNTHETIC RETAIL CARD" />
+          <_CURRENT_RATING _Code="1" _Type="AsAgreed" />
+          <_LATE_COUNT _30Days="0" _60Days="0" _90Days="0" _120Days="0">
+            <PERIODIC_LATE_COUNT _Type="FirstYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="SecondYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+            <PERIODIC_LATE_COUNT _Type="ThirdYear" _30Days="0" _60Days="0" _90Days="0" _120Days="0" />
+          </_LATE_COUNT>
+          <_PAYMENT_PATTERN _Data="CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" _StartDate="2025-12" />
+          <CREDIT_COMMENT _SourceType="Equifax">
+            <_Text>Synthetic tradeline for parser and merge-contract tests.</_Text>
+          </CREDIT_COMMENT>
+          <CREDIT_REPOSITORY _SourceType="Equifax" _SubscriberCode="SYN-EQX-000" />
+        </CREDIT_LIABILITY>
+        <CREDIT_FILE CreditFileID="EQX-CF-001" BorrowerID="B1" CreditScoreID="EQX-SCORE-001" CreditRepositorySourceType="Equifax" _InfileDate="2026-11-15" _ResultStatusType="FileReturned" />
+        <CREDIT_SCORE CreditScoreID="EQX-SCORE-001" BorrowerID="B1" CreditFileID="EQX-CF-001" CreditReportIdentifier="SYN-EQX-20261115-0001" CreditRepositorySourceType="Equifax" _Date="2026-11-15" _ModelNameType="Other" _ModelNameTypeOtherDescription="FICO 10T" _Value="724">
+          <_FACTOR _Code="S01" _Text="Synthetic score factor: fixture data only" />
+          <_FACTOR _Code="S02" _Text="Synthetic score factor: no real consumer data" />
+        </CREDIT_SCORE>
+        <CREDIT_SUMMARY _Name="Synthetic Summary Data">
+          <_DATA_SET _Name="Number Of Tradelines" _Value="5" />
+          <_DATA_SET _Name="Total Balance" _Value="308755" />
+          <_DATA_SET _Name="Total Monthly Payment" _Value="2792" />
+        </CREDIT_SUMMARY>
+      </CREDIT_RESPONSE>
+    </RESPONSE_DATA>
+  </RESPONSE>
+</RESPONSE_GROUP>

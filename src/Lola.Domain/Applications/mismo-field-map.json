@@ -1,6 +1,6 @@
 {
   "version": "mismo-3.4-subset",
-  "note": "Field catalog â€” canonical path â†’ MISMO XML path â†’ ULDD field â†’ piiClass â†’ index(none|ciphertext|blind) â†’ validation â†’ trid. The single truth for the model, validator, and both mappers.",
+  "note": "Field catalog \u00e2\u20ac\u201d canonical path \u00e2\u2020\u2019 MISMO XML path \u00e2\u2020\u2019 ULDD field \u00e2\u2020\u2019 piiClass \u00e2\u2020\u2019 index(none|ciphertext|blind) \u00e2\u2020\u2019 validation \u00e2\u2020\u2019 trid. The single truth for the model, validator, and both mappers.",
   "fields": [
     {
       "path": "loan_amount",
@@ -1057,6 +1057,74 @@
         "not_provided",
         "not_applicable"
       ]
+    },
+    {
+      "path": "liability[0].source",
+      "mismoPath": "LOAN_APPLICATION/LIABILITIES/LIABILITY[0]/LiabilitySource",
+      "ulddField": "LIABILITY/Source",
+      "type": "enum",
+      "enum": [
+        "borrower",
+        "tri_merge"
+      ],
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "credit.lates_30",
+      "mismoPath": "LOAN_APPLICATION/CREDIT/Lates30Count",
+      "ulddField": "CREDIT/Lates30",
+      "type": "int",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "credit.lates_60",
+      "mismoPath": "LOAN_APPLICATION/CREDIT/Lates60Count",
+      "ulddField": "CREDIT/Lates60",
+      "type": "int",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "credit.lates_90",
+      "mismoPath": "LOAN_APPLICATION/CREDIT/Lates90Count",
+      "ulddField": "CREDIT/Lates90",
+      "type": "int",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "avm.value",
+      "mismoPath": "LOAN_APPLICATION/VALUATION/ValueAmount",
+      "ulddField": "VALUATION/Value",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "avm.confidence",
+      "mismoPath": "LOAN_APPLICATION/VALUATION/ConfidenceScore",
+      "ulddField": "VALUATION/Confidence",
+      "type": "decimal",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "avm.model",
+      "mismoPath": "LOAN_APPLICATION/VALUATION/ModelName",
+      "ulddField": "VALUATION/Model",
+      "type": "string",
+      "required": false,
+      "core": false
+    },
+    {
+      "path": "avm.valuation_date",
+      "mismoPath": "LOAN_APPLICATION/VALUATION/ValuationDate",
+      "ulddField": "VALUATION/Date",
+      "type": "string",
+      "required": false,
+      "core": false
     }
   ]
 }

@@ -1,0 +1,35 @@
+[
+  {
+    "address_info": {
+      "address": "0000 SYNTHETIC WAY",
+      "address_full": "0000 Synthetic Way Testville NV 00000",
+      "city": "Testville",
+      "state": "NV",
+      "zipcode": "00000",
+      "unit": null,
+      "geo_precision": "synthetic",
+      "lat": 0.0,
+      "lng": 0.0
+    },
+    "property/value": {
+      "api_code": 0,
+      "api_code_description": "ok",
+      "result": {
+        "value": {
+          "fsd": 0.06,
+          "price_lwr": 481280,
+          "price_mean": 512000,
+          "price_upr": 542720
+        },
+        "confidence_score": 0.94,
+        "valuation_date": "2026-11-14",
+        "model": {
+          "name": "SyntheticCanary Fixture AVM",
+          "version": "fixture-1.0"
+        },
+        "comp_count": 5,
+        "fixture_note": "Synthetic response shaped on public HouseCanary JSON examples; not a vendor response."
+      }
+    }
+  }
+]

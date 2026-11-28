@@ -1142,6 +1142,81 @@ export const FIELDS: FieldSpec[] = [
     "piiClass": null,
     "required": false,
     "section": "borrower"
+  },
+  {
+    "path": "liability[0].source",
+    "label": "Source",
+    "type": "enum",
+    "enum": [
+      "borrower",
+      "tri_merge"
+    ],
+    "piiClass": null,
+    "required": false,
+    "section": "liabilities"
+  },
+  {
+    "path": "credit.lates_30",
+    "label": "Lates 30",
+    "type": "int",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "credit.lates_60",
+    "label": "Lates 60",
+    "type": "int",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "credit.lates_90",
+    "label": "Lates 90",
+    "type": "int",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "avm.value",
+    "label": "Value",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "avm.confidence",
+    "label": "Confidence",
+    "type": "decimal",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "avm.model",
+    "label": "Model",
+    "type": "string",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
+  },
+  {
+    "path": "avm.valuation_date",
+    "label": "Valuation Date",
+    "type": "string",
+    "enum": null,
+    "piiClass": null,
+    "required": false,
+    "section": "loan"
   }
 ];
 
