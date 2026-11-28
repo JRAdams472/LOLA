@@ -25,21 +25,40 @@ public static class MismoAusSerializer
             Get(doc, "loan.purpose") is { } purpose
                 ? new XElement(Mismo + "LoanPurposeType", purpose) : null);
 
-        // DEAL child order is schema-significant: LOANS before PARTIES.
+        // DEAL child order is schema-significant: COLLATERALS first,
+        // then LOANS before PARTIES (authentic DU fixture order).
+        var collaterals = new XElement(Mismo + "COLLATERALS",
+            new XElement(Mismo + "COLLATERAL",
+                new XElement(Mismo + "SUBJECT_PROPERTY",
+                    new XElement(Mismo + "ADDRESS",
+                        new XElement(Mismo + "AddressLineText", Get(doc, "subject_property.street")),
+                        new XElement(Mismo + "CityName", Get(doc, "subject_property.city")),
+                        new XElement(Mismo + "PostalCode", Get(doc, "subject_property.zip")),
+                        new XElement(Mismo + "StateCode", Get(doc, "subject_property.state"))))));
+
+        var party = new XElement(Mismo + "PARTY",
+            new XElement(Mismo + "INDIVIDUAL",
+                new XElement(Mismo + "NAME",
+                    new XElement(Mismo + "FirstName", Get(doc, "borrower.first_name")),
+                    new XElement(Mismo + "LastName", Get(doc, "borrower.last_name")))),
+            new XElement(Mismo + "ROLES",
+                new XElement(Mismo + "ROLE",
+                    new XElement(Mismo + "BORROWER",
+                        new XElement(Mismo + "BORROWER_DETAIL",
+                            new XElement(Mismo + "BorrowerBirthDate", Get(doc, "borrower.date_of_birth")))))),
+            // TAXPAYER_IDENTIFIERS is a PARTY child after ROLES — AUS
+            // submissions are PII-bearing by design (disclosed in the M25
+            // plan): the GSEs underwrite the actual borrower.
+            new XElement(Mismo + "TAXPAYER_IDENTIFIERS",
+                new XElement(Mismo + "TAXPAYER_IDENTIFIER",
+                    new XElement(Mismo + "TaxpayerIdentifierType", "SocialSecurityNumber"),
+                    new XElement(Mismo + "TaxpayerIdentifierValue", Get(doc, "borrower.ssn")))));
+
         var deal = new XElement(Mismo + "DEAL",
+            collaterals,
             new XElement(Mismo + "LOANS",
                 new XElement(Mismo + "LOAN", terms)),
-            new XElement(Mismo + "PARTIES",
-                new XElement(Mismo + "PARTY",
-                    new XElement(Mismo + "INDIVIDUAL",
-                        new XElement(Mismo + "NAME",
-                            new XElement(Mismo + "FirstName", Get(doc, "borrower.first_name")),
-                            new XElement(Mismo + "LastName", Get(doc, "borrower.last_name")))),
-                    new XElement(Mismo + "ROLES",
-                        new XElement(Mismo + "ROLE",
-                            new XElement(Mismo + "BORROWER",
-                                new XElement(Mismo + "BORROWER_DETAIL",
-                                    new XElement(Mismo + "BorrowerBirthDate", Get(doc, "borrower.date_of_birth")))))))));
+            new XElement(Mismo + "PARTIES", party));
 
         var message = new XElement(Mismo + "MESSAGE",
             new XAttribute("MISMOReferenceModelIdentifier", ReferenceModelIdentifier),

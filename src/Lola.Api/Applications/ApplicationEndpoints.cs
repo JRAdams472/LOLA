@@ -446,6 +446,24 @@ public static class ApplicationEndpoints
                 new AssembleLarCommand(id, appId,
                     Actor(user), LolaPolicies.ScopeFor(user)), ct)));
 
+        // AUS submission + posture (M25 P2, MPE-316) — vendor-validated
+        // submit through the vendor-order seam; posture read carries
+        // latest per vendor + findings + lineage. Staff-only (handlers
+        // re-check scope).
+        group.MapGet("/{appId}/aus", async (string id,
+                string appId, ClaimsPrincipal user, IMessageBus bus,
+                CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<Lola.Application.Aus.AusReportDto>(
+                new Lola.Application.Aus.GetApplicationAusQuery(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user)), ct)));
+
+        group.MapPost("/{appId}/aus/submit", async (string id,
+                string appId, string vendor, ClaimsPrincipal user,
+                IMessageBus bus, CancellationToken ct) => await
+            Guarded(id, async () => await bus.InvokeAsync<Lola.Application.Vendors.VendorOrderAccepted>(
+                new Lola.Application.Aus.SubmitAusCommand(id, appId,
+                    Actor(user), LolaPolicies.ScopeFor(user), vendor), ct)));
+
         // Pipeline step history (MPE-112) — append-only named-step log.
         group.MapGet("/{appId}/steps", async (string id, string appId,
                 ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) => await

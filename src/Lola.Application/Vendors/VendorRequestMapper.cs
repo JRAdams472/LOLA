@@ -112,8 +112,24 @@ public static class VendorRequestMapper
             field("loan_amount"); field("loan_purpose");
             field("subject_property.street"); field("subject_property.city");
             field("subject_property.state"); field("subject_property.zip");
+            // The wire payload is the XSD-validated MISMO serialization
+            // (M25) — never the raw doc json. Missing optional inputs
+            // serialize as absent elements (never invented).
+            var serializerInput = new Dictionary<string, string?>
+            {
+                ["borrower.first_name"] = field("party[0].first_name"),
+                ["borrower.last_name"] = field("party[0].last_name"),
+                ["borrower.date_of_birth"] = field("party[0].dob"),
+                ["borrower.ssn"] = field("party[0].ssn"),
+                ["loan.amount"] = field("loan_amount"),
+                ["loan.purpose"] = field("loan_purpose"),
+                ["subject_property.street"] = field("subject_property.street"),
+                ["subject_property.city"] = field("subject_property.city"),
+                ["subject_property.state"] = field("subject_property.state"),
+                ["subject_property.zip"] = field("subject_property.zip"),
+            };
             return new AusOrderRequest(app.Id, app.CurrentVersion,
-                app.Doc.ToJson());
+                Lola.Domain.Aus.MismoAusSerializer.Serialize(serializerInput));
         }
     }
 

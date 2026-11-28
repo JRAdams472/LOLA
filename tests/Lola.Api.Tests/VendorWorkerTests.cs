@@ -35,10 +35,65 @@ public sealed class VendorWorkerTests
                 cipher ?? new LoopbackFieldCipher())
             .AddSingleton<Lola.Application.Audit.ITenantAuditLog>(
                 new FakeTenantAuditLog())
+            .AddSingleton<Lola.Application.Aus.IAusResultsStore>(
+                new NoopAusResultsStore())
+            .AddSingleton<Lola.Application.Events.IConditionRepository>(
+                new NoopConditionRepository())
             .BuildServiceProvider();
         return (new Lola.Api.Vendors.VendorOutboxProcessor(
             services, new FakeRegistry(), TimeProvider.System),
             repo, creds);
+    }
+
+    private sealed class NoopConditionRepository
+        : Lola.Application.Events.IConditionRepository
+    {
+        public Task<Lola.Application.Events.Condition> OpenAsync(
+            Lola.Application.Events.ConditionDraft draft,
+            CancellationToken ct = default)
+            => throw new System.NotSupportedException(
+                "non-AUS worker tests never open conditions");
+
+        public Task<Lola.Application.Events.Condition?> GetAsync(
+            string conditionId, CancellationToken ct = default)
+            => Task.FromResult<Lola.Application.Events.Condition?>(null);
+
+        public Task<IReadOnlyList<Lola.Application.Events.Condition>>
+            ListByApplicationAsync(string applicationId,
+                string? state = null, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<Lola.Application.Events.Condition>>([]);
+
+        public Task<Lola.Application.Events.Condition> TransitionAsync(
+            string conditionId, string toState, string? reason,
+            CancellationToken ct = default)
+            => throw new System.NotSupportedException();
+    }
+
+    private sealed class NoopAusResultsStore
+        : Lola.Application.Aus.IAusResultsStore
+    {
+        public Task<Lola.Application.Aus.AusResultRow> AddResultAsync(
+            string appId, string vendor, string? orderId, string? caseId,
+            string recommendation, string? riskClass, string? responseXml,
+            string responseHash, int findingsCount, string actor,
+            CancellationToken ct)
+            => Task.FromResult(new Lola.Application.Aus.AusResultRow(
+                "aus-1", appId, vendor, orderId, caseId, recommendation,
+                riskClass, findingsCount, "2026-01-01T00:00:00.000Z",
+                actor));
+
+        public Task AddFindingAsync(string resultId, string vendorCode,
+            string category, string severity, string message,
+            string? conditionId, CancellationToken ct)
+            => Task.CompletedTask;
+
+        public Task<IReadOnlyList<Lola.Application.Aus.AusResultRow>>
+            ListResultsAsync(string appId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<Lola.Application.Aus.AusResultRow>>([]);
+
+        public Task<IReadOnlyList<Lola.Application.Aus.AusFindingRow>>
+            ListFindingsAsync(string resultId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<Lola.Application.Aus.AusFindingRow>>([]);
     }
 
     private static async Task EnqueueAsync(

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Lola.Application.Applications;
 using Lola.Application.Audit;
+using Lola.Application.Events;
 using Lola.Application.Security;
 
 namespace Lola.Application.Vendors;
@@ -29,7 +30,8 @@ public enum VendorCompletion
 /// `Duplicate` verdict exists purely to report the no-op.
 public sealed class CompleteVendorOrderHandler(
     IVendorOrderRepository repo, IFieldCipher cipher,
-    ITenantAuditLog audit, Tasks.TaskEvaluator eval)
+    ITenantAuditLog audit, Tasks.TaskEvaluator eval,
+    Aus.IAusResultsStore ausStore, IConditionRepository conditions)
 {
     public async Task<VendorCompletion> Handle(
         CompleteVendorOrderCommand cmd, CancellationToken ct)
@@ -76,6 +78,10 @@ public sealed class CompleteVendorOrderHandler(
         if (Tenancy.TenantContext.Current is { } scope)
             await eval.EvaluateApplicationAsync(
                 scope.TenantId, order.ApplicationId, ct);
+        await Aus.AusCompletionHook.TryProcessAsync(cmd.Kind,
+            order.ApplicationId, order.OrderId,
+            new VendorResult(cmd.Kind, cmd.Outcome, cmd.FailureReason,
+                cmd.Report), cmd.Actor, ausStore, conditions, ct);
         return VendorCompletion.Applied;
     }
 }

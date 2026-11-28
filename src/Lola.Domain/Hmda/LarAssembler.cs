@@ -41,7 +41,11 @@ public sealed record LarInput(
     string? ReverseMortgage, string? OpenEndLineOfCredit, string? BusinessOrCommercial,
     // ATR-derived
     decimal? Apr, decimal? Apor, bool? HoepaHighCost,
-    decimal? OriginationCharges, decimal? DiscountPoints, decimal? LenderCredits);
+    decimal? OriginationCharges, decimal? DiscountPoints, decimal? LenderCredits,
+    // M25: latest AUS submission per vendor — null until an
+    // automated-underwriting result exists (columns stay NA)
+    string? AusVendor = null,
+    string? AusRecommendation = null);
 
 public static class LarAssembler
 {
@@ -109,13 +113,13 @@ public static class LarAssembler
             ["submission_of_application"] = Enum(i.SubmissionOfApplication, SubmissionMap),
             ["initially_payable"] = Enum(i.InitiallyPayableTo, PayableMap),
             ["nmlsr_identifier"] = Or(i.NmlsId, Na),
-            ["aus_1"] = Na,
+            ["aus_1"] = AusSystemCode(i.AusVendor) ?? Na,
             ["aus_2"] = "",
             ["aus_3"] = "",
             ["aus_4"] = "",
             ["aus_5"] = "",
             ["aus_freeform"] = "",
-            ["aus_result_1"] = Na,
+            ["aus_result_1"] = AusResultCode(i.AusVendor, i.AusRecommendation) ?? Na,
             ["aus_result_2"] = "",
             ["aus_result_3"] = "",
             ["aus_result_4"] = "",
@@ -248,4 +252,29 @@ public static class LarAssembler
     { ["directly"] = "1", ["not_directly"] = "2", ["not_applicable"] = "1111" };
     private static readonly IReadOnlyDictionary<string, string> PayableMap = new Dictionary<string, string>
     { ["your_institution"] = "1", ["not_your_institution"] = "2", ["not_applicable"] = "1111" };
+
+    /// FIG 2024 AUS enumerations: system 1=DU, 2=LPA (LP), 3=TOTAL,
+    /// 4=GUS, 5=Other. Result codes per FIG appendix: DU outcomes use
+    /// 1/3/4/5/13-family; LPA uses 8/9/10-family. Generic mappings
+    /// documented — vendor-specific certification may refine.
+    internal static string? AusSystemCode(string? vendor) => vendor switch
+    {
+        "du" => "1",
+        "lpa" => "2",
+        _ => null,
+    };
+
+    internal static string? AusResultCode(string? vendor, string? recommendation)
+        => (vendor, recommendation) switch
+        {
+            ("du", "approve-eligible") => "1",   // Approve/Eligible
+            ("du", "refer") => "13",             // Refer
+            ("du", "ineligible") => "10",        // Ineligible
+            ("lpa", "accept") => "8",            // Accept
+            ("lpa", "caution") => "9",           // Caution
+            ("lpa", "refer") => "13",            // Refer
+            ("lpa", "ineligible") => "10",       // Ineligible
+            (_, "unable-to-evaluate") => "15",   // Unable to Determine
+            _ => null,
+        };
 }

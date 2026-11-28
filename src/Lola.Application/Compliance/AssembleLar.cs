@@ -20,7 +20,8 @@ public static class AssembleLarHandler
     public static async Task<HmdaLarRowDto> Handle(
         AssembleLarCommand c, IApplicationRepository apps,
         IAtrQmRepository atr, IHmdaRepository hmda, ILoanEventLog events,
-        HmdaOptions options, CancellationToken ct)
+        HmdaOptions options, Aus.IAusResultsStore ausStore,
+        CancellationToken ct)
     {
         AdminGuards.RequireTenant(c.TenantId);
         if (c.Scope != ActorScope.Staff)
@@ -31,8 +32,14 @@ public static class AssembleLarHandler
 
         var atrRows = await atr.ListResultsAsync(c.AppId, ct);
         var latestAtr = atrRows.Count > 0 ? atrRows[0] : null;
+        // M25 linkage: latest AUS result populates the LAR AUS
+        // columns (FIG system/result codes); absent results keep NA.
+        var ausRows = await ausStore.ListResultsAsync(c.AppId, ct);
+        var latestAus = ausRows.Count > 0
+            ? ausRows.OrderByDescending(r => r.CreatedUtc).First() : null;
         var input = HmdaEvaluator.Map(app.Doc, options.Lei, c.AppId,
-            latestAtr, options.NmlsId);
+            latestAtr, options.NmlsId, latestAus?.Vendor,
+            latestAus?.Recommendation);
         var fields = LarAssembler.Assemble(input);
         var edits = EditChecks.Run(fields);
 
