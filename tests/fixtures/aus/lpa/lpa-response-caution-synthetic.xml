@@ -1,0 +1,780 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- SYNTHETIC FIXTURE - not an actual Freddie Mac response. The inner mismo:MESSAGE validates against the public GSE/MISMO schema wrapper, but the outer LPALoanAssessmentServiceResponse element is reconstructed because the public v6.1 request bundle does not include a response wrapper XSD. -->
+<lparsp:LPALoanAssessmentServiceResponse xmlns:lparsp="http://www.freddiemac.com/lpa/LPALoanAssessmentService/schemas" xmlns:mismo="http://www.mismo.org/residential/2009/schemas" xmlns:LPA="http://www.datamodelextension.org/Schema/LPA" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><mismo:MESSAGE xmlns:ULAD="http://www.datamodelextension.org/Schema/ULAD" xmlns:DU="http://www.datamodelextension.org/Schema/DU" xmlns:xlink="http://www.w3.org/1999/xlink" MISMOReferenceModelIdentifier="3.4.032420160128">
+	<mismo:ABOUT_VERSIONS>
+		<mismo:ABOUT_VERSION>
+			<mismo:CreatedDatetime>2025-10-26T16:08:10.227Z</mismo:CreatedDatetime>
+		</mismo:ABOUT_VERSION>
+	</mismo:ABOUT_VERSIONS>
+	<mismo:DEAL_SETS>
+		<mismo:DEAL_SET>
+			<mismo:DEALS>
+				<mismo:DEAL>
+					<mismo:ASSETS>
+						<mismo:ASSET SequenceNumber="1" xlink:label="ASSET_1">
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetAccountIdentifier>123</mismo:AssetAccountIdentifier>
+								<mismo:AssetCashOrMarketValueAmount>456</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>CheckingAccount</mismo:AssetType>
+							</mismo:ASSET_DETAIL>
+							<mismo:ASSET_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Checking</mismo:FullName>
+								</mismo:NAME>
+							</mismo:ASSET_HOLDER>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="2" xlink:label="ASSET_2">
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetAccountIdentifier>123</mismo:AssetAccountIdentifier>
+								<mismo:AssetCashOrMarketValueAmount>456</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>CertificateOfDepositTimeDeposit</mismo:AssetType>
+							</mismo:ASSET_DETAIL>
+							<mismo:ASSET_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Timedeposit</mismo:FullName>
+								</mismo:NAME>
+							</mismo:ASSET_HOLDER>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="3" xlink:label="ASSET_3">
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetAccountIdentifier>123</mismo:AssetAccountIdentifier>
+								<mismo:AssetCashOrMarketValueAmount>456</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>MutualFund</mismo:AssetType>
+							</mismo:ASSET_DETAIL>
+							<mismo:ASSET_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Mutual</mismo:FullName>
+								</mismo:NAME>
+							</mismo:ASSET_HOLDER>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="4" xlink:label="ASSET_4">
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetAccountIdentifier>123</mismo:AssetAccountIdentifier>
+								<mismo:AssetCashOrMarketValueAmount>456</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>BridgeLoanNotDeposited</mismo:AssetType>
+							</mismo:ASSET_DETAIL>
+							<mismo:ASSET_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Bridge loan</mismo:FullName>
+								</mismo:NAME>
+							</mismo:ASSET_HOLDER>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="5" xlink:label="ASSET_5">
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetAccountIdentifier>123</mismo:AssetAccountIdentifier>
+								<mismo:AssetCashOrMarketValueAmount>456</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>TrustAccount</mismo:AssetType>
+							</mismo:ASSET_DETAIL>
+							<mismo:ASSET_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Trust</mismo:FullName>
+								</mismo:NAME>
+							</mismo:ASSET_HOLDER>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="6" xlink:label="ASSET_6">
+							<mismo:OWNED_PROPERTY>
+								<mismo:OWNED_PROPERTY_DETAIL>
+									<mismo:OwnedPropertyDispositionStatusType>PendingSale</mismo:OwnedPropertyDispositionStatusType>
+									<mismo:OwnedPropertyMaintenanceExpenseAmount>123</mismo:OwnedPropertyMaintenanceExpenseAmount>
+									<mismo:OwnedPropertyRentalIncomeGrossAmount>456</mismo:OwnedPropertyRentalIncomeGrossAmount>
+									<mismo:OwnedPropertyRentalIncomeNetAmount>333</mismo:OwnedPropertyRentalIncomeNetAmount>
+								</mismo:OWNED_PROPERTY_DETAIL>
+								<mismo:PROPERTY>
+									<mismo:ADDRESS>
+										<mismo:AddressLineText>1284 Willow Creek Blvd</mismo:AddressLineText>
+										<mismo:CityName>Austin</mismo:CityName>
+										<mismo:CountryCode>US</mismo:CountryCode>
+										<mismo:PostalCode>78704</mismo:PostalCode>
+										<mismo:StateCode>NE</mismo:StateCode>
+									</mismo:ADDRESS>
+									<mismo:PROPERTY_DETAIL>
+										<mismo:PropertyEstimatedValueAmount>265000</mismo:PropertyEstimatedValueAmount>
+										<mismo:PropertyUsageType>PrimaryResidence</mismo:PropertyUsageType>
+									</mismo:PROPERTY_DETAIL>
+								</mismo:PROPERTY>
+							</mismo:OWNED_PROPERTY>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="7" xlink:label="ASSET_7">
+							<mismo:OWNED_PROPERTY>
+								<mismo:OWNED_PROPERTY_DETAIL>
+									<mismo:OwnedPropertyDispositionStatusType>PendingSale</mismo:OwnedPropertyDispositionStatusType>
+									<mismo:OwnedPropertyMaintenanceExpenseAmount>123</mismo:OwnedPropertyMaintenanceExpenseAmount>
+									<mismo:OwnedPropertyRentalIncomeGrossAmount>564</mismo:OwnedPropertyRentalIncomeGrossAmount>
+									<mismo:OwnedPropertyRentalIncomeNetAmount>441</mismo:OwnedPropertyRentalIncomeNetAmount>
+								</mismo:OWNED_PROPERTY_DETAIL>
+								<mismo:PROPERTY>
+									<mismo:ADDRESS>
+										<mismo:AddressLineText>932 Harbor View Drive</mismo:AddressLineText>
+										<mismo:CityName>Seattle</mismo:CityName>
+										<mismo:CountryCode>WA</mismo:CountryCode>
+										<mismo:PostalCode>98109</mismo:PostalCode>
+										<mismo:StateCode>NE</mismo:StateCode>
+									</mismo:ADDRESS>
+									<mismo:PROPERTY_DETAIL>
+										<mismo:PropertyEstimatedValueAmount>41231</mismo:PropertyEstimatedValueAmount>
+										<mismo:PropertyUsageType>SecondHome</mismo:PropertyUsageType>
+									</mismo:PROPERTY_DETAIL>
+								</mismo:PROPERTY>
+							</mismo:OWNED_PROPERTY>
+						</mismo:ASSET>
+						<mismo:ASSET SequenceNumber="8" xlink:label="ASSET_8">
+							<mismo:OWNED_PROPERTY>
+								<mismo:OWNED_PROPERTY_DETAIL>
+									<mismo:OwnedPropertyDispositionStatusType>Retain</mismo:OwnedPropertyDispositionStatusType>
+									<mismo:OwnedPropertyMaintenanceExpenseAmount>123</mismo:OwnedPropertyMaintenanceExpenseAmount>
+									<mismo:OwnedPropertyRentalIncomeGrossAmount>543</mismo:OwnedPropertyRentalIncomeGrossAmount>
+									<mismo:OwnedPropertyRentalIncomeNetAmount>420</mismo:OwnedPropertyRentalIncomeNetAmount>
+								</mismo:OWNED_PROPERTY_DETAIL>
+								<mismo:PROPERTY>
+									<mismo:ADDRESS>
+										<mismo:AddressLineText>4571 Maple Ridge Lane</mismo:AddressLineText>
+										<mismo:CityName>Denver</mismo:CityName>
+										<mismo:CountryCode>CO</mismo:CountryCode>
+										<mismo:PostalCode>80205</mismo:PostalCode>
+										<mismo:StateCode>NE</mismo:StateCode>
+									</mismo:ADDRESS>
+									<mismo:PROPERTY_DETAIL>
+										<mismo:PropertyEstimatedValueAmount>1233</mismo:PropertyEstimatedValueAmount>
+										<mismo:PropertyUsageType>Investment</mismo:PropertyUsageType>
+									</mismo:PROPERTY_DETAIL>
+								</mismo:PROPERTY>
+							</mismo:OWNED_PROPERTY>
+						</mismo:ASSET>
+						<mismo:ASSET>
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetCashOrMarketValueAmount>123</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>GiftOfPropertyEquity</mismo:AssetType>
+								<mismo:FundsSourceType>ReligiousNonProfit</mismo:FundsSourceType>
+							</mismo:ASSET_DETAIL>
+							</mismo:ASSET>
+						<mismo:ASSET>
+							<mismo:ASSET_DETAIL>
+								<mismo:AssetCashOrMarketValueAmount>123</mismo:AssetCashOrMarketValueAmount>
+								<mismo:AssetType>GiftOfCash</mismo:AssetType>
+								<mismo:FundsSourceType>UnmarriedPartner</mismo:FundsSourceType>
+							</mismo:ASSET_DETAIL>
+							</mismo:ASSET>
+					</mismo:ASSETS>
+					<mismo:COLLATERALS>
+						<mismo:COLLATERAL>
+							<mismo:SUBJECT_PROPERTY>
+								<mismo:ADDRESS>
+									<mismo:AddressLineText>219 Brookhaven Court</mismo:AddressLineText>
+									<mismo:CityName>Charlotte</mismo:CityName>
+									<mismo:PostalCode>28211</mismo:PostalCode>
+									<mismo:StateCode>NC</mismo:StateCode>
+								</mismo:ADDRESS>
+								<mismo:PROPERTY_DETAIL>
+									<mismo:ConstructionMethodType>SiteBuilt</mismo:ConstructionMethodType>
+									<mismo:FinancedUnitCount>1</mismo:FinancedUnitCount>
+									<mismo:PropertyMixedUsageIndicator>true</mismo:PropertyMixedUsageIndicator>
+									<mismo:PropertyUsageType>PrimaryResidence</mismo:PropertyUsageType>
+									<mismo:RentalEstimatedGrossMonthlyRentAmount>123</mismo:RentalEstimatedGrossMonthlyRentAmount>
+								</mismo:PROPERTY_DETAIL>
+								<mismo:PROPERTY_VALUATIONS>
+									<mismo:PROPERTY_VALUATION>
+										<mismo:PROPERTY_VALUATION_DETAIL>
+											<mismo:PropertyValuationAmount>123123</mismo:PropertyValuationAmount>
+										</mismo:PROPERTY_VALUATION_DETAIL>
+									</mismo:PROPERTY_VALUATION>
+								</mismo:PROPERTY_VALUATIONS>
+							</mismo:SUBJECT_PROPERTY>
+						</mismo:COLLATERAL>
+					</mismo:COLLATERALS>
+					<mismo:EXPENSES>
+						<mismo:EXPENSE>
+							<mismo:ExpenseMonthlyPaymentAmount>123</mismo:ExpenseMonthlyPaymentAmount>
+							<mismo:ExpenseType>SeparateMaintenanceExpense</mismo:ExpenseType>
+						</mismo:EXPENSE>
+						<mismo:EXPENSE>
+							<mismo:ExpenseMonthlyPaymentAmount>123</mismo:ExpenseMonthlyPaymentAmount>
+							<mismo:ExpenseType>ChildSupport</mismo:ExpenseType>
+						</mismo:EXPENSE>
+						<mismo:EXPENSE>
+							<mismo:ExpenseMonthlyPaymentAmount>123</mismo:ExpenseMonthlyPaymentAmount>
+							<mismo:ExpenseType>JobRelatedExpenses</mismo:ExpenseType>
+						</mismo:EXPENSE>
+					</mismo:EXPENSES>
+					<mismo:LIABILITIES>
+						<mismo:LIABILITY SequenceNumber="1" xlink:label="LIABILITY_1">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>456</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityPayoffStatusIndicator>true</mismo:LiabilityPayoffStatusIndicator>
+								<mismo:LiabilityType>Open30DayChargeAccount</mismo:LiabilityType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Input 2c Company Name 1</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="2" xlink:label="LIABILITY_2">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>456</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityPayoffStatusIndicator>false</mismo:LiabilityPayoffStatusIndicator>
+								<mismo:LiabilityType>Revolving</mismo:LiabilityType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Input 2c Company Name 2</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="3" xlink:label="LIABILITY_3">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>456</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityPayoffStatusIndicator>true</mismo:LiabilityPayoffStatusIndicator>
+								<mismo:LiabilityType>LeasePayment</mismo:LiabilityType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Input 2c Company Name 3</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="4" xlink:label="LIABILITY_4">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>456</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityPayoffStatusIndicator>false</mismo:LiabilityPayoffStatusIndicator>
+								<mismo:LiabilityType>Other</mismo:LiabilityType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Input 2c Company Name 4</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="5" xlink:label="LIABILITY_5">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>456</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityPayoffStatusIndicator>true</mismo:LiabilityPayoffStatusIndicator>
+								<mismo:LiabilityType>Open30DayChargeAccount</mismo:LiabilityType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>Input 2c Company Name 5</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="6" xlink:label="LIABILITY_6">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>1231231</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>456</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>USDARuralDevelopment</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor 1</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="7" xlink:label="LIABILITY_7">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>12314</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>456</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>Conventional</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor 2</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="8" xlink:label="LIABILITY_8">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>678678</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>USDARuralDevelopment</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor other 1</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="9" xlink:label="LIABILITY_9">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123154</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>6788</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>FHA</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor other 2</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="10" xlink:label="LIABILITY_10">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>123</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>456</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>USDARuralDevelopment</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor other 1 1</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+						<mismo:LIABILITY SequenceNumber="11" xlink:label="LIABILITY_11">
+							<mismo:LIABILITY_DETAIL>
+								<mismo:LiabilityAccountIdentifier>125</mismo:LiabilityAccountIdentifier>
+								<mismo:LiabilityMonthlyPaymentAmount>123</mismo:LiabilityMonthlyPaymentAmount>
+								<mismo:LiabilityUnpaidBalanceAmount>456</mismo:LiabilityUnpaidBalanceAmount>
+								<mismo:MortgageType>FHA</mismo:MortgageType>
+							</mismo:LIABILITY_DETAIL>
+							<mismo:LIABILITY_HOLDER>
+								<mismo:NAME>
+									<mismo:FullName>creditor other 1 2</mismo:FullName>
+								</mismo:NAME>
+							</mismo:LIABILITY_HOLDER>
+						</mismo:LIABILITY>
+					</mismo:LIABILITIES>
+					<mismo:LOANS>
+						<mismo:LOAN LoanRoleType="SubjectLoan" xlink:label="LOAN_1">
+							<mismo:PURCHASE_CREDITS>
+								<mismo:PURCHASE_CREDIT>
+									<mismo:PurchaseCreditAmount>456</mismo:PurchaseCreditAmount>
+									<mismo:PurchaseCreditType>SweatEquity</mismo:PurchaseCreditType>
+								</mismo:PURCHASE_CREDIT>
+							</mismo:PURCHASE_CREDITS>
+							<mismo:TERMS_OF_LOAN>
+								<mismo:LoanPurposeType>Refinance</mismo:LoanPurposeType>
+							</mismo:TERMS_OF_LOAN>
+						<mismo:UNDERWRITING><mismo:AUTOMATED_UNDERWRITINGS><mismo:AUTOMATED_UNDERWRITING SequenceNumber="1"><mismo:AutomatedUnderwritingCaseIdentifier>LPA-SYNTHETIC-CASE-0002</mismo:AutomatedUnderwritingCaseIdentifier><mismo:AutomatedUnderwritingDecisionDatetime>2025-10-26T16:10:00Z</mismo:AutomatedUnderwritingDecisionDatetime><mismo:AutomatedUnderwritingRecommendationDescription>Caution</mismo:AutomatedUnderwritingRecommendationDescription><mismo:AutomatedUnderwritingSystemType>LoanProspector</mismo:AutomatedUnderwritingSystemType><mismo:FREPurchaseEligibilityType>FreddieMacIneligible</mismo:FREPurchaseEligibilityType><mismo:LoanProspectorCreditRiskClassificationDescription>Caution</mismo:LoanProspectorCreditRiskClassificationDescription><mismo:EXTENSION><mismo:OTHER><LPA:AUTOMATED_UNDERWRITING_EXTENSION><LPA:AssetRepresentationAndWarrantyReliefEligibilityType>NotEligible</LPA:AssetRepresentationAndWarrantyReliefEligibilityType><LPA:AutomatedUnderwritingFirstSubmissionDate>2025-10-26</LPA:AutomatedUnderwritingFirstSubmissionDate><LPA:AutomatedUnderwritingSubmissionCount>1</LPA:AutomatedUnderwritingSubmissionCount><LPA:CollateralRepresentationAndWarrantyReliefEligibilityType>Unavailable</LPA:CollateralRepresentationAndWarrantyReliefEligibilityType><LPA:IncomeRepresentationAndWarrantyReliefEligibilityType>NotEligible</LPA:IncomeRepresentationAndWarrantyReliefEligibilityType><LPA:LPAServiceEngineTransactionIdentifier>LPA-SE-SYNTHETIC-0002</LPA:LPAServiceEngineTransactionIdentifier><LPA:LPATransactionIdentifier>LPA-TXN-SYNTHETIC-0002</LPA:LPATransactionIdentifier><LPA:EmploymentRepresentationAndWarrantyReliefEligibilityType>Partial</LPA:EmploymentRepresentationAndWarrantyReliefEligibilityType></LPA:AUTOMATED_UNDERWRITING_EXTENSION></mismo:OTHER></mismo:EXTENSION></mismo:AUTOMATED_UNDERWRITING></mismo:AUTOMATED_UNDERWRITINGS></mismo:UNDERWRITING></mismo:LOAN>
+						<mismo:LOAN LoanRoleType="RelatedLoan" xlink:label="LOAN_2">
+							<mismo:TERMS_OF_LOAN>
+								<mismo:LienPriorityType>FirstLien</mismo:LienPriorityType>
+							</mismo:TERMS_OF_LOAN>
+						</mismo:LOAN>
+						<mismo:LOAN LoanRoleType="RelatedLoan" xlink:label="LOAN_3">
+							<mismo:TERMS_OF_LOAN>
+								<mismo:LienPriorityType>Other</mismo:LienPriorityType>
+							</mismo:TERMS_OF_LOAN>
+						</mismo:LOAN>
+					</mismo:LOANS>
+					<mismo:PARTIES>
+						<mismo:PARTY SequenceNumber="1" xlink:label="Borrower_1">
+							<mismo:INDIVIDUAL>
+								<mismo:ALIASES>
+									<mismo:ALIAS>
+										<mismo:NAME>
+											<mismo:FirstName>J.M. Reyes</mismo:FirstName>
+											<mismo:LastName/>
+											<mismo:MiddleName/>
+											<mismo:SuffixName/>
+										</mismo:NAME>
+									</mismo:ALIAS>
+								</mismo:ALIASES>
+								<mismo:CONTACT_POINTS>
+									<mismo:CONTACT_POINT>
+										<mismo:CONTACT_POINT_EMAIL>
+											<mismo:ContactPointEmailValue>eli.x.i.r.sd.g.4.7@gmail.com</mismo:ContactPointEmailValue>
+										</mismo:CONTACT_POINT_EMAIL>
+									</mismo:CONTACT_POINT>
+									<mismo:CONTACT_POINT>
+										<mismo:CONTACT_POINT_TELEPHONE>
+											<mismo:ContactPointTelephoneValue>3082650401</mismo:ContactPointTelephoneValue>
+										</mismo:CONTACT_POINT_TELEPHONE>
+										<mismo:CONTACT_POINT_DETAIL>
+											<mismo:ContactPointRoleType>Home</mismo:ContactPointRoleType>
+										</mismo:CONTACT_POINT_DETAIL>
+									</mismo:CONTACT_POINT>
+									<mismo:CONTACT_POINT>
+										<mismo:CONTACT_POINT_TELEPHONE>
+											<mismo:ContactPointTelephoneValue>3082650402</mismo:ContactPointTelephoneValue>
+										</mismo:CONTACT_POINT_TELEPHONE>
+										<mismo:CONTACT_POINT_DETAIL>
+											<mismo:ContactPointRoleType>Mobile</mismo:ContactPointRoleType>
+										</mismo:CONTACT_POINT_DETAIL>
+									</mismo:CONTACT_POINT>
+									<mismo:CONTACT_POINT>
+										<mismo:CONTACT_POINT_TELEPHONE>
+											<mismo:ContactPointTelephoneValue>3082650404</mismo:ContactPointTelephoneValue>
+										</mismo:CONTACT_POINT_TELEPHONE>
+										<mismo:CONTACT_POINT_DETAIL>
+											<mismo:ContactPointRoleType>Work</mismo:ContactPointRoleType>
+										</mismo:CONTACT_POINT_DETAIL>
+									</mismo:CONTACT_POINT>
+								</mismo:CONTACT_POINTS>
+								<!--Borrower's name-->
+								<mismo:NAME>
+									<mismo:FirstName>Jordan</mismo:FirstName>
+									<mismo:LastName>Reyes</mismo:LastName>
+									<mismo:MiddleName>Michael</mismo:MiddleName>
+								</mismo:NAME>
+							</mismo:INDIVIDUAL>
+							<mismo:ADDRESSES>
+								<mismo:ADDRESS>
+									<mismo:AddressLineText>1564 Romrog Way</mismo:AddressLineText>
+									<mismo:AddressType>Current</mismo:AddressType>
+									<mismo:CityName>Hendley</mismo:CityName>
+									<mismo:CountryCode>US</mismo:CountryCode>
+									<mismo:PostalCode>68946</mismo:PostalCode>
+									<mismo:StateCode>NE</mismo:StateCode>
+								</mismo:ADDRESS>
+								<mismo:ADDRESS>
+									<mismo:AddressLineText>3723 Austin Secret Lane</mismo:AddressLineText>
+									<mismo:AddressType>Prior</mismo:AddressType>
+									<mismo:CityName>West Valley</mismo:CityName>
+									<mismo:CountryCode>US</mismo:CountryCode>
+									<mismo:PostalCode>84119</mismo:PostalCode>
+									<mismo:StateCode>UT</mismo:StateCode>
+								</mismo:ADDRESS>
+								<mismo:ADDRESS>
+									<mismo:AddressLineText>4631 Robinson Lane OH</mismo:AddressLineText>
+									<mismo:AddressType>Mailing</mismo:AddressType>
+									<mismo:CityName>Columbus</mismo:CityName>
+									<mismo:CountryCode>US</mismo:CountryCode>
+									<mismo:PostalCode>43201</mismo:PostalCode>
+									<mismo:StateCode>OH</mismo:StateCode>
+								</mismo:ADDRESS>
+							</mismo:ADDRESSES>
+							<mismo:ROLES>
+								<mismo:ROLE>
+									<mismo:BORROWER>
+										<mismo:BANKRUPTCIES>
+											<mismo:BANKRUPTCY>
+												<mismo:BANKRUPTCY_DETAIL>
+													<mismo:BankruptcyChapterType>ChapterSeven</mismo:BankruptcyChapterType>
+												</mismo:BANKRUPTCY_DETAIL>
+											</mismo:BANKRUPTCY>
+											<mismo:BANKRUPTCY>
+												<mismo:BANKRUPTCY_DETAIL>
+													<mismo:BankruptcyChapterType>ChapterEleven</mismo:BankruptcyChapterType>
+												</mismo:BANKRUPTCY_DETAIL>
+											</mismo:BANKRUPTCY>
+										</mismo:BANKRUPTCIES>
+										<!--Borrower Information Section 1-->
+										<mismo:BORROWER_DETAIL>
+											<mismo:BorrowerBirthDate>1985-08-15</mismo:BorrowerBirthDate>
+											<mismo:BorrowerTotalMortgagedPropertiesCount>3</mismo:BorrowerTotalMortgagedPropertiesCount>
+											<mismo:CommunityPropertyStateResidentIndicator>false</mismo:CommunityPropertyStateResidentIndicator>
+											<mismo:DependentCount>2</mismo:DependentCount>
+											<mismo:MaritalStatusType>Unmarried</mismo:MaritalStatusType>
+										</mismo:BORROWER_DETAIL>
+										<mismo:CURRENT_INCOME>
+											<mismo:CURRENT_INCOME_ITEMS>
+												<!--Income from Current Employer 1-->
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>6800</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Base</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>400</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Overtime</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>200</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Bonus</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>0</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Commissions</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>0</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>MilitaryBasePay</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>200</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Other</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>6000</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Base</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>400</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Overtime</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>200</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Bonus</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>0</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Commissions</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM SequenceNumber="2" xlink:label="CURRENT_INCOME_ITEM_2">
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>0</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>MilitaryBasePay</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<mismo:CURRENT_INCOME_ITEM>
+													<mismo:CURRENT_INCOME_ITEM_DETAIL>
+														<mismo:CurrentIncomeMonthlyTotalAmount>0</mismo:CurrentIncomeMonthlyTotalAmount>
+														<mismo:EmploymentIncomeIndicator>true</mismo:EmploymentIncomeIndicator>
+														<mismo:IncomeType>Other</mismo:IncomeType>
+													</mismo:CURRENT_INCOME_ITEM_DETAIL>
+												</mismo:CURRENT_INCOME_ITEM>
+												<!--Income from Other Sources-->
+											</mismo:CURRENT_INCOME_ITEMS>
+										</mismo:CURRENT_INCOME>
+										<mismo:DECLARATION>
+											<mismo:DECLARATION_DETAIL>
+												<mismo:BankruptcyIndicator>true</mismo:BankruptcyIndicator>
+												<mismo:CitizenshipResidencyType>USCitizen</mismo:CitizenshipResidencyType>
+												<mismo:FHASecondaryResidenceIndicator>true</mismo:FHASecondaryResidenceIndicator>
+												<mismo:HomeownerPastThreeYearsType>Yes</mismo:HomeownerPastThreeYearsType>
+												<mismo:IntentToOccupyType>Yes</mismo:IntentToOccupyType>
+												<mismo:OutstandingJudgmentsIndicator>false</mismo:OutstandingJudgmentsIndicator>
+												<mismo:PartyToLawsuitIndicator>false</mismo:PartyToLawsuitIndicator>
+												<mismo:PresentlyDelinquentIndicator>false</mismo:PresentlyDelinquentIndicator>
+												<mismo:PriorPropertyDeedInLieuConveyedIndicator>true</mismo:PriorPropertyDeedInLieuConveyedIndicator>
+												<mismo:PriorPropertyForeclosureCompletedIndicator>true</mismo:PriorPropertyForeclosureCompletedIndicator>
+												<mismo:PriorPropertyShortSaleCompletedIndicator>true</mismo:PriorPropertyShortSaleCompletedIndicator>
+												<mismo:PriorPropertyTitleType>Sole</mismo:PriorPropertyTitleType>
+												<mismo:PropertyProposedCleanEnergyLienIndicator>true</mismo:PropertyProposedCleanEnergyLienIndicator>
+												<mismo:UndisclosedBorrowedFundsAmount>1233</mismo:UndisclosedBorrowedFundsAmount>
+												<mismo:UndisclosedBorrowedFundsIndicator>true</mismo:UndisclosedBorrowedFundsIndicator>
+												<mismo:UndisclosedComakerOfNoteIndicator>false</mismo:UndisclosedComakerOfNoteIndicator>
+												<mismo:UndisclosedCreditApplicationIndicator>true</mismo:UndisclosedCreditApplicationIndicator>
+												<mismo:UndisclosedMortgageApplicationIndicator>false</mismo:UndisclosedMortgageApplicationIndicator>
+											</mismo:DECLARATION_DETAIL>
+											</mismo:DECLARATION>
+										<mismo:EMPLOYERS>
+											<mismo:EMPLOYER>
+												<mismo:LEGAL_ENTITY>
+													<mismo:CONTACTS>
+														<mismo:CONTACT>
+															<mismo:CONTACT_POINTS>
+																<mismo:CONTACT_POINT>
+																	<mismo:CONTACT_POINT_TELEPHONE>
+																		<mismo:ContactPointTelephoneValue>12356789</mismo:ContactPointTelephoneValue>
+																	</mismo:CONTACT_POINT_TELEPHONE>
+																</mismo:CONTACT_POINT>
+															</mismo:CONTACT_POINTS>
+														</mismo:CONTACT>
+													</mismo:CONTACTS>
+													<mismo:LEGAL_ENTITY_DETAIL>
+														<mismo:FullName>J. B. Van Sciver</mismo:FullName>
+													</mismo:LEGAL_ENTITY_DETAIL>
+												</mismo:LEGAL_ENTITY>
+												<mismo:ADDRESS>
+													<mismo:AddressLineText>4631 Robinson Lane</mismo:AddressLineText>
+													<mismo:CityName>Columbus</mismo:CityName>
+													<mismo:PostalCode>43201</mismo:PostalCode>
+													<mismo:StateCode>OH</mismo:StateCode>
+												</mismo:ADDRESS>
+												<mismo:EMPLOYMENT>
+													<mismo:EmploymentBorrowerSelfEmployedIndicator>true</mismo:EmploymentBorrowerSelfEmployedIndicator>
+													<mismo:EmploymentClassificationType>Primary</mismo:EmploymentClassificationType>
+													<mismo:EmploymentPositionDescription>Energy Auditor</mismo:EmploymentPositionDescription>
+													<mismo:EmploymentStartDate>2023-12-31</mismo:EmploymentStartDate>
+													<mismo:EmploymentStatusType>Current</mismo:EmploymentStatusType>
+													<mismo:EmploymentTimeInLineOfWorkMonthsCount>34</mismo:EmploymentTimeInLineOfWorkMonthsCount>
+													<mismo:SpecialBorrowerEmployerRelationshipIndicator>true</mismo:SpecialBorrowerEmployerRelationshipIndicator>
+												</mismo:EMPLOYMENT>
+											</mismo:EMPLOYER>
+											<mismo:EMPLOYER>
+												<mismo:LEGAL_ENTITY>
+													<mismo:CONTACTS>
+														<mismo:CONTACT>
+															<mismo:CONTACT_POINTS>
+																<mismo:CONTACT_POINT>
+																	<mismo:CONTACT_POINT_TELEPHONE>
+																		<mismo:ContactPointTelephoneValue>4158239476</mismo:ContactPointTelephoneValue>
+																	</mismo:CONTACT_POINT_TELEPHONE>
+																</mismo:CONTACT_POINT>
+															</mismo:CONTACT_POINTS>
+														</mismo:CONTACT>
+													</mismo:CONTACTS>
+													<mismo:LEGAL_ENTITY_DETAIL>
+														<mismo:FullName>Horizon Tech Solutions Inc.</mismo:FullName>
+													</mismo:LEGAL_ENTITY_DETAIL>
+												</mismo:LEGAL_ENTITY>
+												<mismo:ADDRESS>
+													<mismo:AddressLineText>782 Market Street</mismo:AddressLineText>
+													<mismo:CityName>San Francisco</mismo:CityName>
+													<mismo:PostalCode>94103</mismo:PostalCode>
+													<mismo:StateCode>CA</mismo:StateCode>
+												</mismo:ADDRESS>
+												<mismo:EMPLOYMENT>
+													<mismo:EmploymentBorrowerSelfEmployedIndicator>false</mismo:EmploymentBorrowerSelfEmployedIndicator>
+													<mismo:EmploymentClassificationType>Secondary</mismo:EmploymentClassificationType>
+													<mismo:EmploymentPositionDescription>Front-End Developer</mismo:EmploymentPositionDescription>
+													<mismo:EmploymentStartDate>2021-04-15</mismo:EmploymentStartDate>
+													<mismo:EmploymentStatusType>Current</mismo:EmploymentStatusType>
+													<mismo:EmploymentTimeInLineOfWorkMonthsCount>50</mismo:EmploymentTimeInLineOfWorkMonthsCount>
+													<mismo:SpecialBorrowerEmployerRelationshipIndicator>false</mismo:SpecialBorrowerEmployerRelationshipIndicator>
+												</mismo:EMPLOYMENT>
+											</mismo:EMPLOYER>
+											<mismo:EMPLOYER>
+												<mismo:LEGAL_ENTITY>
+													<mismo:CONTACTS>
+														<mismo:CONTACT>
+															<mismo:CONTACT_POINTS>
+																<mismo:CONTACT_POINT>
+																	<mismo:CONTACT_POINT_TELEPHONE>
+																		<mismo:ContactPointTelephoneValue>3126548279</mismo:ContactPointTelephoneValue>
+																	</mismo:CONTACT_POINT_TELEPHONE>
+																</mismo:CONTACT_POINT>
+															</mismo:CONTACT_POINTS>
+														</mismo:CONTACT>
+													</mismo:CONTACTS>
+													<mismo:LEGAL_ENTITY_DETAIL>
+														<mismo:FullName>Silverline Creative Studios</mismo:FullName>
+													</mismo:LEGAL_ENTITY_DETAIL>
+												</mismo:LEGAL_ENTITY>
+												<mismo:ADDRESS>
+													<mismo:AddressLineText>2440 W Belmont Ave</mismo:AddressLineText>
+													<mismo:CityName>Chicago</mismo:CityName>
+													<mismo:PostalCode>60618</mismo:PostalCode>
+													<mismo:StateCode>IL</mismo:StateCode>
+												</mismo:ADDRESS>
+												<mismo:EMPLOYMENT>
+													<mismo:EmploymentBorrowerSelfEmployedIndicator>false</mismo:EmploymentBorrowerSelfEmployedIndicator>
+													<mismo:EmploymentClassificationType>Primary</mismo:EmploymentClassificationType>
+													<mismo:EmploymentPositionDescription>Graphic Design Lead</mismo:EmploymentPositionDescription>
+													<mismo:EmploymentStartDate>2019-08-01</mismo:EmploymentStartDate>
+													<mismo:EmploymentStatusType>Previous</mismo:EmploymentStatusType>
+													<mismo:EmploymentTimeInLineOfWorkMonthsCount>62</mismo:EmploymentTimeInLineOfWorkMonthsCount>
+												</mismo:EMPLOYMENT>
+											</mismo:EMPLOYER>
+										</mismo:EMPLOYERS>
+										<mismo:GOVERNMENT_MONITORING>
+											<mismo:GOVERNMENT_MONITORING_DETAIL>
+												<mismo:HMDAEthnicityRefusalIndicator>false</mismo:HMDAEthnicityRefusalIndicator>
+												<mismo:HMDAGenderRefusalIndicator>false</mismo:HMDAGenderRefusalIndicator>
+												<mismo:HMDARaceRefusalIndicator>false</mismo:HMDARaceRefusalIndicator>
+												</mismo:GOVERNMENT_MONITORING_DETAIL>
+											<mismo:HMDA_RACES>
+												<mismo:HMDA_RACE>
+													<mismo:HMDA_RACE_DETAIL>
+														<mismo:HMDARaceType>AmericanIndianOrAlaskaNative</mismo:HMDARaceType>
+													</mismo:HMDA_RACE_DETAIL>
+												</mismo:HMDA_RACE>
+											</mismo:HMDA_RACES>
+											</mismo:GOVERNMENT_MONITORING>
+										<mismo:RESIDENCES>
+											<!--Borrower Current Address-->
+											<mismo:RESIDENCE>
+												<mismo:ADDRESS>
+													<mismo:AddressLineText>1564 Romrog Way</mismo:AddressLineText>
+													<mismo:CityName>Hendley</mismo:CityName>
+													<mismo:PostalCode>68946</mismo:PostalCode>
+													<mismo:StateCode>NE</mismo:StateCode>
+												</mismo:ADDRESS>
+												<mismo:LANDLORD>
+													<mismo:LANDLORD_DETAIL>
+														<mismo:MonthlyRentAmount>17</mismo:MonthlyRentAmount>
+													</mismo:LANDLORD_DETAIL>
+												</mismo:LANDLORD>
+												<mismo:RESIDENCE_DETAIL>
+													<mismo:BorrowerResidencyBasisType>Rent</mismo:BorrowerResidencyBasisType>
+													<mismo:BorrowerResidencyDurationMonthsCount>17</mismo:BorrowerResidencyDurationMonthsCount>
+													<mismo:BorrowerResidencyType>Current</mismo:BorrowerResidencyType>
+												</mismo:RESIDENCE_DETAIL>
+											</mismo:RESIDENCE>
+											<mismo:RESIDENCE>
+												<mismo:ADDRESS>
+													<mismo:AddressLineText>3723 Austin Secret Lane</mismo:AddressLineText>
+													<mismo:CityName>West Valley</mismo:CityName>
+													<mismo:PostalCode>UT</mismo:PostalCode>
+													<mismo:StateCode>UT</mismo:StateCode>
+												</mismo:ADDRESS>
+												<mismo:LANDLORD>
+													<mismo:LANDLORD_DETAIL>
+														<mismo:MonthlyRentAmount>400</mismo:MonthlyRentAmount>
+													</mismo:LANDLORD_DETAIL>
+												</mismo:LANDLORD>
+												<mismo:RESIDENCE_DETAIL>
+													<mismo:BorrowerResidencyBasisType>Rent</mismo:BorrowerResidencyBasisType>
+													<mismo:BorrowerResidencyDurationMonthsCount>71</mismo:BorrowerResidencyDurationMonthsCount>
+													<mismo:BorrowerResidencyType>Prior</mismo:BorrowerResidencyType>
+												</mismo:RESIDENCE_DETAIL>
+											</mismo:RESIDENCE>
+										</mismo:RESIDENCES>
+									</mismo:BORROWER>
+									<mismo:ROLE_DETAIL>
+										<mismo:PartyRoleType>Borrower</mismo:PartyRoleType>
+									</mismo:ROLE_DETAIL>
+								</mismo:ROLE>
+							</mismo:ROLES>
+							<mismo:TAXPAYER_IDENTIFIERS>
+								<mismo:TAXPAYER_IDENTIFIER>
+									<mismo:TaxpayerIdentifierType>SocialSecurityNumber</mismo:TaxpayerIdentifierType>
+									<mismo:TaxpayerIdentifierValue/>
+								</mismo:TAXPAYER_IDENTIFIER>
+							</mismo:TAXPAYER_IDENTIFIERS>
+						</mismo:PARTY>
+						<mismo:PARTY SequenceNumber="2" xlink:label="Creditor_1">
+							<mismo:LEGAL_ENTITY>
+								<mismo:LEGAL_ENTITY_DETAIL>
+									<mismo:FullName>credittor 1</mismo:FullName>
+								</mismo:LEGAL_ENTITY_DETAIL>
+							</mismo:LEGAL_ENTITY>
+							<mismo:ROLES>
+								<mismo:ROLE>
+									<mismo:ROLE_DETAIL>
+										<mismo:PartyRoleType>LoanOriginator</mismo:PartyRoleType>
+									</mismo:ROLE_DETAIL>
+								</mismo:ROLE>
+							</mismo:ROLES>
+						</mismo:PARTY>
+						<mismo:PARTY SequenceNumber="3" xlink:label="Creditor_2">
+							<mismo:LEGAL_ENTITY>
+								<mismo:LEGAL_ENTITY_DETAIL>
+									<mismo:FullName>credittor 2</mismo:FullName>
+								</mismo:LEGAL_ENTITY_DETAIL>
+							</mismo:LEGAL_ENTITY>
+							<mismo:ROLES>
+								<mismo:ROLE>
+									<mismo:ROLE_DETAIL>
+										<mismo:PartyRoleType>LoanOriginator</mismo:PartyRoleType>
+									</mismo:ROLE_DETAIL>
+								</mismo:ROLE>
+							</mismo:ROLES>
+						</mismo:PARTY>
+					</mismo:PARTIES>
+					<mismo:SERVICES><mismo:SERVICE><mismo:AUTOMATED_UNDERWRITING_SYSTEM><mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE><mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGES><mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE SequenceNumber="1"><mismo:AutomatedUnderwritingSystemMessageDescription>LPA feedback certificate message (synthetic fixture)</mismo:AutomatedUnderwritingSystemMessageDescription><mismo:AutomatedUnderwritingSystemMessageValue>Caution</mismo:AutomatedUnderwritingSystemMessageValue><mismo:EXTENSION><mismo:OTHER><LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION><LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_DETAIL><LPA:AutomatedUnderwritingSystemMessageGroupType>DocumentationMessages</LPA:AutomatedUnderwritingSystemMessageGroupType></LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_DETAIL><LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEMS><LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM SequenceNumber="1"><LPA:AutomatedUnderwritingSystemMessageDescription>Synthetic feedback message for parser tests. Not an actual Freddie Mac response.</LPA:AutomatedUnderwritingSystemMessageDescription><LPA:AutomatedUnderwritingSystemMessageSectionIdentifier>SYNTHETIC-001</LPA:AutomatedUnderwritingSystemMessageSectionIdentifier><LPA:AutomatedUnderwritingSystemMessageValue>The loan has a Caution risk classification and mixed or unavailable representation and warranty relief in this fixture.</LPA:AutomatedUnderwritingSystemMessageValue></LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEM></LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_ITEMS></LPA:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE_EXTENSION></mismo:OTHER></mismo:EXTENSION></mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGE></mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE_MESSAGES></mismo:AUTOMATED_UNDERWRITING_SYSTEM_RESPONSE></mismo:AUTOMATED_UNDERWRITING_SYSTEM></mismo:SERVICE></mismo:SERVICES><!--WIP-->
+					<!--<RELATIONSHIPS xsi:type="RELATIONSHIPS"><RELATIONSHIP SequenceNumber="1" xlink:from="ASSET_1" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="2" xlink:from="ASSET_2" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="3" xlink:from="ASSET_3" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="3" xlink:from="ASSET_3" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="4" xlink:from="ASSET_4" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="5" xlink:from="ASSET_5" xlink:to="Borrower_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="1" xlink:from="ASSET_1" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="2" xlink:from="ASSET_2" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="3" xlink:from="ASSET_3" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="4" xlink:from="ASSET_4" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/ASSET_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="5" xlink:from="CURRENT_INCOME_ITEM_1" xlink:to="EMPLOYER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/CURRENT_INCOME_ITEM_IsAssociatedWith_EMPLOYER" /><RELATIONSHIP SequenceNumber="6" xlink:from="CURRENT_INCOME_ITEM_2" xlink:to="EMPLOYER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/CURRENT_INCOME_ITEM_IsAssociatedWith_EMPLOYER" /><RELATIONSHIP SequenceNumber="7" xlink:from="CURRENT_INCOME_ITEM_3" xlink:to="EMPLOYER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/CURRENT_INCOME_ITEM_IsAssociatedWith_EMPLOYER" /><RELATIONSHIP SequenceNumber="8" xlink:from="LIABILITY_1" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/LIABILITY_IsAssociatedWith_ROLE" /><RELATIONSHIP SequenceNumber="9" xlink:from="LIABILITY_2" xlink:to="BORROWER_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/LIABILITY_IsAssociatedWith_ROLE" /></RELATIONSHIPS>-->
+				</mismo:DEAL>
+			</mismo:DEALS>
+		</mismo:DEAL_SET>
+	</mismo:DEAL_SETS>
+</mismo:MESSAGE>
+</lparsp:LPALoanAssessmentServiceResponse>

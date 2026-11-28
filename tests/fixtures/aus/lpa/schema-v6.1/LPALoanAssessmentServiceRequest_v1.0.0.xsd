@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by  FREDDIE MAC (FREDDIE MAC) -->
+<!-- Freddie Mac LPA V5.0 Extension Schema File -->
+<!-- LPA Specification 5.1.00  DISTRO_ID  4     -->
+<schema xmlns:lparqst="http://www.freddiemac.com/lpa/LPALoanAssessmentService/schemas"
+        xmlns:ulad="http://www.datamodelextension.org/Schema/ULAD"
+        xmlns:lpa="http://www.datamodelextension.org/Schema/LPA"
+        xmlns:mismo="http://www.mismo.org/residential/2009/schemas"
+        xmlns="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://www.freddiemac.com/lpa/LPALoanAssessmentService/schemas" elementFormDefault="qualified">
+    <import namespace="http://www.mismo.org/residential/2009/schemas" schemaLocation="GSE_Schema_WrapperV1_1.xsd"/>
+    <element name="LPALoanAssessmentServiceRequest">
+        <complexType>
+            <sequence>
+                <element ref="mismo:MESSAGE"/>
+            </sequence>
+        </complexType>
+    </element>
+</schema>

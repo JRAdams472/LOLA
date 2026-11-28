@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by FREDDIE MAC (FREDDIE MAC) -->
+<!-- Fannie Mae and Freddie Mac ULAD Extension File -->
+<!-- LPA Specification 5.2.00  DISTRO_ID  5         -->
+
+<xsd:schema xmlns:mismo="http://www.mismo.org/residential/2009/schemas" xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ulad="http://www.datamodelextension.org/Schema/ULAD"
+            targetNamespace="http://www.datamodelextension.org/Schema/ULAD" elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+    <xsd:include schemaLocation="ULAD_ExtensionV3_4.xsd"/>
+    <xsd:group name="grpASSET_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="ASSET_DETAIL_EXTENSION" type="ulad:ASSET_DETAIL_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpDECLARATION_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="DECLARATION_DETAIL_EXTENSION" type="ulad:DECLARATION_DETAIL_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpGOVERNMENT_MONITORING_DETAIL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="GOVERNMENT_MONITORING_DETAIL_EXTENSION"
+                         type="ulad:GOVERNMENT_MONITORING_DETAIL_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpGOVERNMENT_MONITORING_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="GOVERNMENT_MONITORING_EXTENSION" type="ulad:GOVERNMENT_MONITORING_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpHMDA_RACE_DESIGNATION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="HMDA_RACE_DESIGNATION_EXTENSION" type="ulad:HMDA_RACE_DESIGNATION_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpURLA_TOTAL_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="URLA_TOTAL_EXTENSION" type="ulad:URLA_TOTAL_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpQUALIFICATION_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="QUALIFICATION_EXTENSION" type="ulad:QUALIFICATION_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:group name="grpLANGUAGE_EXTENSION">
+        <xsd:sequence>
+            <xsd:element name="LANGUAGE_EXTENSION" type="ulad:LANGUAGE_EXTENSION"/>
+        </xsd:sequence>
+    </xsd:group>
+</xsd:schema>
